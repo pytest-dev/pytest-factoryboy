@@ -1,0 +1,1168 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"fa",
+				"factory_class	param"
+			],
+			[
+				"Att",
+				"AttributeError	class"
+			],
+			[
+				"new",
+				"new_merchant	statement"
+			],
+			[
+				"Ful",
+				"FulfillmentType"
+			],
+			[
+				"Cu",
+				"CustomFulfillmentFactory	class"
+			],
+			[
+				"ful",
+				"fulfillment	module"
+			],
+			[
+				"crea",
+				"create_cost_profile	function"
+			],
+			[
+				"Eve",
+				"EventPersonalizationConfiguration	class"
+			],
+			[
+				"post",
+				"postal_zip"
+			],
+			[
+				"stat",
+				"status_code"
+			],
+			[
+				"Loca",
+				"LocationFactory	class"
+			],
+			[
+				"Pa",
+				"PaymentMethod	class"
+			],
+			[
+				"payment",
+				"payment_method	param"
+			],
+			[
+				"Se",
+				"SelfAttribute	class"
+			],
+			[
+				"merchan",
+				"merchant_data	statement"
+			],
+			[
+				"BAD",
+				"BAD_REQUEST	statement"
+			],
+			[
+				"Fro",
+				"FrontofficeFeeDefaultMerchant	class"
+			],
+			[
+				"time",
+				"timedelta	class"
+			],
+			[
+				"point",
+				"point_of_sale	statement"
+			],
+			[
+				"get",
+				"generate_batch	function"
+			],
+			[
+				"po",
+				"points_of_sale	statement"
+			],
+			[
+				"Po",
+				"PointOfSale	class"
+			],
+			[
+				"create",
+				"create_batch"
+			],
+			[
+				"M",
+				"MerchantFulfillment	class"
+			],
+			[
+				"Me",
+				"MerchantDefaultsPaymentMethod	class"
+			],
+			[
+				"pa",
+				"payment_methods	statement"
+			],
+			[
+				"fac",
+				"factory"
+			],
+			[
+				"me",
+				"methods	param"
+			],
+			[
+				"Mer",
+				"MerchantPaymentMethod	class"
+			],
+			[
+				"Pro",
+				"ProductFactory	class"
+			],
+			[
+				"app",
+				"application	param"
+			],
+			[
+				"S",
+				"Sequence	class"
+			],
+			[
+				"cre",
+				"create_merchant_initial_data	function"
+			],
+			[
+				"c",
+				"create_initial_data	import"
+			],
+			[
+				"cr",
+				"create_initial_data	module"
+			],
+			[
+				"getar",
+				"getargspec	function"
+			],
+			[
+				"F",
+				"FuzzyChoice	class"
+			],
+			[
+				"Fuz",
+				"FuzzyAttribute	class"
+			],
+			[
+				"Di",
+				"DictFactory	class"
+			],
+			[
+				"Tra",
+				"TranslationFactory	class"
+			],
+			[
+				"Fu",
+				"FuzzyText	class"
+			],
+			[
+				"Su",
+				"SubFactory	class"
+			],
+			[
+				"Base",
+				"BaseFuzzyAttribute	class"
+			],
+			[
+				"Da",
+				"Date	class"
+			],
+			[
+				"I",
+				"Integer	class"
+			],
+			[
+				"Fac",
+				"FactoryMetaClass	class"
+			],
+			[
+				"from",
+				"from_amount	function"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/Users/oleg/Documents/work/pytest-factoryboy/tests/test_factory_fixtures.py",
+			"settings":
+			{
+				"buffer_size": 437,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/oleg/Documents/work/pytest-factoryboy/setup.py",
+			"settings":
+			{
+				"buffer_size": 2628,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/oleg/Documents/work/pytest-factoryboy/CHANGES.rst",
+			"settings":
+			{
+				"buffer_size": 0,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "import sys\nimport inspect\nfrom types import CodeType\n\nimport factory\nimport pytest\nimport six\n\n\nSEPARATOR = \"__\"\n\n\ndef register(factory_class, name):\n    \"\"\"Register fixtures for the factory class.\n\n    :param factory_class: Class of the factory.\n    :param name: Name of the object fixture for this class.\n    \"\"\"\n    module = get_caller_module()\n\n    dependencies = []\n    for attr, value in factory_class.declarations({}):\n        key = SEPARATOR.join(name, attr)\n        dependencies.append(key)\n\n    @pytest.fixture\n    def attr_fixture(request):\n        if isinstance(value, (factory.SubFactory, factory.RelatedFactory )):\n\n\n    @pytest.fixture\n    def factory_fixture():\n        return factory_class\n\n    contribute_to_module(module, name, factory_fixture)\n\n    @pytest.fixture\n    def model_fixture():\n        return factory_class(locals())\n\n    contribute_to_module(module, name, model_fixture, add_args=dependencies)\n\n\ndef recreate_function(func, module=None, name=None, add_args=[], firstlineno=None):\n    \"\"\"Recreate a function, replacing some info.\n\n    :param func: Function object.\n    :param module: Module to contribute to.\n    :param add_args: Additional arguments to add to the function.\n\n    :return: Function copy.\n    \"\"\"\n    def get_code(func):\n        return func.__code__ if six.PY3 else func.func_code\n\n    def set_code(func, code):\n        if six.PY3:\n            func.__code__ = code\n        else:\n            func.func_code = code\n\n    argnames = [\n        \"co_argcount\", \"co_nlocals\", \"co_stacksize\", \"co_flags\", \"co_code\", \"co_consts\", \"co_names\",\n        \"co_varnames\", \"co_filename\", \"co_name\", \"co_firstlineno\", \"co_lnotab\", \"co_freevars\", \"co_cellvars\",\n    ]\n    if six.PY3:\n        argnames.insert(1, \"co_kwonlyargcount\")\n\n    for arg in inspect.getargspec(func).args:\n        if arg in add_args:\n            add_args.remove(arg)\n\n    args = []\n    code = get_code(func)\n    for arg in argnames:\n        if module is not None and arg == \"co_filename\":\n            args.append(module.__file__)\n        elif name is not None and arg == \"co_name\":\n            args.append(name)\n        elif arg == \"co_argcount\":\n            args.append(getattr(code, arg) + len(add_args))\n        elif arg == \"co_varnames\":\n            co_varnames = getattr(code, arg)\n            args.append(co_varnames[:code.co_argcount] + tuple(add_args) + co_varnames[code.co_argcount:])\n        elif arg == \"co_firstlineno\":\n            args.append(firstlineno if firstlineno else 1)\n        else:\n            args.append(getattr(code, arg))\n\n    set_code(func, CodeType(*args))\n    if name is not None:\n        func.__name__ = name\n    return func\n\n\ndef contribute_to_module(module, name, func, add_args=[]):\n    \"\"\"Contribute a function to a module.\n\n    :param module: Module to contribute to.\n    :param name: Attribute name.\n    :param func: Function object.\n    :param add_args: Additional arguments to add to the function.\n\n    :return: New function copy contributed to the module\n    \"\"\"\n    func = recreate_function(func, module=module, add_args=add_args)\n    setattr(module, name, func)\n    return func\n\n\ndef get_caller_module(depth=2):\n    \"\"\"Get the module of the caller.\"\"\"\n    frame = sys._getframe(depth)\n    module = inspect.getmodule(frame)\n    if module is None:\n        return get_caller_module(depth=depth)\n    return module\n",
+			"file": "fixture.py",
+			"file_size": 3304,
+			"file_write_time": 130720218630000000,
+			"settings":
+			{
+				"buffer_size": 3352,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 392.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"Install",
+				"Package Control: Install Package"
+			],
+			[
+				"pack",
+				"Package Control: Install Package"
+			],
+			[
+				"Insta",
+				"Package Control: Install Package"
+			],
+			[
+				"rst",
+				"Set Syntax: reStructuredText"
+			]
+		],
+		"width": 458.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/oleg/Documents/work/pytest-factoryboy",
+		"/Users/oleg/Documents/work/pytest-factoryboy/pytest_factoryboy",
+		"/Users/oleg/Documents/work/pytest-factoryboy/tests"
+	],
+	"file_history":
+	[
+		"/Users/oleg/Documents/work/pytest-factoryboy/pytest_factoryboy/__init__.py",
+		"/Users/oleg/Library/Application Support/Sublime Text 3/Packages/User/Anaconda.sublime-settings",
+		"/Users/oleg/Library/Application Support/Sublime Text 3/Packages/Anaconda/Anaconda.sublime-settings",
+		"/Users/oleg/Documents/work/pytest-factoryboy/AUTHORS.rst",
+		"/Users/oleg/Documents/work/pytest-factoryboy/README.rst",
+		"/Users/oleg/Documents/work/paylogic/env/lib/python2.7/site-packages/halogen/schema.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/merchant/test_copy_frontoffice_fee.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/backoffice/modules/events/views/copyevent.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/bizlogic/servicecosts/frontoffice/models.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/bizlogic/servicecosts/ticketware/models.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/bizlogic/servicecosts/primera/models.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/sales_configuration/models.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/bizlogic/servicecosts/retailer/models.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/backoffice/modules/leads/utils.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/merchant/test_copy_fulfillment_fee.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/bizlogic/servicecosts/fulfillment/models.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/pta/pta/paymentmethod/get/test_get.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/pta/pta/paymentmethod/quotes/test_quotes.py",
+		"/Users/oleg/Documents/work/paylogic/tests/functional/backoffice/costs/test_frontoffice_fee.py",
+		"/Users/oleg/Documents/work/paylogic/features/costs/frontoffice_fee_backoffice.feature",
+		"/Users/oleg/Documents/work/paylogic/tests/functional/backoffice/costs/given.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/fulfillment/models.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/shoppingservice/resources/order/post/test_post.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/factories/merchant.py",
+		"/Users/oleg/Documents/work/paylogic/env/lib/python2.7/site-packages/factory/containers.py",
+		"/Users/oleg/Documents/work/paylogic/env/lib/python2.7/site-packages/factory/__init__.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/factories/app.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/factories/fulfillment.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/order/models.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/order/api.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/seating/service/test_api.py",
+		"/Users/oleg/Documents/work/paylogic/testhelpers/helpers/common.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/common/models.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/event/models.py",
+		"/Users/oleg/Documents/work/paylogic/features/costs/consumer_pays_paylogic_fee.feature",
+		"/Users/oleg/Documents/work/paylogic/docs/development/database-migrations.rst",
+		"/Users/oleg/Documents/work/paylogic/paylogic/core/types.py",
+		"/Users/oleg/Documents/work/paylogic/testhelpers/pltest.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/payment/models.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/factories/product.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/shoppingservice/test_demo_data.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/factories/event.py",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/scripts/create_demo_data.py",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/scripts/demo_data_example.yml",
+		"/Users/oleg/Documents/work/paylogic/paylogic/alembic/versions/299a70e742cb_c33953.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/alembic/versions/2fb6da9cd0bd_c34034.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/pta/pta/paymentmethod/filter/test_filter.py",
+		"/Users/oleg/Documents/work/paylogic/DEPENDENCIES",
+		"/Users/oleg/Documents/work/paylogic/tests/deployment/test_bdist.py",
+		"/Users/oleg/Documents/work/paylogic/TEST-results-javascript.xml",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/fulfillment/test_eticket_seating.py",
+		"/Users/oleg/Documents/work/paylogic/testhelpers/data/two_entries.csv",
+		"/Users/oleg/Documents/work/paylogic/paylogic/cron/download_eticket_reminder.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/1.sql",
+		"/Users/oleg/Documents/work/paylogic/paylogic/factories/pointofsale.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/factories/location.py",
+		"/Users/oleg/Documents/work/paylogic/node_modules/karma/node_modules/log4js/examples/patternLayout-tokens.js",
+		"/Users/oleg/Documents/work/paylogic/features/ticketware/product_list.feature",
+		"/Users/oleg/Documents/work/paylogic/package.json",
+		"/Users/oleg/Documents/work/paylogic/Makefile",
+		"/Users/oleg/Documents/work/paylogic/paylogic/reporting/sql/merchant-sales-dashboard-knsb.sql",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/.bin/mkdirp",
+		"/Users/oleg/Documents/work/paylogic/node_modules/karma/node_modules/optimist/node_modules/minimist/test/default_bool.js",
+		"/Users/oleg/Documents/work/paylogic/env/lib/python2.7/site-packages/setuptools/tests/test_sandbox.py",
+		"/Users/oleg/Documents/work/paylogic/env/lib/python2.7/site-packages/html5lib/tests/test_sanitizer.py",
+		"/Users/oleg/Documents/work/paylogic/tests/functional/backoffice/reports/test_sales_overview.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/common/test_selector.py",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/scripts/sandbox/create_demo_data.py",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/scripts/sandbox/demo_data_example.yml",
+		"/Users/oleg/Documents/work/paylogic/features/eticket/create_eticket.feature",
+		"/Users/oleg/Documents/work/paylogic/features/query_params/custom_report.feature",
+		"/Users/oleg/Documents/work/paylogic/ci_build.sh",
+		"/Users/oleg/Documents/work/paylogic/env/lib/python2.7/site-packages/factory/helpers.py",
+		"/Users/oleg/Documents/work/paylogic/env/lib/python2.7/site-packages/factory/declarations.py",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/scripts/demo_settings.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/factories/personalization.py",
+		"/Users/oleg/Documents/work/paylogic/testhelpers/helpers/custom_fulfillment.py",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/scripts/sandbox/demo_dataexample.yml",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/scripts/sandbox/example.yml",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/event/test_details.py",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/shoppingservice/test_sandbox_data.py",
+		"/Users/oleg/Documents/work/paylogic/tests/functional/backoffice/fulfillment/given.py",
+		"/Users/oleg/Documents/work/paylogic/features/point_of_sale/create.feature",
+		"/Users/oleg/Documents/work/paylogic/features/account/create_account.feature",
+		"/Users/oleg/Documents/work/paylogic/testhelpers/initial_data.py",
+		"/Users/oleg/Documents/work/paylogic/node_modules/gulp-util/lib/isNull.js",
+		"/Users/oleg/Documents/work/paylogic/docs/index.rst",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/personalization/models.py",
+		"/Users/oleg/Documents/work/paylogic/node_modules/karma/node_modules/colors/example.html",
+		"/Users/oleg/Documents/work/paylogic/docs/external-resources.rst",
+		"/Users/oleg/Documents/work/paylogic/env/bin/elbadmin",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/location/models.py",
+		"/Users/oleg/Documents/work/paylogic/requirements-testing.txt",
+		"/Users/oleg/Documents/work/paylogic/requirements.txt",
+		"/Users/oleg/Documents/work/paylogic/paylogic/bizlogic/merchant/models.py",
+		"/Users/oleg/Documents/work/paylogic/requirements-docs.txt",
+		"/Users/oleg/Documents/work/paylogic/.phantomjs/1.9.7/phantomjs/examples/run-qunit.coffee",
+		"/Users/oleg/Documents/work/paylogic/tests/unit/shoppingservice/fixtures/event.py",
+		"/Users/oleg/Documents/work/paylogic/tests/functional/backoffice/admin/then.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/bizlogic/servicecosts/api.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/misc/models/payment_method_description.py",
+		"/Users/oleg/Documents/work/paylogic/pta/pta/ticket/api.py",
+		"/Users/oleg/Documents/work/paylogic/pta/pta/access/permissions.py",
+		"/Users/oleg/Documents/work/paylogic/testhelpers/helpers/location.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/service/product/models.py",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/scripts/sandbox/__init__.py",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/scripts/sandbox/create_initial_data.py",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/inquirer/node_modules/cli-color/node_modules/es5-ext/string/#/normalize/_data.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/inquirer/node_modules/cli-color/node_modules/es5-ext/test/string/#/normalize/_data.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/insight/node_modules/inquirer/node_modules/cli-color/node_modules/es5-ext/string/#/normalize/_data.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/request/node_modules/form-data/lib/form_data.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/bower-registry-client/node_modules/request/node_modules/form-data/lib/form_data.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/gulp-less/node_modules/less/node_modules/request/node_modules/form-data/lib/form_data.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/decompress-zip/node_modules/readable-stream/lib/_stream_transform.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/karma/node_modules/log4js/lib/date_format.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/inquirer/node_modules/rx/src/core/linq/observable/_observabletimerdateandperiod.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/decompress-zip/node_modules/readable-stream/lib/_stream_writable.js",
+		"/Users/oleg/Documents/work/paylogic/node_modules/bower/node_modules/mout/date/dayOfTheYear.js",
+		"/Users/oleg/Library/Application Support/Sublime Text 3/Packages/User/YAML.sublime-settings",
+		"/Users/oleg/Library/Application Support/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"/Users/oleg/Documents/work/paylogic/env/lib/python2.7/site-packages/pip/req/req_requirement.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/core/util/django_ext/management/commands/view.py",
+		"/Users/oleg/Documents/work/paylogic/shopping-service/shopping/server/resources/order/api.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/factories/order.py",
+		"/Users/oleg/Documents/work/paylogic/env/lib/python2.7/site-packages/boto/mws/response.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/privates/environment.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/privates/acl.py",
+		"/Users/oleg/Documents/work/paylogic/paylogic/privates/allpago.py"
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+			"-env/*, *.txt, *.py, *.rst, *.feature",
+			"-env/*, *.txt, *.py, *.rst",
+			"-env/*, *.txt, *.py",
+			"-env/*, *.txt, fixtures/*.py",
+			"-env/*, *.txt, *.py",
+			"-env/*, *.txt, fixtures/*.py",
+			"-env/*, *.txt, *.py",
+			"+env/*, *.txt, *.py",
+			"-env/*, *.txt, *.py",
+			"-env/*, *.txt, pta/*.py",
+			"-env/*, *.txt, tests/*.py",
+			"-env/*, *.txt, *.py",
+			"-env/*, *.txt",
+			"-env/*, *.py",
+			"-env/*, shopping/*.py",
+			"-env/*, *.txt",
+			"-env/*, *.py",
+			"-env/*, *.*",
+			"-env/*, *.json",
+			"-env/*, *.*"
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"recreate_function",
+			"class ProductQuantity(halogen.Schema)",
+			"keyerr",
+			"test_copy_frontoffice_fee_from_event_to_event",
+			"def frontoffice_fee_default_domain",
+			"test_copy_frontoffice_fee_from_event_to_event",
+			"mapping.get",
+			"copy_ptc_fee",
+			".copy_ptc_fee(",
+			"def copy_frontoffice_fee(",
+			"def frontoffice_fee_default_domain",
+			"test_copy_frontoffice_fee_from_event_to_event",
+			"test_with_one_product_two_combo_products",
+			"class PostalCostProfileDomain(Base):",
+			"session =",
+			"test_fo_fee_bo_service_cost_order_from_fixed_to_procentual",
+			"the frontoffice fee of the event is copied from the merchant's default fee",
+			"View copied frontoffice fee at event level",
+			"test_fo_fee_bo_view_fee_event_level",
+			"test_quote_no_dummy",
+			"test_copy_fulfillment_fee_from_event_to_event",
+			"copy_fulfillment_fee_from_domain_to_merchant",
+			"test_copy_fulfillment_fee_from_domain_to_merchant",
+			"'overrides'",
+			"PostalCostProfileDomain",
+			"test_copy_fulfillment_fee_from_merchant_to_event",
+			"test_copy_frontoffice_fee_from_merchant_to_event",
+			".query",
+			"copy_ptc_fee_from_domain_to_merchant",
+			"default_frontoffice_fee",
+			".default_frontoffice_fee",
+			".query",
+			"copy_ptc_fee_from_event_to_event",
+			"def copy_frontoffice_fee",
+			"test_is_archivable_with_archived_event",
+			"copy_fulfillment_fee_from_event_to_event",
+			"test_copy_fulfillment_fee_from_merchant_to_event",
+			"test_copy_frontoffice_fee_from_event_to_event",
+			"test_copy_frontoffice_fee_from_merchant_to_event",
+			"test_copy_frontoffice_fee_from_merchant_to_event ",
+			"merchant default consumer pays Paylogic fee",
+			"merchant default consumer pays Paylogic fee is True",
+			"Create event with different currency with merchant defaults",
+			"test_copy_frontoffice_fee_from_merchant_to_event",
+			"copy_frontoffice_fee",
+			"test_copy_frontoffice_fee_from_merchant_to_event",
+			"def venue_1_canceled_event",
+			"def event_state(",
+			"def create_test_event(",
+			"self.state.value == Event.EventState.CONSTRUCTION",
+			"class EventState",
+			"state =",
+			"class Event(",
+			"test_is_archivable_with_archived_event",
+			"with",
+			"tests/",
+			"live",
+			"test_quote_no_dummy",
+			"def cancel_order(",
+			"cancel",
+			"def cancel",
+			"class Order(",
+			"lower",
+			"__",
+			"name",
+			"attributeb",
+			"class Factor",
+			"class Factory(",
+			"import factory",
+			"299a70e742cb",
+			"alembic",
+			"No subsidiary fee found for merchant",
+			"demo",
+			"-d",
+			"command",
+			"mkdb",
+			"create_demo_data",
+			"create_demo",
+			"demo_data",
+			"mkdb(",
+			"create_demo_data",
+			"create_demo_data(",
+			"apply_sales_configuration",
+			"enable_custom_fulfillment_for_event(",
+			"trace",
+			"create_cost_profile(",
+			"create_cost_profiles(",
+			"create_custom_fulfillment_regions_countries",
+			"custom_",
+			"class Artist(",
+			"custom_ful",
+			"custom",
+			"create_multiple_tickets",
+			"create_test_pro",
+			"personal",
+			"custom",
+			"uses_custom_fulfillment",
+			"cust",
+			"uses_ticket_personalization",
+			"person",
+			"personal",
+			"uses_ticket_personalization",
+			"def create_demo_data",
+			"create_demo_data",
+			"event_for",
+			"_scan_start",
+			"Guestlist Second Test Merchant",
+			"create_new_profile",
+			"demo",
+			"mkdb",
+			"self.vat_rate = coalesce(vat_rate, getattr(self.merchant",
+			"app_data",
+			"role",
+			"app",
+			"class merchant(",
+			"class merchant",
+			"self.vat_rate = coalesce(vat_rate, getattr(self.mercha",
+			"country",
+			"facto",
+			"fake",
+			"faker=",
+			"faker",
+			"def event_uri(",
+			"def point_of_sale_groups",
+			"def event_uri(",
+			"seat",
+			"def point_of_sale_groups",
+			"pos.groups"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 3,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/Users/oleg/Documents/work/pytest-factoryboy/tests/test_factory_fixtures.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 437,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								38,
+								38
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/Users/oleg/Documents/work/pytest-factoryboy/setup.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2628,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2349,
+								2349
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 612.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/Users/oleg/Documents/work/pytest-factoryboy/CHANGES.rst",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 0,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/RestructuredText Improved/reStructuredText Improved.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "fixture.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3352,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								616,
+								616
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 49.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 33.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "pytest_factoryboy.sublime-project",
+	"replace":
+	{
+		"height": 42.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"tests/unit/merchant/test_copy_frontoffice_fee.py",
+				"tests/unit/merchant/test_copy_frontoffice_fee.py"
+			],
+			[
+				"events/views/copyevent.py",
+				"paylogic/backoffice/modules/events/views/copyevent.py"
+			],
+			[
+				"paymentmethod/get/test_get.py",
+				"tests/unit/pta/pta/paymentmethod/get/test_get.py"
+			],
+			[
+				"lead/utils.py",
+				"paylogic/backoffice/modules/leads/utils.py"
+			],
+			[
+				"modules/leads/utils.py",
+				"paylogic/backoffice/modules/leads/utils.py"
+			],
+			[
+				"test_copy_frontoffice_fee",
+				"tests/unit/merchant/test_copy_frontoffice_fee.py"
+			],
+			[
+				"2fb6da9cd0bd",
+				"paylogic/alembic/versions/2fb6da9cd0bd_c34034.py"
+			],
+			[
+				"versions/299a70e742cb_c33953.py",
+				"paylogic/alembic/versions/299a70e742cb_c33953.py"
+			],
+			[
+				"demo_da",
+				"shopping-service/shopping/scripts/demo_data_example.yml"
+			],
+			[
+				"demo",
+				"shopping-service/shopping/scripts/create_demo_data.py"
+			],
+			[
+				"test_demo",
+				"tests/unit/shoppingservice/test_demo_data.py"
+			],
+			[
+				"demo_data",
+				"shopping-service/shopping/scripts/demo_data_example.yml"
+			],
+			[
+				"1.sq",
+				"paylogic/1.sql"
+			],
+			[
+				"299a70e742cb_c33953",
+				"paylogic/alembic/versions/299a70e742cb_c33953.py"
+			],
+			[
+				"pltest",
+				"testhelpers/pltest.py"
+			],
+			[
+				"test_sandb",
+				"env/lib/python2.7/site-packages/setuptools/tests/test_sandbox.py"
+			],
+			[
+				"create_demo",
+				"shopping-service/shopping/scripts/sandbox/create_demo_data.py"
+			],
+			[
+				"test_san",
+				"tests/unit/shoppingservice/test_sandbox_data.py"
+			],
+			[
+				"initia",
+				"testhelpers/initial_data.py"
+			],
+			[
+				"create_de",
+				"shopping-service/shopping/scripts/sandbox/create_demo_data.py"
+			],
+			[
+				"test_sand",
+				"tests/unit/shoppingservice/test_sandbox_data.py"
+			],
+			[
+				"initial_data",
+				"testhelpers/initial_data.py"
+			],
+			[
+				"create_dem",
+				"shopping-service/shopping/scripts/create_demo_data.py"
+			],
+			[
+				"service/payment/models.py",
+				"paylogic/service/payment/models.py"
+			],
+			[
+				"example.yml",
+				"shopping-service/shopping/scripts/sandbox/example.yml"
+			],
+			[
+				"require",
+				"requirements-testing.txt"
+			],
+			[
+				"requirement",
+				"requirements.txt"
+			],
+			[
+				"test_sa",
+				"tests/unit/shoppingservice/test_sandbox_data.py"
+			],
+			[
+				"paylogic/privates/environment.py",
+				"paylogic/privates/environment.py"
+			],
+			[
+				"privates/environment.py",
+				"paylogic/privates/environment.py"
+			],
+			[
+				"init",
+				"testhelpers/initial_data.py"
+			],
+			[
+				"initial",
+				"testhelpers/initial_data.py"
+			],
+			[
+				"pta/access/",
+				"pta/pta/access/__init__.py"
+			],
+			[
+				"pta/order",
+				"pta/pta/order/api.py"
+			],
+			[
+				"demoda",
+				"shopping-service/shopping/scripts/create_demo_data.py"
+			],
+			[
+				"initi",
+				"testhelpers/initial_data.py"
+			],
+			[
+				"initial_",
+				"testhelpers/initial_data.py"
+			],
+			[
+				"statsd",
+				"paylogic/core/statsd_client.py"
+			],
+			[
+				"alembic/py",
+				"paylogic/alembic/versions/130c36ffe302_c32982.py"
+			],
+			[
+				"sales_con",
+				"paylogic/service/sales_configuration/models.py"
+			],
+			[
+				"sandbox/",
+				"shopping-service/shopping/scripts/sandbox/create_initial_data.py"
+			],
+			[
+				"testhelpers/helpers/common.py",
+				"testhelpers/helpers/common.py"
+			],
+			[
+				"core/statsd_client.py",
+				"paylogic/core/statsd_client.py"
+			],
+			[
+				"pay/models",
+				"paylogic/multicurrency/models.py"
+			],
+			[
+				".npmr",
+				".npmrc"
+			],
+			[
+				"core/__",
+				"paylogic/core/__init__.py"
+			],
+			[
+				"manage.p",
+				"shopping-service/manage.py"
+			],
+			[
+				"frontoffice/handlers/tickets.py",
+				"paylogic/frontoffice/handlers/tickets.py"
+			],
+			[
+				"order.rst",
+				"shopping-service/docs/resources/order.rst"
+			],
+			[
+				"wizard/tickets.html",
+				"paylogic/templates/frontoffice/wizard/tickets.html"
+			],
+			[
+				"handlers/ticket",
+				"paylogic/frontoffice/handlers/tickets.py"
+			],
+			[
+				"makefile",
+				"Makefile"
+			],
+			[
+				"shopping-service/setup.py",
+				"shopping-service/setup.py"
+			],
+			[
+				"make",
+				"Makefile"
+			],
+			[
+				"shoppi/set",
+				"shopping-service/setup.py"
+			],
+			[
+				"setup",
+				"setup.py"
+			],
+			[
+				"pta/poli",
+				"pta/pta/access/policy.py"
+			],
+			[
+				"log.p",
+				"paylogic/core/log.py"
+			],
+			[
+				"privates/da",
+				"paylogic/privates/database.py"
+			],
+			[
+				"pta/trans",
+				"pta/pta/transaction.py"
+			],
+			[
+				"order/post/test_post.p",
+				"tests/unit/shoppingservice/resources/order/post/test_post.py"
+			],
+			[
+				"pta/order/ap",
+				"pta/pta/order/api.py"
+			],
+			[
+				"order/post",
+				"shopping-service/shopping/server/resources/order/post.py"
+			],
+			[
+				"change.",
+				"change.log"
+			],
+			[
+				"reload",
+				"tests/functional/ticketware/retailer/test_reload.py"
+			],
+			[
+				"test/bill/",
+				"tests/unit/bill/__init__.py"
+			],
+			[
+				"bill/pro",
+				"paylogic/service/bill/product.py"
+			],
+			[
+				"karma.conf.js",
+				"karma.conf.js"
+			],
+			[
+				"chart",
+				"tests/javascript/peaksale_dashboard/ChartController.spec.coffee"
+			],
+			[
+				"packa",
+				"package.json"
+			],
+			[
+				"bowe",
+				"paylogic/backoffice/bower.json"
+			],
+			[
+				".spec.",
+				"tests/javascript/peaksale_dashboard/ChartController.spec.coffee"
+			],
+			[
+				"bower",
+				"paylogic/backoffice/bower.json"
+			],
+			[
+				"package",
+				"package.json"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 67.0,
+		"last_filter": "PostalCostProfileDomain",
+		"selected_items":
+		[
+			[
+				"PostalCostProfileDomain",
+				"PostalCostProfileDomain"
+			],
+			[
+				"TicketwareFee",
+				"TicketwareFee"
+			],
+			[
+				"EventState",
+				"EventState"
+			],
+			[
+				"Event",
+				"Event"
+			],
+			[
+				"Product",
+				"Product"
+			],
+			[
+				"PaymentMe",
+				"PaymentMethod"
+			],
+			[
+				"PaymentMeth",
+				"PaymentMethod"
+			],
+			[
+				"FrontofficeFeeDefaultMerchant",
+				"FrontofficeFeeDefaultMerchant"
+			],
+			[
+				"Merchant",
+				"Merchant"
+			],
+			[
+				"create_test_eve",
+				"create_test_event"
+			],
+			[
+				"Mercha",
+				"Merchant"
+			],
+			[
+				"PaymentMethod",
+				"PaymentMethod"
+			],
+			[
+				"Domain",
+				"Domain"
+			],
+			[
+				"Application",
+				"Application"
+			],
+			[
+				"FulfillmentType",
+				"FulfillmentType"
+			],
+			[
+				"Type",
+				"Type"
+			],
+			[
+				"Order",
+				"Order"
+			],
+			[
+				"ORder",
+				"Order"
+			]
+		],
+		"width": 808.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 260.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
