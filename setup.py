@@ -47,7 +47,7 @@ long_description = (
 
 setup(
     name="pytest-factoryboy",
-    description="Factory boy support for PyTest.",
+    description="Factory Boy support for pytest.",
     long_description=long_description,
     author="Oleg Pidsadnyi, Anatoly Bubenkov and others",
     license="MIT license",
@@ -70,11 +70,12 @@ setup(
     cmdclass={"test": ToxTestCommand},
     install_requires=[
         "six",
+        "factory_boy",
     ],
     # the following makes a plugin available to py.test
     entry_points={
         "pytest11": [
-            "pytest-bdd = pytest_bdd.plugin",
+            "pytest-factoryboy = pytest_factoryboy.plugin",
         ],
     },
     tests_require=["tox"],

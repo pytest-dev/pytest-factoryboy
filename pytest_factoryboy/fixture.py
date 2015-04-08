@@ -1,3 +1,4 @@
+"""Factory boy fixture integration."""
 import re
 import sys
 import inspect
@@ -40,6 +41,7 @@ def register(factory_class):
 
     contribute_to_module(module, factory_name, make_factory_fixture(factory_class))
     contribute_to_module(module, model_name, make_model_fixture(factory_name), add_args=deps)
+    return factory_class
 
 
 def get_model_name(factory_class):
