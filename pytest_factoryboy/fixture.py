@@ -182,7 +182,7 @@ def contribute_to_module(module, name, func, add_args=[]):
 
     :return: New function copy contributed to the module
     """
-    func = recreate_function(func, module=module, add_args=add_args)
+    func = recreate_function(func, module=module, add_args=add_args, name=name)
     setattr(module, name, func)
     return func
 
