@@ -1,19 +1,15 @@
 """Factory boy fixture integration."""
-import re
 import sys
 import inspect
 from types import CodeType
 
 import factory
+import inflection
 import pytest
 import six
 
 
 SEPARATOR = "__"
-
-
-def to_underscore(value):
-    return re.sub("(?!^)([A-Z]+)", r"_\1", value).lower()
 
 
 def register(factory_class):
@@ -45,11 +41,11 @@ def register(factory_class):
 
 
 def get_model_name(factory_class):
-    return to_underscore(factory_class._meta.model.__name__)
+    return inflection.underscore(factory_class._meta.model.__name__)
 
 
 def get_factory_name(factory_class):
-    return to_underscore(factory_class.__name__)
+    return inflection.underscore(factory_class.__name__)
 
 
 def get_deps(factory_class, parent_factory_class=None):
@@ -112,7 +108,7 @@ def make_attr_fixture(value):
 
 
 def make_subfactory_fixture(factory_class):
-    fixture = to_underscore(factory_class._meta.model.__name__)
+    fixture = inflection.underscore(factory_class._meta.model.__name__)
 
     @pytest.fixture
     def subfactory_fixture(request):
