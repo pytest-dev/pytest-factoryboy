@@ -9,3 +9,7 @@ env:
 install:
 - pip install tox
 script: tox -e $TESTENV
+notifications:
+    email:
+        - bubenkoff@gmail.com
+        - oleg.pidsadnyi@gmail.com
