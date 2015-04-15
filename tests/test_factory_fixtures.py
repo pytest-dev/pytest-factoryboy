@@ -9,9 +9,8 @@ class Book(object):
 
     """Book model."""
 
-    editions = []
-
     def __init__(self, name=None, price=None, author=None):
+        self.editions = []
         self.name = name
         self.price = price
         self.author = author
@@ -79,7 +78,6 @@ def test_factory(book_factory):
     assert book_factory == BookFactory
 
 
-@pytest.mark.xfail
 def test_model(book):
     """Test model fixture."""
     assert book.name == "Alice in Wonderland"
@@ -105,7 +103,6 @@ def test_attr(book__name, book__price, author__name, edition__year):
 @pytest.mark.parametrize("book__price", [1.0])
 @pytest.mark.parametrize("author__name", ["Bill Gates"])
 @pytest.mark.parametrize("edition__year", [2000])
-@pytest.mark.xfail
 def test_parametrized(book):
     """Test model factory fixture."""
     assert book.name == "PyTest for Dummies"
