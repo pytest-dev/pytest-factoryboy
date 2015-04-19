@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.0.2
+-----
+
+- refactoring of the fixture function compilation (olegpidsadnyi)
+- related factory fix (olegpidsadnyi)
+
 1.0.1
 -----
 
@@ -9,4 +15,4 @@ Changelog
 1.0.0
 -----
 
-- initial release
+- initial release (olegpidsadnyi)
