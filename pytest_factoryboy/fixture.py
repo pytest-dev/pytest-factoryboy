@@ -115,7 +115,7 @@ def model_fixture(request, factory_name):
         pass
 
     related_factories = []
-    for attr, value in Factory._meta.postgen_declarations.items():
+    for attr, value in dict(Factory._meta.postgen_declarations).items():
         if isinstance(value, factory.RelatedFactory):
             related_factories.append(value)
             Factory._meta.postgen_declarations.pop(attr)
