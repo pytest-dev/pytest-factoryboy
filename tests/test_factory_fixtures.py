@@ -111,6 +111,7 @@ def test_model(book):
     assert book.name == "Alice in Wonderland"
     assert book.price == 3.99
     assert book.author.name == "Charles Dickens"
+    assert book.author.user is None
     assert book.editions[0].year == 1999
     assert book.editions[0].book == book
 

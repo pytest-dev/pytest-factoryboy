@@ -7,6 +7,7 @@ Changelog
 - refactoring of the fixture function compilation (olegpidsadnyi)
 - related factory fix (olegpidsadnyi)
 - post_generation fixture dependency fixed (olegpidsadnyi)
+- README updated (olegpidsadnyi)
 
 1.0.1
 -----

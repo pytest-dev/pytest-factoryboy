@@ -65,7 +65,7 @@ def register(factory_class):
                 name=attr_name,
                 module=module,
                 func=attr_fixture,
-                value=value,
+                value=value if not isinstance(value, factory.declarations.PostGeneration) else None,
             )
     make_fixture(
         name=factory_name,
@@ -152,5 +152,5 @@ def get_caller_module(depth=2):
     frame = sys._getframe(depth)
     module = inspect.getmodule(frame)
     if module is None:
-        return get_caller_module(depth=depth)
+        return get_caller_module(depth=depth)  # pragma: no cover
     return module

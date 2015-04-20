@@ -25,8 +25,99 @@ Install pytest-factoryboy
 
     pip install pytest-factoryboy
 
-Example
+
+Concept
 -------
+
+Library exports a function to register factories as fixtures. Fixtures are contributed
+to the same module where register function is called.
+
+Factory Fixture
+---------------
+
+Factory fixtures allow using factories without importing them. Name convention is lowercase-underscore
+class name.
+
+.. code-block:: python
+
+    import factory
+
+    class AuthorFactory(Factory):
+
+        class Meta:
+            model = Author
+
+
+    register(Author)
+
+
+    def test_factory_fixture(author_factory):
+        author = author_fixture(name="Charles Dickens")
+        assert author.name == "Charles Dickens"
+
+
+Model Fixture
+-------------
+
+Model fixture implements an instance of a model created by the factory. Name convention is lowercase-underscore
+class name.
+
+
+.. code-block:: python
+
+    import factory
+
+    class AuthorFactory(Factory):
+
+        class Meta:
+            model = Author
+
+        name = "Charles Dickens"
+
+
+    register(Author)
+
+
+    def test_model_fixture(author):
+        assert author.name == "Charles Dickens"
+
+
+Attribute Fixture
+-----------------
+
+There are fixtures created for factory attributes. Attribute names are prefixed with the model fixture name and
+double underscore (similar to factory boy convention).
+
+
+.. code-block:: python
+
+    @pytest.mark.parametrized("author__name", ["Bill Gates"])
+    def test_model_fixture(author):
+        assert author.name == "Bill Gates"
+
+SubFactory
+----------
+
+Sub-factory attribute points to the model fixture of the sub-factory.
+Attributes of sub-factories are injected as dependencies to the model fixture and can be overridden in
+the parametrization.
+
+Related Factory
+---------------
+
+Related factory attribute points to the model fixture of the related factory.
+Attributes of related factories are injected as dependencies to the model fixture and can be overridden in
+the parametrization.
+
+
+post-generation
+---------------
+
+Post-generation attribute fixture implements only the extracted value for the post generation function.
+
+
+Integration
+-----------
 
 An example of factory_boy_ and pytest_ integration.
 
@@ -93,6 +184,7 @@ tests/test_models.py:
         """You can set any factory attribute as a fixture using naming convention."""
         assert book.name == "PyTest for Dummies"
         assert book.author.name == "Bill Gates"
+
 
 License
 -------
