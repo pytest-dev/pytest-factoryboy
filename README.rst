@@ -17,6 +17,8 @@ heart of the `pytest fixtures`_.
 .. _factory_boy: http://factoryboy.readthedocs.org
 .. _pytest: http://pytest.org
 .. _pytest fixtures: https://pytest.org/latest/fixture.html
+.. _overridden: http://pytest.org/latest/fixture.html#override-a-fixture-with-direct-test-parametrization
+
 
 Install pytest-factoryboy
 -------------------------
@@ -25,8 +27,119 @@ Install pytest-factoryboy
 
     pip install pytest-factoryboy
 
-Example
+
+Concept
 -------
+
+Library exports a function to register factories as fixtures. Fixtures are contributed
+to the same module where register function is called.
+
+Factory Fixture
+---------------
+
+Factory fixtures allow using factories without importing them. Name convention is lowercase-underscore
+class name.
+
+.. code-block:: python
+
+    import factory
+
+    class AuthorFactory(Factory):
+
+        class Meta:
+            model = Author
+
+
+    register(Author)
+
+
+    def test_factory_fixture(author_factory):
+        author = author_fixture(name="Charles Dickens")
+        assert author.name == "Charles Dickens"
+
+
+Model Fixture
+-------------
+
+Model fixture implements an instance of a model created by the factory. Name convention is lowercase-underscore
+class name.
+
+
+.. code-block:: python
+
+    import factory
+    from pytest_factoryboy import register
+
+    @register
+    class AuthorFactory(Factory):
+
+        class Meta:
+            model = Author
+
+        name = "Charles Dickens"
+
+
+    def test_model_fixture(author):
+        assert author.name == "Charles Dickens"
+
+
+Model fixtures can be registered with specific names. For example if you address instances of some collection
+by the name like "first", "second" or of another parent as "other":
+
+
+.. code-block:: python
+
+    register(BookFactory)  # book
+    register(BookFactory, name="second_book")  # second_book
+
+    register(AuthorFactory) # author
+    register(AuthorFactory, name="second_author") # second_author
+
+    register(BookFactory, name="other_book")  # other_book, book of another author
+
+    @pytest.fixture
+    def other_book__author(second_author):
+        """Make the relation of the second_book to another (second) author."""
+        return second_author
+
+
+
+Attributes are Fixtures
+-----------------------
+
+There are fixtures created for factory attributes. Attribute names are prefixed with the model fixture name and
+double underscore (similar to factory boy convention).
+
+
+.. code-block:: python
+
+    @pytest.mark.parametrized("author__name", ["Bill Gates"])
+    def test_model_fixture(author):
+        assert author.name == "Bill Gates"
+
+SubFactory
+----------
+
+Sub-factory attribute points to the model fixture of the sub-factory.
+Attributes of sub-factories are injected as dependencies to the model fixture and can be overridden_ in
+the parametrization.
+
+Related Factory
+---------------
+
+Related factory attribute points to the model fixture of the related factory.
+Attributes of related factories are injected as dependencies to the model fixture and can be overridden_ in
+the parametrization.
+
+
+post-generation
+---------------
+
+Post-generation attribute fixture implements only the extracted value for the post generation function.
+
+
+Integration
+-----------
 
 An example of factory_boy_ and pytest_ integration.
 
@@ -93,6 +206,7 @@ tests/test_models.py:
         """You can set any factory attribute as a fixture using naming convention."""
         assert book.name == "PyTest for Dummies"
         assert book.author.name == "Bill Gates"
+
 
 License
 -------
