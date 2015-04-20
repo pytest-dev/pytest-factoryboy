@@ -97,8 +97,8 @@ def get_deps(factory_class, parent_factory_class=None):
     parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
     return [
         SEPARATOR.join((model_name, attr))
-        for attr in factory_class._meta.declarations
-        if attr != parent_model_name
+        for attr, value in factory_class.declarations(factory_class._meta.postgen_declarations).items()
+        if attr != parent_model_name and not isinstance(value, factory.RelatedFactory)
     ]
 
 
