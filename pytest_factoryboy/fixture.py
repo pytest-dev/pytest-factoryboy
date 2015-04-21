@@ -39,13 +39,17 @@ def make_fixture(name, module, func, args=None, **kwargs):
     return fixture
 
 
-def register(factory_class):
-    """Register fixtures for the factory class."""
+def register(factory_class, name=None):
+    """Register fixtures for the factory class.
+
+    :param factory_class: Factory class to register.
+    :param name: Name of the model fixture. By default is lowercase-underscored model name.
+    """
     module = get_caller_module()
-    model_name = get_model_name(factory_class)
+    model_name = get_model_name(factory_class) if name is None else name
     factory_name = get_factory_name(factory_class)
 
-    deps = get_deps(factory_class)
+    deps = get_deps(factory_class, model_name=model_name)
     for attr, value in factory_class.declarations(factory_class._meta.postgen_declarations).items():
         attr_name = SEPARATOR.join((model_name, attr))
 
@@ -67,12 +71,13 @@ def register(factory_class):
                 func=attr_fixture,
                 value=value if not isinstance(value, factory.declarations.PostGeneration) else None,
             )
-    make_fixture(
-        name=factory_name,
-        module=module,
-        func=factory_fixture,
-        factory_class=factory_class,
-    )
+    if not hasattr(module, factory_name):
+        make_fixture(
+            name=factory_name,
+            module=module,
+            func=factory_fixture,
+            factory_class=factory_class,
+        )
 
     make_fixture(
         name=model_name,
@@ -92,8 +97,12 @@ def get_factory_name(factory_class):
     return inflection.underscore(factory_class.__name__)
 
 
-def get_deps(factory_class, parent_factory_class=None):
-    model_name = get_model_name(factory_class)
+def get_deps(factory_class, parent_factory_class=None, model_name=None):
+    """Get factory dependencies.
+
+    :return: List of the fixture argument names for dependency injection.
+    """
+    model_name = get_model_name(factory_class) if model_name is None else model_name
     parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
     return [
         SEPARATOR.join((model_name, attr))
@@ -103,6 +112,7 @@ def get_deps(factory_class, parent_factory_class=None):
 
 
 def model_fixture(request, factory_name):
+    """Model fixture implementation."""
     factory_class = request.getfuncargvalue(factory_name)
     prefix = "".join((request.fixturename, SEPARATOR))
     data = {}
@@ -135,14 +145,17 @@ def model_fixture(request, factory_name):
 
 
 def factory_fixture(request, factory_class):
+    """Factory fixture implementation."""
     return factory_class
 
 
 def attr_fixture(request, value):
+    """Attribute fixture implementation."""
     return value
 
 
 def subfactory_fixture(request, factory_class):
+    """SubFactory/RelatedFactory fixture implementation."""
     fixture = inflection.underscore(factory_class._meta.model.__name__)
     return request.getfuncargvalue(fixture)
 

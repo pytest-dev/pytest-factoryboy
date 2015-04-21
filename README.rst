@@ -82,6 +82,27 @@ class name.
         assert author.name == "Charles Dickens"
 
 
+Model fixtures can be registered with specif names. For example if you address instances of some collection
+by name like "first", "second" or of another parent as "other":
+
+
+.. code-block:: python
+
+    register(BookFactory)  # book
+    register(BookFactory, name="second_book")  # second_book
+
+    register(AuthorFactory) # author
+    register(AuthorFactory, name="second_author") # second_author
+
+    register(BookFactory, name="other_book")  # other_book, book of another author
+
+    @pytest.fixture
+    def other_book__author(second_author):
+        """Make the relation of the second_book to another (second) author."""
+        return second_author
+
+
+
 Attribute Fixture
 -----------------
 

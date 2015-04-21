@@ -145,3 +145,13 @@ def test_parametrized(book):
 def test_post_generation(author):
     """Test post generation declaration."""
     assert author.user.username == "admin"
+
+
+register(AuthorFactory, name="second_author")
+
+
+@pytest.mark.parametrize("second_author__name", ["Mr. Hyde"])
+def test_second_author(author, second_author):
+    """Test factory registration with specific name."""
+    assert author != second_author
+    assert second_author.name == "Mr. Hyde"
