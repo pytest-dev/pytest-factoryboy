@@ -164,6 +164,7 @@ def get_caller_module(depth=2):
     """Get the module of the caller."""
     frame = sys._getframe(depth)
     module = inspect.getmodule(frame)
+    # Happens when there's no __init__.py in the folder
     if module is None:
         return get_caller_module(depth=depth)  # pragma: no cover
     return module

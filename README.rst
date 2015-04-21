@@ -17,6 +17,8 @@ heart of the `pytest fixtures`_.
 .. _factory_boy: http://factoryboy.readthedocs.org
 .. _pytest: http://pytest.org
 .. _pytest fixtures: https://pytest.org/latest/fixture.html
+.. _overridden: http://pytest.org/latest/fixture.html#override-a-fixture-with-direct-test-parametrization
+
 
 Install pytest-factoryboy
 -------------------------
@@ -66,7 +68,9 @@ class name.
 .. code-block:: python
 
     import factory
+    from pytest_factoryboy import register
 
+    @register
     class AuthorFactory(Factory):
 
         class Meta:
@@ -75,15 +79,12 @@ class name.
         name = "Charles Dickens"
 
 
-    register(Author)
-
-
     def test_model_fixture(author):
         assert author.name == "Charles Dickens"
 
 
-Model fixtures can be registered with specif names. For example if you address instances of some collection
-by name like "first", "second" or of another parent as "other":
+Model fixtures can be registered with specific names. For example if you address instances of some collection
+by the name like "first", "second" or of another parent as "other":
 
 
 .. code-block:: python
@@ -103,8 +104,8 @@ by name like "first", "second" or of another parent as "other":
 
 
 
-Attribute Fixture
------------------
+Attributes are Fixtures
+-----------------------
 
 There are fixtures created for factory attributes. Attribute names are prefixed with the model fixture name and
 double underscore (similar to factory boy convention).
@@ -120,14 +121,14 @@ SubFactory
 ----------
 
 Sub-factory attribute points to the model fixture of the sub-factory.
-Attributes of sub-factories are injected as dependencies to the model fixture and can be overridden in
+Attributes of sub-factories are injected as dependencies to the model fixture and can be overridden_ in
 the parametrization.
 
 Related Factory
 ---------------
 
 Related factory attribute points to the model fixture of the related factory.
-Attributes of related factories are injected as dependencies to the model fixture and can be overridden in
+Attributes of related factories are injected as dependencies to the model fixture and can be overridden_ in
 the parametrization.
 
 
