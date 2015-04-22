@@ -130,6 +130,7 @@ def model_fixture(request, factory_name):
             related_factories[attr] = value
             Factory._meta.postgen_declarations.pop(attr)
 
+    Factory._meta.exclude = [value for value in Factory._meta.exclude if value in data]
     result = Factory(**data)
 
     if related_factories:
