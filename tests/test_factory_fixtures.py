@@ -83,7 +83,7 @@ class BookFactory(factory.Factory):
     name = "Alice in Wonderland"
     price = factory.LazyAttribute(lambda f: 3.99)
     author = factory.SubFactory(AuthorFactory)
-    edition = factory.RelatedFactory("tests.test_factory_fixtures.EditionFactory", "book")
+    book_edition = factory.RelatedFactory("tests.test_factory_fixtures.EditionFactory", "book")
 
 
 class EditionFactory(factory.Factory):

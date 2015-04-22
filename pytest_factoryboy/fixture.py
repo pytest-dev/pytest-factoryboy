@@ -137,7 +137,7 @@ def model_fixture(request, factory_name):
         request._fixturedefs[request.fixturename] = request._fixturedef
 
         for attr, related_factory in related_factories.items():
-            request.getfuncargvalue(attr)
+            request.getfuncargvalue(prefix + attr)
 
     return result
 
