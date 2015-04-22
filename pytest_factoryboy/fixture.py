@@ -124,10 +124,10 @@ def model_fixture(request, factory_name):
     class Factory(factory_class):
         pass
 
-    related_factories = []
+    related_factories = {}
     for attr, value in dict(Factory._meta.postgen_declarations).items():
         if isinstance(value, factory.RelatedFactory):
-            related_factories.append(value)
+            related_factories[attr] = value
             Factory._meta.postgen_declarations.pop(attr)
 
     result = Factory(**data)
@@ -136,10 +136,8 @@ def model_fixture(request, factory_name):
         request._fixturedef.cached_result = (result, 0, None)
         request._fixturedefs[request.fixturename] = request._fixturedef
 
-        for related_factory in related_factories:
-            related_factory_class = related_factory.get_factory()
-            model_name = get_model_name(related_factory_class)
-            request.getfuncargvalue(prefix + model_name)
+        for attr, related_factory in related_factories.items():
+            request.getfuncargvalue(attr)
 
     return result
 
