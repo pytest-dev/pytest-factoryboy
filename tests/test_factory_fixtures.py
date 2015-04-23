@@ -1,8 +1,19 @@
 """Factory fixtures tests."""
+
 import factory
+from factory import fuzzy
 import pytest
 
 from pytest_factoryboy import register
+
+
+class User(object):
+
+    """User account."""
+
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
 
 
 class Book(object):
@@ -22,6 +33,7 @@ class Author(object):
 
     def __init__(self, name):
         self.name = name
+        self.user = None
 
 
 class Edition(object):
@@ -34,6 +46,16 @@ class Edition(object):
         book.editions.append(self)
 
 
+class UserFactory(factory.Factory):
+
+    """User factory."""
+
+    class Meta:
+        model = User
+
+    password = fuzzy.FuzzyText(length=7)
+
+
 @register
 class AuthorFactory(factory.Factory):
 
@@ -43,6 +65,12 @@ class AuthorFactory(factory.Factory):
         model = Author
 
     name = "Charles Dickens"
+
+    @factory.post_generation
+    def register_user(author, create, username, **kwargs):
+        """Register author as a user in the system."""
+        if username is not None:
+            author.user = UserFactory(username=username, **kwargs)
 
 
 class BookFactory(factory.Factory):
@@ -55,7 +83,7 @@ class BookFactory(factory.Factory):
     name = "Alice in Wonderland"
     price = factory.LazyAttribute(lambda f: 3.99)
     author = factory.SubFactory(AuthorFactory)
-    edition = factory.RelatedFactory("tests.test_factory_fixtures.EditionFactory", "book")
+    book_edition = factory.RelatedFactory("tests.test_factory_fixtures.EditionFactory", "book")
 
 
 class EditionFactory(factory.Factory):
@@ -83,6 +111,7 @@ def test_model(book):
     assert book.name == "Alice in Wonderland"
     assert book.price == 3.99
     assert book.author.name == "Charles Dickens"
+    assert book.author.user is None
     assert book.editions[0].year == 1999
     assert book.editions[0].book == book
 
@@ -110,3 +139,19 @@ def test_parametrized(book):
     assert book.author.name == "Bill Gates"
     assert len(book.editions) == 1
     assert book.editions[0].year == 2000
+
+
+@pytest.mark.parametrize("author__register_user", ["admin"])
+def test_post_generation(author):
+    """Test post generation declaration."""
+    assert author.user.username == "admin"
+
+
+register(AuthorFactory, name="second_author")
+
+
+@pytest.mark.parametrize("second_author__name", ["Mr. Hyde"])
+def test_second_author(author, second_author):
+    """Test factory registration with specific name."""
+    assert author != second_author
+    assert second_author.name == "Mr. Hyde"
