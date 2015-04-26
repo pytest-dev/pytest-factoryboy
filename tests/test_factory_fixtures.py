@@ -11,9 +11,10 @@ class User(object):
 
     """User account."""
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, is_active):
         self.username = username
         self.password = password
+        self.is_active = is_active
 
 
 class Book(object):
@@ -65,6 +66,8 @@ class AuthorFactory(factory.Factory):
         model = Author
 
     name = "Charles Dickens"
+
+    register_user__is_active = True
 
     @factory.post_generation
     def register_user(author, create, username, **kwargs):
@@ -145,6 +148,7 @@ def test_parametrized(book):
 def test_post_generation(author):
     """Test post generation declaration."""
     assert author.user.username == "admin"
+    assert author.user.is_active is True
 
 
 register(AuthorFactory, name="second_author")
