@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+- post_generation extra parameters fixed (olegpidsadnyi)
+
+
 1.0.2
 -----
 

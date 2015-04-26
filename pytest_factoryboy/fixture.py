@@ -121,24 +121,35 @@ def model_fixture(request, factory_name):
             data[argname[len(prefix):]] = request.getfuncargvalue(argname)
 
     class Factory(factory_class):
-        pass
+        @classmethod
+        def attributes(cls, create=False, extra=None):
+            return dict(
+                (key, value)
+                for key, value in super(Factory, cls).attributes(create=create, extra=extra).items()
+                if key in data
+            )
 
     Factory._meta.postgen_declarations = {}
     Factory._meta.exclude = [value for value in Factory._meta.exclude if value in data]
-    result = Factory(**data)
 
+    postgen_declarations = {}
+    postgen_declaration_args = {}
     if factory_class._meta.postgen_declarations:
+        for attr, declaration in sorted(factory_class._meta.postgen_declarations.items()):
+            postgen_declarations[attr] = declaration
+            postgen_declaration_args[attr] = declaration.extract(attr, data)
+
+    result = Factory(**data)
+    if postgen_declarations:
         request._fixturedef.cached_result = (result, 0, None)
         request._fixturedefs[request.fixturename] = request._fixturedef
-        postgen_declarations = {}
-        for attr, declaration in factory_class._meta.postgen_declarations.items():
+
+        for attr, declaration in postgen_declarations.items():
             if isinstance(declaration, factory.RelatedFactory):
                 request.getfuncargvalue(prefix + attr)
             else:
-                postgen_declarations[attr] = declaration
-
-        for attr, declaration in postgen_declarations.items():
-            declaration.function(result, True, request.getfuncargvalue(prefix + attr))
+                extra = postgen_declaration_args[attr].extra
+                declaration.function(result, True, request.getfuncargvalue(prefix + attr), **extra)
 
     return result
 
