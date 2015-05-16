@@ -43,18 +43,19 @@ class name.
 .. code-block:: python
 
     import factory
+    from pytest_factoryboy import register
 
-    class AuthorFactory(Factory):
+    class AuthorFactory(factory.Factory):
 
         class Meta:
             model = Author
 
 
-    register(Author)
+    register(AuthorFactory)
 
 
     def test_factory_fixture(author_factory):
-        author = author_fixture(name="Charles Dickens")
+        author = author_factory(name="Charles Dickens")
         assert author.name == "Charles Dickens"
 
 
