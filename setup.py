@@ -41,6 +41,7 @@ setup(
     install_requires=[
         "inflection",
         "factory_boy",
+        "pytest",
     ],
     # the following makes a plugin available to py.test
     entry_points={
