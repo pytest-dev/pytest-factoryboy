@@ -232,7 +232,15 @@ function call.
 
 
     @pytest.mark.parametrize("male_author__age", [42])  # Override even more
-    def test_partial(male_author, )
+    def test_partial(male_author, female_author):
+        """Test fixture partial specialization."""
+        assert male_author.gender == "M"
+        assert male_author.name == "John Doe"
+        assert male_author.age == 42
+
+        assert female_author.gender == "F"
+        assert female_author.name == "Jane Doe"
+
 
 
 License
