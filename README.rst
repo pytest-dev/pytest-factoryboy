@@ -90,12 +90,12 @@ by the name like "first", "second" or of another parent as "other":
 .. code-block:: python
 
     register(BookFactory)  # book
-    register(BookFactory, name="second_book")  # second_book
+    register(BookFactory, "second_book")  # second_book
 
     register(AuthorFactory) # author
-    register(AuthorFactory, name="second_author") # second_author
+    register(AuthorFactory, "second_author") # second_author
 
-    register(BookFactory, name="other_book")  # other_book, book of another author
+    register(BookFactory, "other_book")  # other_book, book of another author
 
     @pytest.fixture
     def other_book__author(second_author):
@@ -206,6 +206,32 @@ tests/test_models.py:
         """You can set any factory attribute as a fixture using naming convention."""
         assert book.name == "PyTest for Dummies"
         assert book.author.name == "Bill Gates"
+
+
+Fixture partial specialization
+------------------------------
+
+There is a possibility to pass keyword parameters in order to override factory attribute values during fixture
+registration. This comes in handy when your test case is requesting a lot of fixture flavors. Too much for the
+regular pytest parametrization.
+In this case you can register fixture flavors in the local test module and specify value deviations inside ``register``
+function call.
+
+
+.. code-block:: python
+
+    register(AuthorFactory, "male_author", gender="M", name="John Doe")
+    register(AuthorFactory, "female_author", gender="F")
+
+
+    @pytest.fixture
+    def female_author__name():
+        """Override female author name as a separate fixture."""
+        return "Jane Doe"
+
+
+    @pytest.mark.parametrize("male_author__age", [42])  # Override even more
+    def test_partial(male_author, )
 
 
 License
