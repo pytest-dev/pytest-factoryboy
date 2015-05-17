@@ -151,7 +151,7 @@ def test_post_generation(author):
     assert author.user.is_active is True
 
 
-register(AuthorFactory, name="second_author")
+register(AuthorFactory, "second_author")
 
 
 @pytest.mark.parametrize("second_author__name", ["Mr. Hyde"])
@@ -159,3 +159,11 @@ def test_second_author(author, second_author):
     """Test factory registration with specific name."""
     assert author != second_author
     assert second_author.name == "Mr. Hyde"
+
+
+register(AuthorFactory, "partial_author", name="John Doe")
+
+
+def test_partial(partial_author):
+    """Test fixture partial specialization."""
+    assert partial_author.name == "John Doe"

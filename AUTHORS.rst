@@ -7,3 +7,4 @@ Authors
 These people have contributed to `pytest-factoryboy`, in alphabetical order:
 
 * `Anatoly Bubenkov <bubenkoff@gmail.com>`_
+* `Daniel Duong`

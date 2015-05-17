@@ -5,6 +5,8 @@ Unreleased
 ----------
 
 - post_generation extra parameters fixed (olegpidsadnyi)
+- fixture partial specialization (olegpidsadnyi)
+- fixes readme and example (dduong42)
 
 
 1.0.2

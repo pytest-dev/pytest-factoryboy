@@ -39,18 +39,20 @@ def make_fixture(name, module, func, args=None, **kwargs):
     return fixture
 
 
-def register(factory_class, name=None):
+def register(factory_class, _name=None, **kwargs):
     """Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
-    :param name: Name of the model fixture. By default is lowercase-underscored model name.
+    :param _name: Name of the model fixture. By default is lowercase-underscored model name.
+    :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
     module = get_caller_module()
-    model_name = get_model_name(factory_class) if name is None else name
+    model_name = get_model_name(factory_class) if _name is None else _name
     factory_name = get_factory_name(factory_class)
 
     deps = get_deps(factory_class, model_name=model_name)
     for attr, value in factory_class.declarations(factory_class._meta.postgen_declarations).items():
+        value = kwargs.get(attr, value)  # Partial specialization
         attr_name = SEPARATOR.join((model_name, attr))
 
         if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
@@ -90,10 +92,12 @@ def register(factory_class, name=None):
 
 
 def get_model_name(factory_class):
+    """Get model fixture name by factory."""
     return inflection.underscore(factory_class._meta.model.__name__)
 
 
 def get_factory_name(factory_class):
+    """Get factory fixture name by factory."""
     return inflection.underscore(factory_class.__name__)
 
 
