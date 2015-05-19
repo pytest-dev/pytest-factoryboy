@@ -117,6 +117,11 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
 
 def model_fixture(request, factory_name):
     """Model fixture implementation."""
+
+    def evaluate(value):
+        """Evaluate the declaration (lazy fixtures, etc)."""
+        return value.evaluate(request) if isinstance(value, LazyFixture) else value
+
     factory_class = request.getfuncargvalue(factory_name)
     prefix = "".join((request.fixturename, SEPARATOR))
     data = {}
@@ -125,10 +130,11 @@ def model_fixture(request, factory_name):
             data[argname[len(prefix):]] = request.getfuncargvalue(argname)
 
     class Factory(factory_class):
+
         @classmethod
         def attributes(cls, create=False, extra=None):
             return dict(
-                (key, value)
+                (key, evaluate(value))
                 for key, value in super(Factory, cls).attributes(create=create, extra=extra).items()
                 if key in data
             )
@@ -138,23 +144,32 @@ def model_fixture(request, factory_name):
 
     postgen_declarations = {}
     postgen_declaration_args = {}
+    related = []
+    postgen = []
     if factory_class._meta.postgen_declarations:
         for attr, declaration in sorted(factory_class._meta.postgen_declarations.items()):
             postgen_declarations[attr] = declaration
             postgen_declaration_args[attr] = declaration.extract(attr, data)
+            if isinstance(declaration, factory.RelatedFactory):
+                related.append(attr)
+            else:
+                postgen.append(attr)
 
     result = Factory(**data)
     if postgen_declarations:
-        request._fixturedef.cached_result = (result, 0, None)
-        request._fixturedefs[request.fixturename] = request._fixturedef
+        factoryboy_request = request.getfuncargvalue("factoryboy_request")
 
-        for attr, declaration in postgen_declarations.items():
-            if isinstance(declaration, factory.RelatedFactory):
+        def deferred():
+            for attr in related:
                 request.getfuncargvalue(prefix + attr)
-            else:
-                extra = postgen_declaration_args[attr].extra
-                declaration.function(result, True, request.getfuncargvalue(prefix + attr), **extra)
+            for attr in postgen:
+                declaration = postgen_declarations[attr]
+                context = postgen_declaration_args[attr]
+                context.value = evaluate(request.getfuncargvalue(prefix + attr))
+                context.extra = dict((key, evaluate(value)) for key, value in context.extra.items())
+                declaration.call(result, True, context)
 
+        factoryboy_request.defer(deferred)
     return result
 
 
@@ -182,3 +197,27 @@ def get_caller_module(depth=2):
     if module is None:
         return get_caller_module(depth=depth)  # pragma: no cover
     return module
+
+
+class LazyFixture(object):
+
+    """Lazy fixture."""
+
+    def __init__(self, fixture):
+        """Lazy pytest fixture wrapper.
+
+        :param fixture: Fixture name or callable with dependencies.
+        """
+        self.fixture = fixture
+
+    def evaluate(self, request):
+        """Evaluate the lazy fixture.
+
+        :param request: pytest request object.
+        :return: evaluated fixture.
+        """
+        if callable(self.fixture):
+            kwargs = dict((arg, request.getfuncargvalue(arg)) for arg in inspect.getargspec(self.fixture).args)
+            return self.fixture(**kwargs)
+        else:
+            return request.getfuncargvalue(self.fixture)

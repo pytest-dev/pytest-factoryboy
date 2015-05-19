@@ -242,6 +242,47 @@ function call.
         assert female_author.name == "Jane Doe"
 
 
+Fixture attributes
+------------------
+
+Sometimes it is necessary to pass an instance of another fixture as an attribute value to the factory.
+It is possible to override the generated attribute fixture where desired values can be requested as
+fixture dependencies. There is also a lazy wrapper for the fixture that can be used in the parametrization
+without defining fixtures in a module.
+
+
+LazyFixture constructor accepts either existing fixture name or callable with dependencies:
+
+.. code-block:: python
+
+    import pytest
+    from pytest_factoryboy import register, LazyFixture
+
+
+    @pytest.mark.parametrize("book__author", [LazyFixture("another_author")])
+    def test_lazy_fixture_name(book, another_author):
+        """Test that book author is replaced with another author by fixture name."""
+        assert book.author == another_author
+
+
+    @pytest.mark.parametrize("book__author", [LazyFixture(lambda another_author: another_author)])
+    def test_lazy_fixture_callable(book, another_author):
+        """Test that book author is replaced with another author by callable."""
+        assert book.author == another_author
+
+
+    # Can also be used in the partial specialization during the registration.
+    register(AuthorFactory, "another_book", author=LazyFixture("another_author"))
+
+
+Hooks
+-----
+
+pytest-factoryboy exposes several `pytest hooks <http://pytest.org/latest/plugins.html#well-specified-hooks>`_
+which might be helpful controlling database transaction, for reporting etc:
+
+* pytest_factoryboy_done(request) - Called after all factory based fixtures and their post-generation actions were evaluated.
+
 
 License
 -------

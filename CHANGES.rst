@@ -7,6 +7,9 @@ Unreleased
 - post_generation extra parameters fixed (olegpidsadnyi)
 - fixture partial specialization (olegpidsadnyi)
 - fixes readme and example (dduong42)
+- lazy fixtures (olegpidsadnyi)
+- deferred post-generation evaluation (olegpidsadnyi)
+- hooks (olegpidsadnyi)
 
 
 1.0.2
