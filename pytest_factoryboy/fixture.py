@@ -39,13 +39,18 @@ def make_fixture(name, module, func, args=None, **kwargs):
     return fixture
 
 
-def register(factory_class, _name=None, **kwargs):
+def register(factory_class, _name=None, _postgen_dependencies=None, **kwargs):
     """Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
     :param _name: Name of the model fixture. By default is lowercase-underscored model name.
+    :param _postgen_dependencies: Optional list of post-generation dependencies
+                                  e.g. <model>__<post-generation attribute>.
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
+    assert not factory_class._meta.abstract, "Can't register abstract factories."
+    assert factory_class._meta.model is not None, "Factory model class is not specified."
+
     module = get_caller_module()
     model_name = get_model_name(factory_class) if _name is None else _name
     factory_name = get_factory_name(factory_class)
@@ -87,6 +92,7 @@ def register(factory_class, _name=None, **kwargs):
         func=model_fixture,
         args=deps,
         factory_name=factory_name,
+        postgen_dependencies=_postgen_dependencies,
     )
     return factory_class
 
@@ -115,12 +121,16 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
     ]
 
 
-def model_fixture(request, factory_name):
-    """Model fixture implementation."""
+def evaluate(request, value):
+    """Evaluate the declaration (lazy fixtures, etc)."""
+    return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
-    def evaluate(value):
-        """Evaluate the declaration (lazy fixtures, etc)."""
-        return value.evaluate(request) if isinstance(value, LazyFixture) else value
+
+def model_fixture(request, factory_name, postgen_dependencies):
+    """Model fixture implementation."""
+    factoryboy_request = request.getfuncargvalue("factoryboy_request")
+    if postgen_dependencies:
+        factoryboy_request.evaluate(postgen_dependencies)
 
     factory_class = request.getfuncargvalue(factory_name)
     prefix = "".join((request.fixturename, SEPARATOR))
@@ -134,7 +144,7 @@ def model_fixture(request, factory_name):
         @classmethod
         def attributes(cls, create=False, extra=None):
             return dict(
-                (key, evaluate(value))
+                (key, evaluate(request, value))
                 for key, value in super(Factory, cls).attributes(create=create, extra=extra).items()
                 if key in data
             )
@@ -142,35 +152,53 @@ def model_fixture(request, factory_name):
     Factory._meta.postgen_declarations = {}
     Factory._meta.exclude = [value for value in Factory._meta.exclude if value in data]
 
-    postgen_declarations = {}
-    postgen_declaration_args = {}
-    related = []
-    postgen = []
     if factory_class._meta.postgen_declarations:
-        for attr, declaration in sorted(factory_class._meta.postgen_declarations.items()):
-            postgen_declarations[attr] = declaration
-            postgen_declaration_args[attr] = declaration.extract(attr, data)
-            if isinstance(declaration, factory.RelatedFactory):
-                related.append(attr)
+        for attr, decl in sorted(factory_class._meta.postgen_declarations.items()):
+            context = decl.extract(attr, data)
+            if isinstance(decl, factory.RelatedFactory):
+                factoryboy_request.defer(make_deferred_related(request, request.fixturename, attr))
             else:
-                postgen.append(attr)
+                factoryboy_request.defer(make_deferred_postgen(request, request.fixturename, attr, decl, context))
 
-    result = Factory(**data)
-    if postgen_declarations:
-        factoryboy_request = request.getfuncargvalue("factoryboy_request")
+    return Factory(**data)
 
-        def deferred():
-            for attr in related:
-                request.getfuncargvalue(prefix + attr)
-            for attr in postgen:
-                declaration = postgen_declarations[attr]
-                context = postgen_declaration_args[attr]
-                context.value = evaluate(request.getfuncargvalue(prefix + attr))
-                context.extra = dict((key, evaluate(value)) for key, value in context.extra.items())
-                declaration.call(result, True, context)
 
-        factoryboy_request.defer(deferred)
-    return result
+def make_deferred_related(request, fixture, attr):
+    """Make deferred function for the related factory declaration.
+
+    :param request: PyTest request.
+    :param fixture: Object fixture name e.g. "book".
+    :param attr: Declaration attribute name e.g. "publications".
+
+    :note: Deferred function name results in "book__publication".
+    """
+    name = SEPARATOR.join((fixture, attr))
+
+    def deferred():
+        request.getfuncargvalue(name)
+    deferred.__name__ = name
+    return deferred
+
+
+def make_deferred_postgen(request, fixture, attr, declaration, context):
+    """Make deferred function for the post-generation declaration.
+
+    :param request: PyTest request.
+    :param fixture: Object fixture name e.g. "author".
+    :param attr: Declaration attribute name e.g. "register_user".
+    :param context: Post-generation declaration extraction context.
+
+    :note: Deferred function name results in "author__register_user".
+    """
+    name = SEPARATOR.join((fixture, attr))
+
+    def deferred():
+        obj = request.getfuncargvalue(fixture)
+        context.value = evaluate(request, request.getfuncargvalue(name))
+        context.extra = dict((key, evaluate(request, value)) for key, value in context.extra.items())
+        declaration.call(obj, True, context)
+    deferred.__name__ = name
+    return deferred
 
 
 def factory_fixture(request, factory_class):

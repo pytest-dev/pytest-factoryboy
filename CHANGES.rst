@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+- fixture dependencies on deferred post-generation declarations (olegpidsadnyi)
+
+
 1.0.3
 -----
 
