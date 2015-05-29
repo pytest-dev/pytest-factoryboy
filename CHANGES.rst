@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Unreleased
-----------
+1.0.3
+-----
 
 - post_generation extra parameters fixed (olegpidsadnyi)
 - fixture partial specialization (olegpidsadnyi)
