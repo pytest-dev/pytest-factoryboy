@@ -9,6 +9,9 @@ env:
 install:
 - pip install tox
 script: tox -e $TESTENV
+branches:
+    except:
+        - /^\d/
 notifications:
     email:
         - bubenkoff@gmail.com
