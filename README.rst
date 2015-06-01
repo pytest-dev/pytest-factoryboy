@@ -275,6 +275,96 @@ LazyFixture constructor accepts either existing fixture name or callable with de
     register(AuthorFactory, "another_book", author=LazyFixture("another_author"))
 
 
+Post-generation dependencies
+============================
+
+Unlike factory_boy which binds related objects using internal container for the lazy evaluations,
+pytest-factoryboy relies on the PyTest request.
+
+Circular dependencies between objects can be resolved using post-generation hooks/related factories in combination with
+passing the SelfAttribute, but in case of PyTest request fixture functions have to return values in order to be cached
+in the request and to become available to other fixtures.
+
+Thats why evaluation of the post-generation declaration in pytest-factoryboy is deferred until calling
+the test funciton.
+This solves circular dependecy resolution for situations like:
+
+::
+
+    o->[ A ]-->[ B ]<--[ C ]-o
+    |                        |
+    o----(C depends on A)----o
+
+
+On the other hand deferring post-generation declarations evaluation makes their result unavailable during the generation
+of objects that are not in the circular dependecy, but they rely on the post-generation action.
+It is possible to declare such dependencies to be evaluated earlier, right before generating the requested object.
+
+
+.. code-block:: python
+
+    from pytest_factoryboy import register
+
+
+    class Foo(object):
+
+        def __init__(self, value):
+            self.value = value
+
+
+    class Bar(object):
+
+        def __init__(self, foo):
+            self.foo = foo
+
+
+    @register
+    class FooFactory(factory.Factory):
+
+        """Foo factory."""
+
+        class Meta:
+            model = Foo
+
+        value = 0
+
+        @factory.post_generation
+        def set1(foo, create, value, **kwargs):
+            foo.value = 1
+
+
+    class BarFactory(factory.Factory):
+
+        """Bar factory."""
+
+        foo = factory.SubFactory(FooFactory)
+
+        @classmethod
+        def _create(cls, model_class, foo):
+            assert foo.value == 1  # Assert that set1 is evaluated before object generation
+            return super(BarFactory, cls)._create(model_class, foo=foo)
+
+        class Meta:
+            model = Bar
+
+
+    register(
+        BarFactory,
+        'bar',
+        _postgen_dependencies=["foo__set1"],
+    )
+    """Forces 'set1' to be evaluated first."""
+
+
+    def test_depends_on_set1(bar):
+        """Test that post-generation hooks are done and the value is 2."""
+        assert depends_on_1.foo.value == 1
+
+
+All post-generation/RelatedFactory attributes specified in the `_postgen_dependencies` list during factory registration
+are evaluated before the object generation.
+
+
 Hooks
 -----
 
