@@ -9,6 +9,7 @@ try:
         register.__name__,
         LazyFixture.__name__,
     ]
-except ImportError:  # pragma: no cover
-    # avoid import errors when only __version__ is needed (for setup.py)
+except:  # pragma: no cover
+    # We need to catch all exceptions because of factoryboy that uses django when it is not yet configured.
+    # Also avoid import errors when only __version__ is needed (for setup.py)
     pass
