@@ -1,5 +1,7 @@
 """pytest-factoryboy public API."""
 
+import warnings
+
 __version__ = '1.1.0'
 
 try:
@@ -9,6 +11,5 @@ try:
         register.__name__,
         LazyFixture.__name__,
     ]
-except ImportError:  # pragma: no cover
-    # avoid import errors when only __version__ is needed (for setup.py)
-    pass
+except Exception, e:  # pragma: no cover
+    warnings.warn(e)
