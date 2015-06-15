@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.1.1
+-----
+
+- fix installation issue when django environment is not set (bubenkoff, amakhnach)
+
+
 1.1.0
 -----
 
