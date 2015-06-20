@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.1.2
+-----
+
+- circular dependency determination is fixed for the RelatedFactory attributes (olegpidsadnyi)
+
+
 1.1.1
 -----
 

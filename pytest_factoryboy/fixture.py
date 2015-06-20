@@ -62,15 +62,16 @@ def register(factory_class, _name=None, _postgen_dependencies=None, **kwargs):
 
         if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
             subfactory_class = value.get_factory()
+            subfactory_deps = get_deps(subfactory_class, factory_class)
             make_fixture(
                 name=attr_name,
                 module=module,
                 func=subfactory_fixture,
-                args=get_deps(subfactory_class, factory_class),
+                args=subfactory_deps,
                 factory_class=subfactory_class,
             )
             if isinstance(value, factory.RelatedFactory):
-                deps.extend(get_deps(subfactory_class, factory_class))
+                deps.extend(subfactory_deps)
         else:
             make_fixture(
                 name=attr_name,
@@ -114,10 +115,19 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
     """
     model_name = get_model_name(factory_class) if model_name is None else model_name
     parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
+
+    def is_dep(value):
+        if isinstance(value, factory.RelatedFactory):
+            return False
+        if isinstance(value, factory.SubFactory) and get_model_name(value.get_factory()) == parent_model_name:
+            return False
+
+        return True
+
     return [
         SEPARATOR.join((model_name, attr))
         for attr, value in factory_class.declarations(factory_class._meta.postgen_declarations).items()
-        if attr != parent_model_name and not isinstance(value, factory.RelatedFactory)
+        if is_dep(value)
     ]
 
 
