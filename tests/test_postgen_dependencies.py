@@ -88,3 +88,8 @@ def test_depends_on_1(depends_on_1):
 def test_depends_on_2(depends_on_2):
     """Test that post-generation hooks are done and the value is 1."""
     assert depends_on_2.foo.value == 1
+
+
+def test_getfuncargvalue(request):
+    """Test post-generation declarations via the getfuncargvalue."""
+    assert request.getfuncargvalue('foo')
