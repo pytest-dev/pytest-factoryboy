@@ -162,15 +162,23 @@ def model_fixture(request, factory_name, postgen_dependencies):
     Factory._meta.postgen_declarations = {}
     Factory._meta.exclude = [value for value in Factory._meta.exclude if value in data]
 
+    # Extract post-generation context
+    post_decls = []
     if factory_class._meta.postgen_declarations:
         for attr, decl in sorted(factory_class._meta.postgen_declarations.items()):
-            context = decl.extract(attr, data)
-            if isinstance(decl, factory.RelatedFactory):
-                factoryboy_request.defer(make_deferred_related(request, request.fixturename, attr))
-            else:
-                factoryboy_request.defer(make_deferred_postgen(request, request.fixturename, attr, decl, context))
+            post_decls.append((attr, decl, decl.extract(attr, data)))
 
-    return Factory(**data)
+    # Create model fixture instance
+    instance = Factory(**data)
+
+    # Defer post-generation declarations
+    for attr, decl, context in post_decls:
+        if isinstance(decl, factory.RelatedFactory):
+            factoryboy_request.defer(make_deferred_related(request, request.fixturename, attr))
+        else:
+            factoryboy_request.defer(make_deferred_postgen(request, request.fixturename, instance, attr, decl, context))
+
+    return instance
 
 
 def make_deferred_related(request, fixture, attr):
@@ -190,11 +198,12 @@ def make_deferred_related(request, fixture, attr):
     return deferred
 
 
-def make_deferred_postgen(request, fixture, attr, declaration, context):
+def make_deferred_postgen(request, fixture, instance, attr, declaration, context):
     """Make deferred function for the post-generation declaration.
 
     :param request: PyTest request.
     :param fixture: Object fixture name e.g. "author".
+    :param instance: Parent object instance.
     :param attr: Declaration attribute name e.g. "register_user".
     :param context: Post-generation declaration extraction context.
 
@@ -203,10 +212,9 @@ def make_deferred_postgen(request, fixture, attr, declaration, context):
     name = SEPARATOR.join((fixture, attr))
 
     def deferred():
-        obj = request.getfuncargvalue(fixture)
         context.value = evaluate(request, request.getfuncargvalue(name))
         context.extra = dict((key, evaluate(request, value)) for key, value in context.extra.items())
-        declaration.call(obj, True, context)
+        declaration.call(instance, True, context)
     deferred.__name__ = name
     return deferred
 

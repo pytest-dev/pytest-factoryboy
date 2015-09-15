@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.1.3
+-----
+
+- circular dependency determination is fixed for the post-generation (olegpidsadnyi)
+
+
 1.1.2
 -----
 
