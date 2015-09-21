@@ -24,15 +24,12 @@ class Request(object):
 
     def evaluate(self, names=None):
         """Finalize, run deferred post-generation actions, etc."""
-        if names:
-            functions = dict((function.__name__, function) for function in self.deferred if function.__name__ in names)
-            deferred = [functions[name] for name in names if functions.get(name)]
-        else:
-            deferred = list(self.deferred)
-
-        for function in deferred:
-            function()
-            self.deferred.remove(function)
+        names = names if names is not None else [f.__name__ for f in self.deferred]
+        for name in names:
+            function = next((function for function in self.deferred if function.__name__ == name), None)
+            if function:
+                function()
+                self.deferred.remove(function)
 
 
 @pytest.fixture

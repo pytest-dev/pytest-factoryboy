@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.1.4
+-----
+
+- fixed post-generation dependencies handling (olegpidsadnyi)
+
+
 1.1.3
 -----
 
