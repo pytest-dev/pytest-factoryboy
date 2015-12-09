@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.1.4
+-----
+
+- support factory models to be passed as strings (bubenkoff)
+
+
 1.1.3
 -----
 
