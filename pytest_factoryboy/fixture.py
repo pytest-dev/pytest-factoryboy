@@ -100,7 +100,9 @@ def register(factory_class, _name=None, _postgen_dependencies=None, **kwargs):
 
 def get_model_name(factory_class):
     """Get model fixture name by factory."""
-    return inflection.underscore(factory_class._meta.model.__name__)
+    return (
+        inflection.underscore(factory_class._meta.model.__name__)
+        if not isinstance(factory_class._meta.model, str) else factory_class._meta.model)
 
 
 def get_factory_name(factory_class):
