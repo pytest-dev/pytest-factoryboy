@@ -58,4 +58,4 @@ def pytest_runtest_call(item):
 def pytest_addhooks(pluginmanager):
     """Register plugin hooks."""
     from pytest_factoryboy import hooks
-    pluginmanager.addhooks(hooks)
+    pluginmanager.add_hookspecs(hooks)
