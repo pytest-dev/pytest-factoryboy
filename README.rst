@@ -5,8 +5,6 @@ factory_boy_ integration the pytest_ runner
    :target: https://travis-ci.org/pytest-dev/pytest-factoryboy
 .. image:: https://pypip.in/v/pytest-factoryboy/badge.png
    :target: https://crate.io/packages/pytest-factoryboy/
-.. image:: https://coveralls.io/repos/pytest-dev/pytest-factoryboy/badge.png?branch=master
-   :target: https://coveralls.io/r/pytest-dev/pytest-factoryboy
 .. image:: https://readthedocs.org/projects/pytest-factoryboy/badge/?version=latest
     :target: https://readthedocs.org/projects/pytest-factoryboy/?badge=latest
     :alt: Documentation Status
