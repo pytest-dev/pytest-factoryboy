@@ -33,7 +33,7 @@ def make_fixture(name, module, func, args=None, **kwargs):
     context.update(kwargs)
     exec(FIXTURE_FUNC_FORMAT.format(name=name, deps=deps), context)
     fixture_func = context[name]
-    fixture_func.__module__ = module
+    fixture_func.__module__ = module.__name__
     fixture = pytest.fixture(fixture_func)
     setattr(module, name, fixture)
     return fixture

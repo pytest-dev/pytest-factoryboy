@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.1.6
+-----
+
+- fixes fixture function module name attribute (olegpidsadnyi)
+
+
 1.1.5
 -----
 
