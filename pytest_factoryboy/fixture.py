@@ -176,17 +176,19 @@ def model_fixture(request, factory_name, postgen_dependencies):
     # Defer post-generation declarations
     for attr, decl, context in post_decls:
         if isinstance(decl, factory.RelatedFactory):
-            factoryboy_request.defer(make_deferred_related(request, request.fixturename, attr))
+            factoryboy_request.defer(make_deferred_related(factory_class, request.fixturename, attr))
         else:
-            factoryboy_request.defer(make_deferred_postgen(request, request.fixturename, instance, attr, decl, context))
+            factoryboy_request.defer(
+                make_deferred_postgen(factory_class, request.fixturename, instance, attr, decl, context)
+            )
 
     return instance
 
 
-def make_deferred_related(request, fixture, attr):
+def make_deferred_related(factory, fixture, attr):
     """Make deferred function for the related factory declaration.
 
-    :param request: PyTest request.
+    :param factory: Factory class.
     :param fixture: Object fixture name e.g. "book".
     :param attr: Declaration attribute name e.g. "publications".
 
@@ -194,16 +196,17 @@ def make_deferred_related(request, fixture, attr):
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred():
+    def deferred(request):
         request.getfuncargvalue(name)
     deferred.__name__ = name
+    deferred._factory = factory
     return deferred
 
 
-def make_deferred_postgen(request, fixture, instance, attr, declaration, context):
+def make_deferred_postgen(factory, fixture, instance, attr, declaration, context):
     """Make deferred function for the post-generation declaration.
 
-    :param request: PyTest request.
+    :param factory: Factory class.
     :param fixture: Object fixture name e.g. "author".
     :param instance: Parent object instance.
     :param attr: Declaration attribute name e.g. "register_user".
@@ -213,11 +216,12 @@ def make_deferred_postgen(request, fixture, instance, attr, declaration, context
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred():
+    def deferred(request):
         context.value = evaluate(request, request.getfuncargvalue(name))
         context.extra = dict((key, evaluate(request, value)) for key, value in context.extra.items())
         declaration.call(instance, True, context)
     deferred.__name__ = name
+    deferred._factory = factory
     return deferred
 
 
