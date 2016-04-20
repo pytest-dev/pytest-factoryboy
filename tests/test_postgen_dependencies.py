@@ -39,6 +39,11 @@ class FooFactory(factory.Factory):
     def set2(foo, create, value, **kwargs):
         foo.value = 2
 
+    @classmethod
+    def _after_postgeneration(cls, obj, create, results=None):
+        obj._postgeneration_results = results
+        obj._create = create
+
 
 class BarFactory(factory.Factory):
 
@@ -93,3 +98,9 @@ def test_depends_on_2(depends_on_2):
 def test_getfuncargvalue(request):
     """Test post-generation declarations via the getfuncargvalue."""
     assert request.getfuncargvalue('foo')
+
+
+def test_after_postgeneration(foo):
+    """Test _after_postgeneration is called."""
+    assert foo._postgeneration_results == {'set1': None, 'set2': None}
+    assert foo._create is True

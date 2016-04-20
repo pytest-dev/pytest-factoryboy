@@ -5,6 +5,7 @@ Changelog
 -----
 
 - fixes fixture function module name attribute (olegpidsadnyi)
+- fixes _after_postgeneration hook invocation for deferred post-generation declarations (olegpidsadnyi)
 
 
 1.1.5
