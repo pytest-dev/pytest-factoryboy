@@ -1,5 +1,5 @@
-factory_boy_ integration the pytest_ runner
-===========================================
+factory_boy_ integration with the pytest_ runner
+================================================
 
 .. image:: https://api.travis-ci.org/pytest-dev/pytest-factoryboy.png
    :target: https://travis-ci.org/pytest-dev/pytest-factoryboy
@@ -107,7 +107,7 @@ Attributes are Fixtures
 -----------------------
 
 There are fixtures created for factory attributes. Attribute names are prefixed with the model fixture name and
-double underscore (similar to factory boy convention).
+double underscore (similar to the convention used by factory_boy).
 
 
 .. code-block:: python
@@ -120,14 +120,14 @@ SubFactory
 ----------
 
 Sub-factory attribute points to the model fixture of the sub-factory.
-Attributes of sub-factories are injected as dependencies to the model fixture and can be overridden_ in
+Attributes of sub-factories are injected as dependencies to the model fixture and can be overridden_ via
 the parametrization.
 
 Related Factory
 ---------------
 
 Related factory attribute points to the model fixture of the related factory.
-Attributes of related factories are injected as dependencies to the model fixture and can be overridden_ in
+Attributes of related factories are injected as dependencies to the model fixture and can be overridden_ via
 the parametrization.
 
 
@@ -214,7 +214,7 @@ There is a possibility to pass keyword parameters in order to override factory a
 registration. This comes in handy when your test case is requesting a lot of fixture flavors. Too much for the
 regular pytest parametrization.
 In this case you can register fixture flavors in the local test module and specify value deviations inside ``register``
-function call.
+function calls.
 
 
 .. code-block:: python
@@ -276,14 +276,14 @@ LazyFixture constructor accepts either existing fixture name or callable with de
 Post-generation dependencies
 ============================
 
-Unlike factory_boy which binds related objects using internal container for the lazy evaluations,
+Unlike factory_boy which binds related objects using an internal container to store results of lazy evaluations,
 pytest-factoryboy relies on the PyTest request.
 
 Circular dependencies between objects can be resolved using post-generation hooks/related factories in combination with
-passing the SelfAttribute, but in case of PyTest request fixture functions have to return values in order to be cached
+passing the SelfAttribute, but in the case of PyTest request fixture functions have to return values in order to be cached
 in the request and to become available to other fixtures.
 
-Thats why evaluation of the post-generation declaration in pytest-factoryboy is deferred until calling
+That's why evaluation of the post-generation declaration in pytest-factoryboy is deferred until calling
 the test funciton.
 This solves circular dependecy resolution for situations like:
 
@@ -294,7 +294,7 @@ This solves circular dependecy resolution for situations like:
     o----(C depends on A)----o
 
 
-On the other hand deferring post-generation declarations evaluation makes their result unavailable during the generation
+On the other hand deferring the evaluation of post-generation declarations evaluation makes their result unavailable during the generation
 of objects that are not in the circular dependecy, but they rely on the post-generation action.
 It is possible to declare such dependencies to be evaluated earlier, right before generating the requested object.
 
@@ -367,9 +367,10 @@ Hooks
 -----
 
 pytest-factoryboy exposes several `pytest hooks <http://pytest.org/latest/plugins.html#well-specified-hooks>`_
-which might be helpful controlling database transaction, for reporting etc:
+which might be helpful for e.g. controlling database transaction, for reporting etc:
 
-* pytest_factoryboy_done(request) - Called after all factory based fixtures and their post-generation actions were evaluated.
+* pytest_factoryboy_done(request) - Called after all factory based fixtures and their post-generation actions
+have been evaluated.
 
 
 License
