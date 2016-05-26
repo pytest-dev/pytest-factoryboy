@@ -112,7 +112,7 @@ double underscore (similar to the convention used by factory_boy).
 
 .. code-block:: python
 
-    @pytest.mark.parametrized("author__name", ["Bill Gates"])
+    @pytest.mark.parametrize("author__name", ["Bill Gates"])
     def test_model_fixture(author):
         assert author.name == "Bill Gates"
 
