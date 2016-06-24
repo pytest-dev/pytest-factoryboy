@@ -296,7 +296,8 @@ This solves circular dependecy resolution for situations like:
 
 On the other hand deferring the evaluation of post-generation declarations evaluation makes their result unavailable during the generation
 of objects that are not in the circular dependecy, but they rely on the post-generation action.
-It is possible to declare such dependencies to be evaluated earlier, right before generating the requested object.
+
+pytest-factoryboy is trying to detect cycles and resolve post-generation dependencies automatically.
 
 
 .. code-block:: python
@@ -349,7 +350,6 @@ It is possible to declare such dependencies to be evaluated earlier, right befor
     register(
         BarFactory,
         'bar',
-        _postgen_dependencies=["foo__set1"],
     )
     """Forces 'set1' to be evaluated first."""
 
@@ -357,10 +357,6 @@ It is possible to declare such dependencies to be evaluated earlier, right befor
     def test_depends_on_set1(bar):
         """Test that post-generation hooks are done and the value is 2."""
         assert depends_on_1.foo.value == 1
-
-
-All post-generation/RelatedFactory attributes specified in the `_postgen_dependencies` list during factory registration
-are evaluated before the object generation.
 
 
 Hooks

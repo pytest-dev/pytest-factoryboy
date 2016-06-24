@@ -51,5 +51,5 @@ register(AuthorFactory)
 register(BookFactory)
 
 
-def test_circular(author):
+def test_circular(author, factoryboy_request, request):
     assert author.books
