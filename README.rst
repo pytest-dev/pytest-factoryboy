@@ -365,8 +365,7 @@ Hooks
 pytest-factoryboy exposes several `pytest hooks <http://pytest.org/latest/plugins.html#well-specified-hooks>`_
 which might be helpful for e.g. controlling database transaction, for reporting etc:
 
-* pytest_factoryboy_done(request) - Called after all factory based fixtures and their post-generation actions
-have been evaluated.
+* pytest_factoryboy_done(request) - Called after all factory based fixtures and their post-generation actions have been evaluated.
 
 
 License
