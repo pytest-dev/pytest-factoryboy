@@ -17,7 +17,7 @@ def {name}({deps}):
 """
 
 
-def make_fixture(name, module, func, args=None, **kwargs):
+def make_fixture(name, module, func, args=None, related=None, **kwargs):
     """Make fixture function and inject arguments.
 
     :param name: Fixture name.
@@ -34,18 +34,20 @@ def make_fixture(name, module, func, args=None, **kwargs):
     exec(FIXTURE_FUNC_FORMAT.format(name=name, deps=deps), context)
     fixture_func = context[name]
     fixture_func.__module__ = module.__name__
+
+    if related:
+        fixture_func._factoryboy_related = related
+
     fixture = pytest.fixture(fixture_func)
     setattr(module, name, fixture)
     return fixture
 
 
-def register(factory_class, _name=None, _postgen_dependencies=None, **kwargs):
+def register(factory_class, _name=None, **kwargs):
     """Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
     :param _name: Name of the model fixture. By default is lowercase-underscored model name.
-    :param _postgen_dependencies: Optional list of post-generation dependencies
-                                  e.g. <model>__<post-generation attribute>.
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
     assert not factory_class._meta.abstract, "Can't register abstract factories."
@@ -56,6 +58,7 @@ def register(factory_class, _name=None, _postgen_dependencies=None, **kwargs):
     factory_name = get_factory_name(factory_class)
 
     deps = get_deps(factory_class, model_name=model_name)
+    related = []
     for attr, value in factory_class.declarations(factory_class._meta.postgen_declarations).items():
         value = kwargs.get(attr, value)  # Partial specialization
         attr_name = SEPARATOR.join((model_name, attr))
@@ -63,21 +66,38 @@ def register(factory_class, _name=None, _postgen_dependencies=None, **kwargs):
         if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
             subfactory_class = value.get_factory()
             subfactory_deps = get_deps(subfactory_class, factory_class)
+
+            args = list(subfactory_deps)
+            if isinstance(value, factory.RelatedFactory):
+                related_model = get_model_name(subfactory_class)
+                args.append(related_model)
+                related.append(related_model)
+                related.append(attr_name)
+                related.extend(subfactory_deps)
+
+            if isinstance(value, factory.SubFactory):
+                args.append(inflection.underscore(subfactory_class._meta.model.__name__))
+
             make_fixture(
                 name=attr_name,
                 module=module,
                 func=subfactory_fixture,
-                args=subfactory_deps,
+                args=args,
                 factory_class=subfactory_class,
             )
-            if isinstance(value, factory.RelatedFactory):
-                deps.extend(subfactory_deps)
         else:
+            args = None
+            if isinstance(value, LazyFixture):
+                args = value.args
+            if isinstance(value, factory.declarations.PostGeneration):
+                value = None
+
             make_fixture(
                 name=attr_name,
                 module=module,
                 func=attr_fixture,
-                value=value if not isinstance(value, factory.declarations.PostGeneration) else None,
+                value=value,
+                args=args,
             )
     if not hasattr(module, factory_name):
         make_fixture(
@@ -93,7 +113,7 @@ def register(factory_class, _name=None, _postgen_dependencies=None, **kwargs):
         func=model_fixture,
         args=deps,
         factory_name=factory_name,
-        postgen_dependencies=_postgen_dependencies,
+        related=related,
     )
     return factory_class
 
@@ -122,7 +142,10 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
         if isinstance(value, factory.RelatedFactory):
             return False
         if isinstance(value, factory.SubFactory) and get_model_name(value.get_factory()) == parent_model_name:
-            return False
+                return False
+        if isinstance(value, factory.declarations.PostGeneration):
+            # Dependency on extracted value
+            return True
 
         return True
 
@@ -138,11 +161,12 @@ def evaluate(request, value):
     return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
 
-def model_fixture(request, factory_name, postgen_dependencies):
+def model_fixture(request, factory_name):
     """Model fixture implementation."""
     factoryboy_request = request.getfuncargvalue("factoryboy_request")
-    if postgen_dependencies:
-        factoryboy_request.evaluate(postgen_dependencies)
+
+    # Try to evaluate as much post-generation dependencies as possible
+    factoryboy_request.evaluate(request)
 
     factory_class = request.getfuncargvalue(factory_name)
     prefix = "".join((request.fixturename, SEPARATOR))
@@ -172,16 +196,24 @@ def model_fixture(request, factory_name, postgen_dependencies):
 
     # Create model fixture instance
     instance = Factory(**data)
+    request._fixturedef.cached_result = (instance, None, None)
+    request._fixturedefs[request.fixturename] = request._fixturedef
 
     # Defer post-generation declarations
+    related = []
+    postgen = []
     for attr, decl, context in post_decls:
         if isinstance(decl, factory.RelatedFactory):
-            factoryboy_request.defer(make_deferred_related(factory_class, request.fixturename, attr))
+            related.append(make_deferred_related(factory_class, request.fixturename, attr))
         else:
-            factoryboy_request.defer(
+            postgen.append(
                 make_deferred_postgen(factory_class, request.fixturename, instance, attr, decl, context)
             )
+    deferred = related + postgen
+    factoryboy_request.defer(deferred)
 
+    # Try to evaluate as much post-generation dependencies as possible
+    factoryboy_request.evaluate(request)
     return instance
 
 
@@ -198,8 +230,11 @@ def make_deferred_related(factory, fixture, attr):
 
     def deferred(request):
         request.getfuncargvalue(name)
+        # return request.getfuncargvalue(name)
     deferred.__name__ = name
     deferred._factory = factory
+    deferred._fixture = fixture
+    deferred._is_related = True
     return deferred
 
 
@@ -220,8 +255,11 @@ def make_deferred_postgen(factory, fixture, instance, attr, declaration, context
         context.value = evaluate(request, request.getfuncargvalue(name))
         context.extra = dict((key, evaluate(request, value)) for key, value in context.extra.items())
         declaration.call(instance, True, context)
+        # return context.value
     deferred.__name__ = name
     deferred._factory = factory
+    deferred._fixture = fixture
+    deferred._is_related = False
     return deferred
 
 
@@ -261,6 +299,10 @@ class LazyFixture(object):
         :param fixture: Fixture name or callable with dependencies.
         """
         self.fixture = fixture
+        if callable(self.fixture):
+            self.args = list(inspect.getargspec(self.fixture).args)
+        else:
+            self.args = [self.fixture]
 
     def evaluate(self, request):
         """Evaluate the lazy fixture.
@@ -269,7 +311,7 @@ class LazyFixture(object):
         :return: evaluated fixture.
         """
         if callable(self.fixture):
-            kwargs = dict((arg, request.getfuncargvalue(arg)) for arg in inspect.getargspec(self.fixture).args)
+            kwargs = dict((arg, request.getfuncargvalue(arg)) for arg in self.args)
             return self.fixture(**kwargs)
         else:
             return request.getfuncargvalue(self.fixture)

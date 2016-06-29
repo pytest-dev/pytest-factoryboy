@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.2.0
+-----
+
+- automatical resolution of the post-generation dependencies (olegpidsadnyi, kvas-it)
+
+
 1.1.6
 -----
 

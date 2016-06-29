@@ -35,10 +35,6 @@ class FooFactory(factory.Factory):
     def set1(foo, create, value, **kwargs):
         foo.value = 1
 
-    @factory.post_generation
-    def set2(foo, create, value, **kwargs):
-        foo.value = 2
-
     @classmethod
     def _after_postgeneration(cls, obj, create, results=None):
         obj._postgeneration_results = results
@@ -54,53 +50,37 @@ class BarFactory(factory.Factory):
     @classmethod
     def _create(cls, model_class, foo):
         assert foo.value == foo.expected
-        return super(BarFactory, cls)._create(model_class, foo=foo)
+        bar = super(BarFactory, cls)._create(model_class, foo=foo)
+        foo.bar = bar
+        return bar
 
     class Meta:
         model = Bar
 
 
-def test_invocation_order(foo):
+def test_postgen_invoked(foo):
     """Test that post-generation hooks are done and the value is 2."""
-    assert foo.value == 2
+    assert foo.value == 1
 
 
-register(
-    BarFactory,
-    'depends_on_1',
-    _postgen_dependencies=["foo__set1"],
-)
-"""Forces 'set1' to be evaluated first."""
-
-
-register(
-    BarFactory,
-    'depends_on_2',
-    _postgen_dependencies=["foo__set2"],
-)
-"""Forces 'set2' to be evaluated first."""
+register(BarFactory)
 
 
 @pytest.mark.parametrize('foo__value', [3])
 @pytest.mark.parametrize('foo__expected', [1])
-def test_depends_on_1(depends_on_1):
-    """Test that post-generation hooks are done and the value is 2."""
-    assert depends_on_1.foo.value == 2
-
-
-@pytest.mark.parametrize('foo__value', [3])
-@pytest.mark.parametrize('foo__expected', [2])
-def test_depends_on_2(depends_on_2):
+def test_depends_on(bar):
     """Test that post-generation hooks are done and the value is 1."""
-    assert depends_on_2.foo.value == 1
+    assert bar.foo.value == 1
 
 
-def test_getfuncargvalue(request):
+def test_getfuncargvalue(request, factoryboy_request):
     """Test post-generation declarations via the getfuncargvalue."""
-    assert request.getfuncargvalue('foo')
+    foo = request.getfuncargvalue('foo')
+    assert not factoryboy_request.deferred
+    assert foo.value == 1
 
 
 def test_after_postgeneration(foo):
     """Test _after_postgeneration is called."""
-    assert foo._postgeneration_results == {'set1': None, 'set2': None}
+    assert foo._postgeneration_results == {'set1': None}
     assert foo._create is True
