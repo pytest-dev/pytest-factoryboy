@@ -34,7 +34,7 @@ class Request(object):
         if fixture == 'request':
             return deps
 
-        for fixturedef in request._fixturemanager.getfixturedefs(fixture, request._pyfuncitem.parent.nodeid):
+        for fixturedef in request._fixturemanager.getfixturedefs(fixture, request._pyfuncitem.parent.nodeid) or []:
             for argname in fixturedef.argnames:
                 if argname not in deps:
                     deps.add(argname)

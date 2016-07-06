@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.2.2
+-----
+
+- fix post-generation dependencies (olegpidsadnyi)
+
+
 1.2.1
 -----
 
