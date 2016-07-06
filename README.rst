@@ -12,7 +12,7 @@ factory_boy_ integration with the pytest_ runner
 pytest-factoryboy makes it easy to combine ``factory`` approach to the test setup with the ``dependency`` injection,
 heart of the `pytest fixtures`_.
 
-.. _factory_boy: http://factoryboy.readthedocs.org
+.. _factory_boy: https://factoryboy.readthedocs.io
 .. _pytest: http://pytest.org
 .. _pytest fixtures: https://pytest.org/latest/fixture.html
 .. _overridden: http://pytest.org/latest/fixture.html#override-a-fixture-with-direct-test-parametrization
