@@ -197,7 +197,10 @@ def model_fixture(request, factory_name):
     # Create model fixture instance
     instance = Factory(**data)
     request._fixturedef.cached_result = (instance, None, None)
-    request._fixturedefs[request.fixturename] = request._fixturedef
+    if hasattr(request, '_fixture_defs'):
+        request._fixture_defs[request.fixturename] = request._fixturedef
+    else:
+        request._fixturedefs[request.fixturename] = request._fixturedef
 
     # Defer post-generation declarations
     related = []

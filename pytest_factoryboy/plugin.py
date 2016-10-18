@@ -43,8 +43,12 @@ class Request(object):
 
     def get_current_deps(self, request):
         deps = set()
+        if hasattr(request, '_fixture_defs'):
+            fixture_defs = request._fixture_defs
+        else:
+            fixture_defs = request._fixturedefs
         while hasattr(request, '_parent_request'):
-            if request.fixturename and request.fixturename not in request._fixturedefs:
+            if request.fixturename and request.fixturename not in fixture_defs:
                 deps.add(request.fixturename)
             request = request._parent_request
         return deps
