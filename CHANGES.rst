@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.3.0
+-----
+
+- replace request._fixturedefs by request._fixture_defs (p13773)
+
+
 1.2.2
 -----
 
