@@ -1,13 +1,18 @@
 factory_boy_ integration with the pytest_ runner
 ================================================
 
-.. image:: https://api.travis-ci.org/pytest-dev/pytest-factoryboy.png
-   :target: https://travis-ci.org/pytest-dev/pytest-factoryboy
-.. image:: https://pypip.in/v/pytest-factoryboy/badge.png
-   :target: https://crate.io/packages/pytest-factoryboy/
+.. image:: https://img.shields.io/pypi/v/pytest-factoryboy.svg
+   :target: https://pypi.python.org/pypi/pytest-factoryboy
+.. image:: https://img.shields.io/pypi/pyversions/pytest-factoryboy.svg
+  :target: https://pypi.python.org/pypi/pytest-factoryboy
+.. image:: https://img.shields.io/coveralls/pytest-dev/pytest-factoryboy/master.svg
+   :target: https://coveralls.io/r/pytest-dev/pytest-factoryboy
+.. image:: https://travis-ci.org/pytest-dev/pytest-factoryboy.svg?branch=master
+    :target: https://travis-ci.org/pytest-dev/pytest-factoryboy
 .. image:: https://readthedocs.org/projects/pytest-factoryboy/badge/?version=latest
     :target: https://readthedocs.org/projects/pytest-factoryboy/?badge=latest
     :alt: Documentation Status
+
 
 pytest-factoryboy makes it easy to combine ``factory`` approach to the test setup with the ``dependency`` injection,
 heart of the `pytest fixtures`_.
