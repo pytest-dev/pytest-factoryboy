@@ -275,7 +275,7 @@ LazyFixture constructor accepts either existing fixture name or callable with de
 
 
     # Can also be used in the partial specialization during the registration.
-    register(AuthorFactory, "another_book", author=LazyFixture("another_author"))
+    register(BookFactory, "another_book", author=LazyFixture("another_author"))
 
 
 Post-generation dependencies
