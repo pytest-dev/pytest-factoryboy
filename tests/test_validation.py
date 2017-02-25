@@ -6,12 +6,10 @@ from pytest_factoryboy import register
 
 
 class WithoutModelFactory(factory.Factory):
-
     """A factory without model."""
 
 
 class AbstractFactory(factory.Factory):
-
     """Abstract factory."""
 
     class Meta:

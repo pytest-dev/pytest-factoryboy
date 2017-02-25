@@ -173,14 +173,14 @@ def model_fixture(request, factory_name):
     data = {}
     for argname in request._fixturedef.argnames:
         if argname.startswith(prefix) and argname[len(prefix):] not in factory_class._meta.postgen_declarations:
-            data[argname[len(prefix):]] = request.getfuncargvalue(argname)
+            data[argname[len(prefix):]] = evaluate(request, request.getfuncargvalue(argname))
 
     class Factory(factory_class):
 
         @classmethod
         def attributes(cls, create=False, extra=None):
             return dict(
-                (key, evaluate(request, value))
+                (key, value)
                 for key, value in super(Factory, cls).attributes(create=create, extra=extra).items()
                 if key in data
             )
