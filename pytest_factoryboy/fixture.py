@@ -178,10 +178,10 @@ def model_fixture(request, factory_name):
     class Factory(factory_class):
 
         @classmethod
-        def attributes(cls, create=False, extra=None):
+        def attributes(cls, *args, **kwargs):
             return dict(
                 (key, value)
-                for key, value in super(Factory, cls).attributes(create=create, extra=extra).items()
+                for key, value in super(Factory, cls).attributes(*args, **kwargs).items()
                 if key in data
             )
 
