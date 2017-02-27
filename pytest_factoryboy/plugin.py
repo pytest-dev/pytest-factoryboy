@@ -87,8 +87,6 @@ class Request(object):
                     self.execute(request, function, deferred)
                 if not deferred:
                     self.deferred.remove(deferred)
-            except IndexError:
-                return
             except CycleDetected:
                 return
 

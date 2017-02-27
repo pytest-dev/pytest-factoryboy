@@ -8,7 +8,6 @@ from pytest_factoryboy import register, LazyFixture
 
 
 class User(object):
-
     """User account."""
 
     def __init__(self, username, password, is_active):
@@ -18,7 +17,6 @@ class User(object):
 
 
 class Book(object):
-
     """Book model."""
 
     def __init__(self, name=None, price=None, author=None):
@@ -29,7 +27,6 @@ class Book(object):
 
 
 class Author(object):
-
     """Author model."""
 
     def __init__(self, name):
@@ -38,7 +35,6 @@ class Author(object):
 
 
 class Edition(object):
-
     """Book edition."""
 
     def __init__(self, book, year):
@@ -48,7 +44,6 @@ class Edition(object):
 
 
 class UserFactory(factory.Factory):
-
     """User factory."""
 
     class Meta:
@@ -59,7 +54,6 @@ class UserFactory(factory.Factory):
 
 @register
 class AuthorFactory(factory.Factory):
-
     """Author factory."""
 
     class Meta:
@@ -78,7 +72,6 @@ class AuthorFactory(factory.Factory):
 
 
 class BookFactory(factory.Factory):
-
     """Test factory with all the features."""
 
     class Meta:
@@ -91,7 +84,6 @@ class BookFactory(factory.Factory):
 
 
 class EditionFactory(factory.Factory):
-
     """Book edition factory."""
 
     class Meta:

@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.3.1
+-----
+
+- fix LazyFixture evaluation order (olegpidsadnyi)
+
+
 1.3.0
 -----
 
