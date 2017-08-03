@@ -4,6 +4,7 @@ import factory
 import pytest
 
 from pytest_factoryboy import register
+from pytest_factoryboy.compat import get_fixture_value
 
 
 class Foo(object):
@@ -75,7 +76,7 @@ def test_depends_on(bar):
 
 def test_getfixturevalue(request, factoryboy_request):
     """Test post-generation declarations via the getfixturevalue."""
-    foo = request.getfixturevalue('foo')
+    foo = get_fixture_value(request, 'foo')
     assert not factoryboy_request.deferred
     assert foo.value == 1
 
