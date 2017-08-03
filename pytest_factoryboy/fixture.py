@@ -163,17 +163,17 @@ def evaluate(request, value):
 
 def model_fixture(request, factory_name):
     """Model fixture implementation."""
-    factoryboy_request = request.getfuncargvalue("factoryboy_request")
+    factoryboy_request = request.getfixturevalue("factoryboy_request")
 
     # Try to evaluate as much post-generation dependencies as possible
     factoryboy_request.evaluate(request)
 
-    factory_class = request.getfuncargvalue(factory_name)
+    factory_class = request.getfixturevalue(factory_name)
     prefix = "".join((request.fixturename, SEPARATOR))
     data = {}
     for argname in request._fixturedef.argnames:
         if argname.startswith(prefix) and argname[len(prefix):] not in factory_class._meta.postgen_declarations:
-            data[argname[len(prefix):]] = evaluate(request, request.getfuncargvalue(argname))
+            data[argname[len(prefix):]] = evaluate(request, request.getfixturevalue(argname))
 
     class Factory(factory_class):
 
@@ -232,8 +232,8 @@ def make_deferred_related(factory, fixture, attr):
     name = SEPARATOR.join((fixture, attr))
 
     def deferred(request):
-        request.getfuncargvalue(name)
-        # return request.getfuncargvalue(name)
+        request.getfixturevalue(name)
+        # return request.getfixturevalue(name)
     deferred.__name__ = name
     deferred._factory = factory
     deferred._fixture = fixture
@@ -255,7 +255,7 @@ def make_deferred_postgen(factory, fixture, instance, attr, declaration, context
     name = SEPARATOR.join((fixture, attr))
 
     def deferred(request):
-        context.value = evaluate(request, request.getfuncargvalue(name))
+        context.value = evaluate(request, request.getfixturevalue(name))
         context.extra = dict((key, evaluate(request, value)) for key, value in context.extra.items())
         declaration.call(instance, True, context)
         # return context.value
@@ -279,7 +279,7 @@ def attr_fixture(request, value):
 def subfactory_fixture(request, factory_class):
     """SubFactory/RelatedFactory fixture implementation."""
     fixture = inflection.underscore(factory_class._meta.model.__name__)
-    return request.getfuncargvalue(fixture)
+    return request.getfixturevalue(fixture)
 
 
 def get_caller_module(depth=2):
@@ -314,7 +314,7 @@ class LazyFixture(object):
         :return: evaluated fixture.
         """
         if callable(self.fixture):
-            kwargs = dict((arg, request.getfuncargvalue(arg)) for arg in self.args)
+            kwargs = dict((arg, request.getfixturevalue(arg)) for arg in self.args)
             return self.fixture(**kwargs)
         else:
-            return request.getfuncargvalue(self.fixture)
+            return request.getfixturevalue(self.fixture)
