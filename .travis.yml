@@ -1,7 +1,6 @@
 sudo: false
 language: python
-# enable Python 3.5 on travis until it will be pre-installed
-python: 3.5
+python: 3.6
 env:
   matrix:
   - TESTENV=py27-pytest2
@@ -10,6 +9,7 @@ env:
   - TESTENV=py27-pytest3
   - TESTENV=py34-pytest3
   - TESTENV=py35-pytest3
+  - TESTENV=py36-pytest3
 install:
 - pip install tox
 script: tox -e $TESTENV
