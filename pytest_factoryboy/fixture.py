@@ -193,7 +193,6 @@ def evaluate(request, value):
 
 def model_fixture(request, factory_name):
     """Model fixture implementation."""
-    monkeypatch_factory_class(factory_class)
 
     factoryboy_request = request.getfuncargvalue("factoryboy_request")
 
@@ -201,6 +200,8 @@ def model_fixture(request, factory_name):
     factoryboy_request.evaluate(request)
 
     factory_class = request.getfuncargvalue(factory_name)
+    monkeypatch_factory_class(factory_class)
+
     prefix = "".join((request.fixturename, SEPARATOR))
     data = {}
     for argname in request._fixturedef.argnames:
