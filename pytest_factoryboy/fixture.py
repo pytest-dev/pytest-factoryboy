@@ -24,13 +24,25 @@ def monkeypatch_factory_class(factory_class):
     to post_declarations, and uses builder.DeclarationSet which encapsulates
     the declarations
 
-    Patch the instance to work using 'postgen_declarations' parameter as well
+    Patch the instance to work using the old 'postgen_declarations' parameter
 
     :param factory_class: Factory class to patch
 
     """
     if hasattr(factory_class._meta, "post_declarations"):
-        factory_class._meta.postgen_declarations = factory_class._meta.post_declarations.declarations
+        # Change the instance's class to a patched one with an additional
+        # 'postgen_declarations' property
+        class_name = 'Patched' + factory_class._meta.__class__.__name__
+        patched_class = type(
+            class_name, (factory_class._meta.__class__,),
+            {
+                "postgen_declarations": property(
+                    lambda self: self.post_declarations.as_dict()
+                )
+            }
+        )
+
+        factory_class._meta.__class__ = patched_class
 
 
 def make_fixture(name, module, func, args=None, related=None, **kwargs):
