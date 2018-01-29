@@ -17,6 +17,34 @@ def {name}({deps}):
 """
 
 
+def monkeypatch_factory_class(factory_class):
+    """Patch factory_class instance for backwards compatibility
+
+    factory_boy 2.9.1+ renamed FactoryOptions.postgen_declarations
+    to post_declarations, and uses builder.DeclarationSet which encapsulates
+    the declarations
+
+    Patch the instance to work using the old 'postgen_declarations' parameter
+
+    :param factory_class: Factory class to patch
+
+    """
+    if hasattr(factory_class._meta, "post_declarations"):
+        # Change the instance's class to a patched one with an additional
+        # 'postgen_declarations' property
+        class_name = 'Patched' + factory_class._meta.__class__.__name__
+        patched_class = type(
+            class_name, (factory_class._meta.__class__,),
+            {
+                "postgen_declarations": property(
+                    lambda self: self.post_declarations.as_dict()
+                )
+            }
+        )
+
+        factory_class._meta.__class__ = patched_class
+
+
 def make_fixture(name, module, func, args=None, related=None, **kwargs):
     """Make fixture function and inject arguments.
 
@@ -53,6 +81,7 @@ def register(factory_class, _name=None, **kwargs):
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 
+    monkeypatch_factory_class(factory_class)
     module = get_caller_module()
     model_name = get_model_name(factory_class) if _name is None else _name
     factory_name = get_factory_name(factory_class)
@@ -135,6 +164,7 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
 
     :return: List of the fixture argument names for dependency injection.
     """
+    monkeypatch_factory_class(factory_class)
     model_name = get_model_name(factory_class) if model_name is None else model_name
     parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
 
@@ -163,12 +193,15 @@ def evaluate(request, value):
 
 def model_fixture(request, factory_name):
     """Model fixture implementation."""
+
     factoryboy_request = request.getfuncargvalue("factoryboy_request")
 
     # Try to evaluate as much post-generation dependencies as possible
     factoryboy_request.evaluate(request)
 
     factory_class = request.getfuncargvalue(factory_name)
+    monkeypatch_factory_class(factory_class)
+
     prefix = "".join((request.fixturename, SEPARATOR))
     data = {}
     for argname in request._fixturedef.argnames:
