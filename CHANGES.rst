@@ -1,6 +1,14 @@
 Changelog
 =========
 
+
+1.3.2
+-----
+
+- use {posargs} in pytest command (blueyed)
+- pin factory_boy<2.9 (blueyed)
+
+
 1.3.1
 -----
 
