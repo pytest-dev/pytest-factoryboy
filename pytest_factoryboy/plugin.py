@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 import pytest
+from .compat import get_fixture_value
 
 
 class CycleDetected(Exception):
@@ -27,7 +28,7 @@ class Request(object):
         self.deferred.append(functions)
 
     def get_deps(self, request, fixture, deps=None):
-        request = request.getfuncargvalue('request')
+        request = get_fixture_value(request, 'request')
 
         if deps is None:
             deps = set([fixture])
@@ -74,7 +75,7 @@ class Request(object):
         """Call _after_postgeneration hooks."""
         for model in list(self.results.keys()):
             results = self.results.pop(model)
-            obj = request.getfuncargvalue(model)
+            obj = get_fixture_value(request, model)
             factory = self.model_factories[model]
             factory._after_postgeneration(obj=obj, create=True, results=results)
 
@@ -108,7 +109,7 @@ def pytest_runtest_call(item):
     except AttributeError:
         # pytest-pep8 plugin passes Pep8Item here during tests.
         return
-    factoryboy_request = request.getfuncargvalue("factoryboy_request")
+    factoryboy_request = get_fixture_value(request, "factoryboy_request")
     factoryboy_request.evaluate(request)
     assert not factoryboy_request.deferred
     request.config.hook.pytest_factoryboy_done(request=request)
