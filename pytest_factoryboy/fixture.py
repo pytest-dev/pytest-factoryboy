@@ -62,8 +62,7 @@ def register(factory_class, _name=None, **kwargs):
 
     deps = get_deps(factory_class, model_name=model_name)
     related = []
-    # TODO: _meta.declarations and contexts!
-    # for attr, value in factory_class.declarations(factory_class._meta.postgen_declarations).items():
+
     for attr, value in factory_class._meta.declarations.items():
         value = kwargs.get(attr, value)  # Partial specialization
         attr_name = SEPARATOR.join((model_name, attr))
@@ -156,7 +155,6 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
 
     return [
         SEPARATOR.join((model_name, attr))
-        # for attr, value in factory_class.declarations(factory_class._meta.postgen_declarations).items()
         for attr, value in factory_class._meta.declarations.items()
         if is_dep(value)
     ]
@@ -194,13 +192,9 @@ def model_fixture(request, factory_name):
 
     # Extract post-generation context
     post_decls = []
-    # if factory_class._meta.postgen_declarations:
     if factory_class._meta.post_declarations:
-        # for attr, decl in sorted(factory_class._meta.postgen_declarations.items()):
         for attr, decl in sorted(factory_class._meta.post_declarations.declarations.items()):
             context = context_overrides.get(attr, dict(factory_class._meta.post_declarations.contexts.get(attr, {})))
-            # TODO: update context with the data
-            # post_decls.append((attr, decl, decl.extract(attr, data)))
             post_decls.append((attr, decl, context))
 
     # Create model fixture instance
@@ -225,6 +219,7 @@ def model_fixture(request, factory_name):
 
     instance = Factory(*args, **kwargs)
 
+    # Cache the instance value on pytest level so that the fixture can be resolved before the return
     request._fixturedef.cached_result = (instance, None, None)
     request._fixture_defs[request.fixturename] = request._fixturedef
 
@@ -270,7 +265,7 @@ def make_deferred_related(factory, fixture, attr):
 def make_deferred_postgen(step, factory_class, fixture, instance, attr, declaration, context):
     """Make deferred function for the post-generation declaration.
 
-    :param step: Builder step.
+    :param step: factory_boy builder step.
     :param factory_class: Factory class.
     :param fixture: Object fixture name e.g. "author".
     :param instance: Parent object instance.
