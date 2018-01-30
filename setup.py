@@ -41,8 +41,8 @@ setup(
     ] + [("Programming Language :: Python :: %s" % x) for x in "2.7 3.0 3.1 3.2 3.3 3.4 3.5".split()],
     install_requires=[
         "inflection",
-        "factory_boy<2.9",
-        "pytest",
+        "factory_boy>=2.10.0",
+        "pytest>=3.3.2",
     ],
     # the following makes a plugin available to py.test
     entry_points={

@@ -27,7 +27,7 @@ class Request(object):
         self.deferred.append(functions)
 
     def get_deps(self, request, fixture, deps=None):
-        request = request.getfuncargvalue('request')
+        request = request.getfixturevalue('request')
 
         if deps is None:
             deps = set([fixture])
@@ -43,12 +43,8 @@ class Request(object):
 
     def get_current_deps(self, request):
         deps = set()
-        if hasattr(request, '_fixture_defs'):
-            fixture_defs = request._fixture_defs
-        else:
-            fixture_defs = request._fixturedefs
         while hasattr(request, '_parent_request'):
-            if request.fixturename and request.fixturename not in fixture_defs:
+            if request.fixturename and request.fixturename not in getattr(request, "_fixturedefs", {}):
                 deps.add(request.fixturename)
             request = request._parent_request
         return deps
@@ -76,7 +72,7 @@ class Request(object):
             results = self.results.pop(model)
             obj = request.getfuncargvalue(model)
             factory = self.model_factories[model]
-            factory._after_postgeneration(obj=obj, create=True, results=results)
+            factory._after_postgeneration(obj, create=True, results=results)
 
     def evaluate(self, request):
         """Finalize, run deferred post-generation actions, etc."""
