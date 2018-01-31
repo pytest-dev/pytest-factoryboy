@@ -248,7 +248,7 @@ def make_deferred_related(factory, fixture, attr):
 
     def deferred(request):
         request.getfixturevalue(name)
-        # return request.getfixturevalue(name)
+
     deferred.__name__ = name
     deferred._factory = factory
     deferred._fixture = fixture
