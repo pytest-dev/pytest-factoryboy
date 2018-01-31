@@ -174,28 +174,6 @@ def model_fixture(request, factory_name):
 
     factory_class = request.getfixturevalue(factory_name)
     prefix = "".join((request.fixturename, SEPARATOR))
-    data = {}
-    context_overrides = {}
-
-    for argname in request._fixturedef.argnames:
-        if argname.startswith(prefix):
-            key = argname[len(prefix):]
-            head, tail = factory_class._meta.post_declarations.split(key)
-            post_context = factory_class._meta.post_declarations.contexts.get(head)
-            if post_context is not None:
-                if tail in post_context:
-                    ctx = context_overrides.get(head, {})
-                    context_overrides[head] = ctx
-                    ctx[tail] = evaluate(request, request.getfixturevalue(argname))
-            else:
-                data[key] = evaluate(request, request.getfixturevalue(argname))
-
-    # Extract post-generation context
-    post_decls = []
-    if factory_class._meta.post_declarations:
-        for attr, decl in sorted(factory_class._meta.post_declarations.declarations.items()):
-            context = context_overrides.get(attr, dict(factory_class._meta.post_declarations.contexts.get(attr, {})))
-            post_decls.append((attr, decl, context))
 
     # Create model fixture instance
 
@@ -207,33 +185,49 @@ def model_fixture(request, factory_name):
         if not isinstance(v, factory.declarations.PostGenerationDeclaration)
     )
     Factory._meta.post_declarations = factory.builder.DeclarationSet()
+
+    kwargs = {}
+    for key in factory_class._meta.pre_declarations:
+        argname = "".join((prefix, key))
+        if argname in request._fixturedef.argnames:
+            kwargs[key] = evaluate(request, request.getfixturevalue(argname))
+
     strategy = factory.enums.CREATE_STRATEGY
-    builder = factory.builder.StepBuilder(Factory._meta, data, strategy)
+    builder = factory.builder.StepBuilder(Factory._meta, kwargs, strategy)
     step = factory.builder.BuildStep(builder=builder, sequence=Factory._meta.next_sequence())
-    step.resolve(Factory._meta.pre_declarations)
 
-    args, kwargs = Factory._meta.prepare_arguments(step.attributes)
-    for k, v in data.items():
-        if k in kwargs:
-            kwargs[k] = v
-
-    instance = Factory(*args, **kwargs)
+    instance = Factory(**kwargs)
 
     # Cache the instance value on pytest level so that the fixture can be resolved before the return
     request._fixturedef.cached_result = (instance, None, None)
     request._fixture_defs[request.fixturename] = request._fixturedef
 
     # Defer post-generation declarations
-    related = []
-    postgen = []
-    for attr, decl, context in post_decls:
+    deferred = []
+    for attr, decl in factory_class._meta.post_declarations.declarations.items():
         if isinstance(decl, factory.RelatedFactory):
-            related.append(make_deferred_related(factory_class, request.fixturename, attr))
+            deferred.append(make_deferred_related(factory_class, request.fixturename, attr))
         else:
-            postgen.append(
-                make_deferred_postgen(step, factory_class, request.fixturename, instance, attr, decl, context)
+            argname = "".join((prefix, attr))
+            extra = {}
+            for k, v in factory_class._meta.post_declarations.contexts[attr].items():
+                if k == '':
+                    continue
+                post_attr = SEPARATOR.join((argname, k))
+                # import pdb; pdb.set_trace()
+                if post_attr in request._fixturedef.argnames:
+                    extra[k] = evaluate(request, request.getfixturevalue(post_attr))
+                else:
+                    extra[k] = v
+
+            postgen_context = factory.builder.PostGenerationContext(
+                value_provided=True,
+                value=evaluate(request, request.getfixturevalue(argname)),
+                extra=extra,
             )
-    deferred = related + postgen
+            deferred.append(
+                make_deferred_postgen(step, factory_class, request.fixturename, instance, attr, decl, postgen_context)
+            )
     factoryboy_request.defer(deferred)
 
     # Try to evaluate as much post-generation dependencies as possible
@@ -277,14 +271,7 @@ def make_deferred_postgen(step, factory_class, fixture, instance, attr, declarat
     name = SEPARATOR.join((fixture, attr))
 
     def deferred(request):
-        postgen_context = factory.builder.PostGenerationContext(
-            value_provided='' in context,
-            value=evaluate(request, request.getfixturevalue(name)),
-            extra={k: v for k, v in context.items() if k != ''},
-        )
-
-        # context.extra = dict((key, evaluate(request, value)) for key, value in context.extra.items())
-        declaration.call(instance, step, postgen_context)
+        declaration.call(instance, step, context)
 
     deferred.__name__ = name
     deferred._factory = factory_class

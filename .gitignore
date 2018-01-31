@@ -39,6 +39,7 @@ nosetests.xml
 .project
 .pydevproject
 .cache
+.pytest_cache
 .ropeproject
 
 # Sublime
