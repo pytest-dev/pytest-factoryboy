@@ -214,7 +214,7 @@ def model_fixture(request, factory_name):
                 if k == '':
                     continue
                 post_attr = SEPARATOR.join((argname, k))
-                # import pdb; pdb.set_trace()
+
                 if post_attr in request._fixturedef.argnames:
                     extra[k] = evaluate(request, request.getfixturevalue(post_attr))
                 else:
