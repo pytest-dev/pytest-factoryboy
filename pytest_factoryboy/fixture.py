@@ -199,12 +199,14 @@ def model_fixture(request, factory_name):
     instance = Factory(**kwargs)
 
     # Cache the instance value on pytest level so that the fixture can be resolved before the return
-    request._fixturedef.cached_result = (instance, None, None)
+    request._fixturedef.cached_result = (instance, [0], None)
     request._fixture_defs[request.fixturename] = request._fixturedef
 
     # Defer post-generation declarations
     deferred = []
-    for attr, decl in factory_class._meta.post_declarations.declarations.items():
+    for attr in factory_class._meta.post_declarations.sorted():
+        decl = factory_class._meta.post_declarations.declarations[attr]
+
         if isinstance(decl, factory.RelatedFactory):
             deferred.append(make_deferred_related(factory_class, request.fixturename, attr))
         else:
