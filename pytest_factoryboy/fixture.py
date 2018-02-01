@@ -64,37 +64,13 @@ def register(factory_class, _name=None, **kwargs):
     related = []
 
     for attr, value in factory_class._meta.declarations.items():
-        value = kwargs.get(attr, value)  # Partial specialization
+        args = None
         attr_name = SEPARATOR.join((model_name, attr))
 
-        if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
-            subfactory_class = value.get_factory()
-            subfactory_deps = get_deps(subfactory_class, factory_class)
-
-            args = list(subfactory_deps)
-            if isinstance(value, factory.RelatedFactory):
-                related_model = get_model_name(subfactory_class)
-                args.append(related_model)
-                related.append(related_model)
-                related.append(attr_name)
-                related.extend(subfactory_deps)
-
-            if isinstance(value, factory.SubFactory):
-                args.append(inflection.underscore(subfactory_class._meta.model.__name__))
-
-            make_fixture(
-                name=attr_name,
-                module=module,
-                func=subfactory_fixture,
-                args=args,
-                factory_class=subfactory_class,
-            )
-        else:
-            args = None
+        if isinstance(value, factory.declarations.PostGeneration):
+            value = kwargs.get(attr, None)
             if isinstance(value, LazyFixture):
                 args = value.args
-            if isinstance(value, factory.declarations.PostGeneration):
-                value = None
 
             make_fixture(
                 name=attr_name,
@@ -103,6 +79,43 @@ def register(factory_class, _name=None, **kwargs):
                 value=value,
                 args=args,
             )
+        else:
+            value = kwargs.get(attr, value)
+
+            if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
+                subfactory_class = value.get_factory()
+                subfactory_deps = get_deps(subfactory_class, factory_class)
+
+                args = list(subfactory_deps)
+                if isinstance(value, factory.RelatedFactory):
+                    related_model = get_model_name(subfactory_class)
+                    args.append(related_model)
+                    related.append(related_model)
+                    related.append(attr_name)
+                    related.extend(subfactory_deps)
+
+                if isinstance(value, factory.SubFactory):
+                    args.append(inflection.underscore(subfactory_class._meta.model.__name__))
+
+                make_fixture(
+                    name=attr_name,
+                    module=module,
+                    func=subfactory_fixture,
+                    args=args,
+                    factory_class=subfactory_class,
+                )
+            else:
+                if isinstance(value, LazyFixture):
+                    args = value.args
+
+                make_fixture(
+                    name=attr_name,
+                    module=module,
+                    func=attr_fixture,
+                    value=value,
+                    args=args,
+                )
+
     if not hasattr(module, factory_name):
         make_fixture(
             name=factory_name,
@@ -199,12 +212,14 @@ def model_fixture(request, factory_name):
     instance = Factory(**kwargs)
 
     # Cache the instance value on pytest level so that the fixture can be resolved before the return
-    request._fixturedef.cached_result = (instance, [0], None)
+    request._fixturedef.cached_result = (instance, 0, None)
     request._fixture_defs[request.fixturename] = request._fixturedef
 
     # Defer post-generation declarations
     deferred = []
+
     for attr in factory_class._meta.post_declarations.sorted():
+
         decl = factory_class._meta.post_declarations.declarations[attr]
 
         if isinstance(decl, factory.RelatedFactory):

@@ -154,12 +154,13 @@ def test_second_author(author, second_author):
     assert second_author.name == "Mr. Hyde"
 
 
-register(AuthorFactory, "partial_author", name="John Doe")
+register(AuthorFactory, "partial_author", name="John Doe", register_user=LazyFixture(lambda: "jd@jd.com"))
 
 
 def test_partial(partial_author):
     """Test fixture partial specialization."""
     assert partial_author.name == "John Doe"
+    assert partial_author.user.username == "jd@jd.com"
 
 
 register(AuthorFactory, "another_author", name=LazyFixture(lambda: "Another Author"))
