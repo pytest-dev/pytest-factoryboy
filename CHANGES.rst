@@ -1,7 +1,7 @@
 Changelog
 =========
 
-2.0.0
+2.0.1
 -----
 
 Breaking change due to the heavy refactor of both pytest and factory_boy.
