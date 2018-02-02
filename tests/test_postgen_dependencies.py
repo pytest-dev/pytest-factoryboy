@@ -84,3 +84,27 @@ def test_after_postgeneration(foo):
     """Test _after_postgeneration is called."""
     assert foo._postgeneration_results == {'set1': None}
     assert foo._create is True
+
+
+class Ordered(object):
+    value = None
+
+
+@register
+class OrderedFactory(factory.Factory):
+
+    class Meta:
+        model = Ordered
+
+    @factory.post_generation
+    def zzz(obj, create, val, **kwargs):
+        obj.value = "zzz"
+
+    @factory.post_generation
+    def aaa(obj, create, val, **kwargs):
+        obj.value = "aaa"
+
+
+def test_ordered(ordered):
+    """Test post generation are ordered by creation counter."""
+    assert ordered.value == "aaa"

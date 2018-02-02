@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2.0.0
+-----
+
+Breaking change due to the heavy refactor of both pytest and factory_boy.
+
+- Failing test for using a `attributes` field on the factory (blueyed)
+- Minimal pytest version is 3.3.2 (olegpidsadnyi)
+- Minimal factory_boy version is 2.10.0 (olegpidsadnyi)
+
 
 1.3.2
 -----
