@@ -47,7 +47,7 @@ def make_fixture(name, module, func, args=None, related=None, **kwargs):
 
 
 def register(factory_class, _name=None, **kwargs):
-    """Register fixtures for the factory class.
+    r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
     :param _name: Name of the model fixture. By default is lowercase-underscored model name.
