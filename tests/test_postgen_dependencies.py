@@ -73,9 +73,9 @@ def test_depends_on(bar):
     assert bar.foo.value == 1
 
 
-def test_getfuncargvalue(request, factoryboy_request):
-    """Test post-generation declarations via the getfuncargvalue."""
-    foo = request.getfuncargvalue('foo')
+def test_getfixturevalue(request, factoryboy_request):
+    """Test post-generation declarations via the getfixturevalue."""
+    foo = request.getfixturevalue('foo')
     assert not factoryboy_request.deferred
     assert foo.value == 1
 
