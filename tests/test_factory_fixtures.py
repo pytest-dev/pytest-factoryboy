@@ -211,7 +211,7 @@ def test_register_strategies_models(book, book_build, book_stub):
     assert all(obj.price == 3.99 for obj in objs)
     assert all(obj.author.name == "Charles Dickens" for obj in objs)
     assert all(obj.author.user is None for obj in objs)
-
+    import ipdb; ipdb.set_trace(context=8)
     # Issue with related factory for build and stub fixtures
     # assert all(obj.editions[0].year == 1999 for obj in objs)
     # assert all(obj.editions[0].book == obj for obj in objs)

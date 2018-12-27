@@ -68,7 +68,9 @@ def register_strategies(factory_class, _name=None, strategies=None, **kwargs):
         for strategy in strategies:
             if strategy not in STRATEGIES:
                 raise AttributeError(
-                    f"{strategy} is not a valid strategy. Strategies available are: {STRATEGIES}"
+                    "{} is not a valid strategy. Strategies available are: {}".format(
+                        strategy, STRATEGIES
+                    )
                 )
     else:
         strategies = STRATEGIES
@@ -196,7 +198,7 @@ def get_factory_name(factory_class):
 
 def get_strategy_name(obj, strategy):
     strategy_str = "_" + strategy if strategy != "create" else ""
-    return f"{obj}{strategy_str}"
+    return obj + strategy_str
 
 
 def get_deps(factory_class, parent_factory_class=None, model_name=None):
@@ -391,7 +393,7 @@ def get_strategy_factory_class(factory_class, strategy):
         strategy_factory_class = factory_class
     else:
         strategy_factory_class = type(
-            f"{factory_class.__name__}{strategy.title()}",
+            (factory_class.__name__ + strategy.title()),
             factory_class.__bases__,
             dict(factory_class.__dict__),
         )
