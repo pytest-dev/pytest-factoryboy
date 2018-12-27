@@ -4,7 +4,7 @@ import factory
 from factory import fuzzy
 import pytest
 
-from pytest_factoryboy import register, LazyFixture
+from pytest_factoryboy import register, register_strategies, LazyFixture
 
 
 class User(object):
@@ -80,7 +80,9 @@ class BookFactory(factory.Factory):
     name = "Alice in Wonderland"
     price = factory.LazyAttribute(lambda f: 3.99)
     author = factory.SubFactory(AuthorFactory)
-    book_edition = factory.RelatedFactory("tests.test_factory_fixtures.EditionFactory", "book")
+    book_edition = factory.RelatedFactory(
+        "tests.test_factory_fixtures.EditionFactory", "book"
+    )
 
 
 class EditionFactory(factory.Factory):
@@ -154,7 +156,12 @@ def test_second_author(author, second_author):
     assert second_author.name == "Mr. Hyde"
 
 
-register(AuthorFactory, "partial_author", name="John Doe", register_user=LazyFixture(lambda: "jd@jd.com"))
+register(
+    AuthorFactory,
+    "partial_author",
+    name="John Doe",
+    register_user=LazyFixture(lambda: "jd@jd.com"),
+)
 
 
 def test_partial(partial_author):
@@ -173,7 +180,9 @@ def test_lazy_fixture_name(book, another_author):
     assert book.author.name == "Another Author"
 
 
-@pytest.mark.parametrize("book__author", [LazyFixture(lambda another_author: another_author)])
+@pytest.mark.parametrize(
+    "book__author", [LazyFixture(lambda another_author: another_author)]
+)
 def test_lazy_fixture_callable(book, another_author):
     """Test that book author is replaced with another author by callable."""
     assert book.author == another_author
@@ -182,11 +191,52 @@ def test_lazy_fixture_callable(book, another_author):
 
 @pytest.mark.parametrize(
     ("author__register_user", "author__register_user__password"),
-    [
-        (LazyFixture(lambda: "lazyfixture"), LazyFixture(lambda: "asdasd")),
-    ]
+    [(LazyFixture(lambda: "lazyfixture"), LazyFixture(lambda: "asdasd"))],
 )
 def test_lazy_fixture_post_generation(author):
     """Test that post-generation values are replaced with lazy fixtures."""
     # assert author.user.username == "lazyfixture"
     assert author.user.password == "asdasd"
+
+
+register_strategies(BookFactory)
+register_strategies(EditionFactory)
+register_strategies(AuthorFactory)
+
+
+def test_register_strategies_models(book, book_build, book_stub):
+    """Test strategies models fixture."""
+    objs = (book, book_build, book_stub)
+    assert all(obj.name == "Alice in Wonderland" for obj in objs)
+    assert all(obj.price == 3.99 for obj in objs)
+    assert all(obj.author.name == "Charles Dickens" for obj in objs)
+    assert all(obj.author.user is None for obj in objs)
+
+    # Issue with related factory for build and stub fixtures
+    # assert all(obj.editions[0].year == 1999 for obj in objs)
+    # assert all(obj.editions[0].book == obj for obj in objs)
+
+
+def test_strategies_attr(
+    book__name,
+    book__price,
+    author__name,
+    edition__year,
+    book_build__name,
+    book_build__price,
+    author_build__name,
+    edition_build__year,
+    book_stub__name,
+    book_stub__price,
+    author_stub__name,
+    edition_stub__year,
+):
+    """Test strategies attributes fixtures.
+
+    :note: Most of the attributes are lazy definitions. Use attribute fixtures in
+           order to override the initial values.
+    """
+    assert book__name == book_build__name == book_stub__name == "Alice in Wonderland"
+    assert book__price == book_build__price == book_stub__price == BookFactory.price
+    assert author__name == author_build__name == author_stub__name == "Charles Dickens"
+    assert edition__year == edition_build__year == edition_stub__year == 1999

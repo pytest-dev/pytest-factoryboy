@@ -18,6 +18,11 @@ else:
 
 SEPARATOR = "__"
 
+STRATEGIES = (
+    factory.enums.CREATE_STRATEGY,
+    factory.enums.BUILD_STRATEGY,
+    factory.enums.STUB_STRATEGY,
+)
 
 FIXTURE_FUNC_FORMAT = """
 def {name}({deps}):
@@ -51,17 +56,53 @@ def make_fixture(name, module, func, args=None, related=None, **kwargs):
     return fixture
 
 
-def register(factory_class, _name=None, **kwargs):
+def register_strategies(factory_class, _name=None, strategies=None, **kwargs):
+    r"""Register fixtures with all specified strategies for the factory class.
+
+    :param factory_class: Factory class to register.
+    :param _name: Name of the model fixture. By default is lowercase-underscored model name.
+    :param strategies: Strategies with which fixtures must be maked. By default is all.
+    :param \**kwargs: Optional keyword arguments that override factory attributes.
+    """
+    if strategies:
+        for strategy in strategies:
+            if strategy not in STRATEGIES:
+                raise AttributeError(
+                    f"{strategy} is not a valid strategy. Strategies available are: {STRATEGIES}"
+                )
+    else:
+        strategies = STRATEGIES
+
+    model_name = get_model_name(factory_class) if _name is None else _name
+    factory_name = get_factory_name(factory_class)
+    for strategy in strategies:
+        # Set name according to strategy
+        strategy_name = get_strategy_name(model_name, strategy)
+        # Set class according to strategy
+        strategy_factory_class = get_strategy_factory_class(factory_class, strategy)
+        # Register the factory
+        register(
+            strategy_factory_class,
+            _name=strategy_name,
+            module=get_caller_module(),
+            **kwargs,
+        )
+
+
+def register(factory_class, _name=None, module=None, **kwargs):
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
     :param _name: Name of the model fixture. By default is lowercase-underscored model name.
+    :param module: Used by register_strategies. Path of the calling module. By default is None.
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
     assert not factory_class._meta.abstract, "Can't register abstract factories."
-    assert factory_class._meta.model is not None, "Factory model class is not specified."
+    assert (
+        factory_class._meta.model is not None
+    ), "Factory model class is not specified."
 
-    module = get_caller_module()
+    module = get_caller_module() if not module else module
     model_name = get_model_name(factory_class) if _name is None else _name
     factory_name = get_factory_name(factory_class)
 
@@ -78,19 +119,16 @@ def register(factory_class, _name=None, **kwargs):
                 args = value.args
 
             make_fixture(
-                name=attr_name,
-                module=module,
-                func=attr_fixture,
-                value=value,
-                args=args,
+                name=attr_name, module=module, func=attr_fixture, value=value, args=args
             )
         else:
             value = kwargs.get(attr, value)
 
             if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
-                subfactory_class = value.get_factory()
+                subfactory_class = get_strategy_factory_class(
+                    value.get_factory(), factory_class._meta.strategy
+                )
                 subfactory_deps = get_deps(subfactory_class, factory_class)
-
                 args = list(subfactory_deps)
                 if isinstance(value, factory.RelatedFactory):
                     related_model = get_model_name(subfactory_class)
@@ -100,7 +138,9 @@ def register(factory_class, _name=None, **kwargs):
                     related.extend(subfactory_deps)
 
                 if isinstance(value, factory.SubFactory):
-                    args.append(inflection.underscore(subfactory_class._meta.model.__name__))
+                    args.append(
+                        inflection.underscore(subfactory_class._meta.model.__name__)
+                    )
 
                 make_fixture(
                     name=attr_name,
@@ -144,12 +184,19 @@ def get_model_name(factory_class):
     """Get model fixture name by factory."""
     return (
         inflection.underscore(factory_class._meta.model.__name__)
-        if not isinstance(factory_class._meta.model, str) else factory_class._meta.model)
+        if not isinstance(factory_class._meta.model, str)
+        else factory_class._meta.model
+    )
 
 
 def get_factory_name(factory_class):
     """Get factory fixture name by factory."""
     return inflection.underscore(factory_class.__name__)
+
+
+def get_strategy_name(obj, strategy):
+    strategy_str = "_" + strategy if strategy != "create" else ""
+    return f"{obj}{strategy_str}"
 
 
 def get_deps(factory_class, parent_factory_class=None, model_name=None):
@@ -158,13 +205,20 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
     :return: List of the fixture argument names for dependency injection.
     """
     model_name = get_model_name(factory_class) if model_name is None else model_name
-    parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
+    parent_model_name = (
+        get_model_name(parent_factory_class)
+        if parent_factory_class is not None
+        else None
+    )
 
     def is_dep(value):
         if isinstance(value, factory.RelatedFactory):
             return False
-        if isinstance(value, factory.SubFactory) and get_model_name(value.get_factory()) == parent_model_name:
-                return False
+        if (
+            isinstance(value, factory.SubFactory)
+            and get_model_name(value.get_factory()) == parent_model_name
+        ):
+            return False
         if isinstance(value, factory.declarations.PostGeneration):
             # Dependency on extracted value
             return True
@@ -199,7 +253,8 @@ def model_fixture(request, factory_name):
         pass
 
     Factory._meta.base_declarations = dict(
-        (k, v) for k, v in Factory._meta.base_declarations.items()
+        (k, v)
+        for k, v in Factory._meta.base_declarations.items()
         if not isinstance(v, factory.declarations.PostGenerationDeclaration)
     )
     Factory._meta.post_declarations = factory.builder.DeclarationSet()
@@ -212,7 +267,9 @@ def model_fixture(request, factory_name):
 
     strategy = factory.enums.CREATE_STRATEGY
     builder = factory.builder.StepBuilder(Factory._meta, kwargs, strategy)
-    step = factory.builder.BuildStep(builder=builder, sequence=Factory._meta.next_sequence())
+    step = factory.builder.BuildStep(
+        builder=builder, sequence=Factory._meta.next_sequence()
+    )
 
     instance = Factory(**kwargs)
 
@@ -224,16 +281,17 @@ def model_fixture(request, factory_name):
     deferred = []
 
     for attr in factory_class._meta.post_declarations.sorted():
-
         decl = factory_class._meta.post_declarations.declarations[attr]
 
         if isinstance(decl, factory.RelatedFactory):
-            deferred.append(make_deferred_related(factory_class, request.fixturename, attr))
+            deferred.append(
+                make_deferred_related(factory_class, request.fixturename, attr)
+            )
         else:
             argname = "".join((prefix, attr))
             extra = {}
             for k, v in factory_class._meta.post_declarations.contexts[attr].items():
-                if k == '':
+                if k == "":
                     continue
                 post_attr = SEPARATOR.join((argname, k))
 
@@ -248,7 +306,15 @@ def model_fixture(request, factory_name):
                 extra=extra,
             )
             deferred.append(
-                make_deferred_postgen(step, factory_class, request.fixturename, instance, attr, decl, postgen_context)
+                make_deferred_postgen(
+                    step,
+                    factory_class,
+                    request.fixturename,
+                    instance,
+                    attr,
+                    decl,
+                    postgen_context,
+                )
             )
     factoryboy_request.defer(deferred)
 
@@ -278,7 +344,9 @@ def make_deferred_related(factory, fixture, attr):
     return deferred
 
 
-def make_deferred_postgen(step, factory_class, fixture, instance, attr, declaration, context):
+def make_deferred_postgen(
+    step, factory_class, fixture, instance, attr, declaration, context
+):
     """Make deferred function for the post-generation declaration.
 
     :param step: factory_boy builder step.
@@ -318,6 +386,22 @@ def subfactory_fixture(request, factory_class):
     return request.getfixturevalue(fixture)
 
 
+def get_strategy_factory_class(factory_class, strategy):
+    if strategy == "create":
+        strategy_factory_class = factory_class
+    else:
+        strategy_factory_class = type(
+            f"{factory_class.__name__}{strategy.title()}",
+            factory_class.__bases__,
+            dict(factory_class.__dict__),
+        )
+        strategy_factory_class._meta.strategy = strategy
+        strategy_factory_class._meta.abstract = False
+        strategy_factory_class._meta.model = factory_class._meta.model
+
+    return strategy_factory_class
+
+
 def get_caller_module(depth=2):
     """Get the module of the caller."""
     frame = sys._getframe(depth)
@@ -340,7 +424,8 @@ class LazyFixture(object):
         if callable(self.fixture):
             params = signature(self.fixture).parameters.values()
             self.args = [
-                param.name for param in params
+                param.name
+                for param in params
                 if param.kind == param.POSITIONAL_OR_KEYWORD
             ]
         else:
