@@ -228,12 +228,7 @@ register_strategies(EditionFactory)
 
 
 def test_register_strategies_relatedfactory(
-    book,
-    edition__book,
-    book_build,
-    edition_build__book,
-    book_stub,
-    edition_stub__book,
+    book, edition__book, book_build, edition_build__book, book_stub, edition_stub__book
 ):
     """Test register_strategies RelatedFactory fixture."""
 
@@ -258,16 +253,19 @@ def test_register_strategies_subfactory(
 
 def test_register_strategies_models(book, book_build, book_stub):
     """Test register_strategies model fixture."""
-
     objs = (book, book_build, book_stub)
 
     assert all(obj.name == "Alice in Wonderland" for obj in objs)
     assert all(obj.price == 3.99 for obj in objs)
     assert all(obj.author.name == "Charles Dickens" for obj in objs)
     assert all(obj.author.user is None for obj in objs)
-    # Issue with related factory for build and stub fixtures
-    # assert all(obj.editions[0].year == 1999 for obj in objs)
-    # assert all(obj.editions[0].book == obj for obj in objs)
+    
+    # Issue with related factory for build fixture
+    assert book.editions[0].year == book_build.editions[0].year == 1999
+    assert book.editions[0].book == book_build.editions[0].year == 1999
+    with pytest.raises(AttributeError) as excinfo:
+        book_stub.editions
+    excinfo.match(r"'StubObject' object has no attribute 'editions'")
 
 
 def test_strategies_attr(
