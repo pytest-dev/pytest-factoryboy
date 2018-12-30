@@ -50,7 +50,6 @@ def make_fixture(name, module, func, args=None, related=None, **kwargs):
 
     if related:
         fixture_func._factoryboy_related = related
-
     fixture = pytest.fixture(fixture_func)
     setattr(module, name, fixture)
     return fixture
@@ -64,6 +63,7 @@ def register_strategies(factory_class, _name=None, strategies=None, **kwargs):
     :param strategies: Strategies with which fixtures must be maked. By default is all.
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
+
     if strategies:
         for strategy in strategies:
             if strategy not in STRATEGIES:
@@ -388,18 +388,80 @@ def subfactory_fixture(request, factory_class):
     return request.getfixturevalue(fixture)
 
 
+def set_factory_meta(factory_class, **kwargs):
+    """Set Factory Class Meta"""
+
+    meta_options = ("abstract", "model", "inline_args", "exclude", "rename", "strategy")
+    old_meta = {}
+    for attr, value in factory_class._meta.__dict__.items():
+        if attr in meta_options:
+            old_meta[attr] = value
+
+    return dict(old_meta, **kwargs)
+
+
+def set_factory_params(factory_class, **kwargs):
+    """Set Factory Class Params"""
+
+    old_params = {
+        attr: value.value
+        for attr, value in factory_class._meta.parameters.items()
+    }
+
+    return dict(old_params, **kwargs)
+
+
+def get_strategy_factory_class_name(factory_class, strategy):
+    """Set Factory Class name according to strategy"""
+
+    if factory_class.__name__.endswith("Factory"):
+        index = factory_class.__name__.index("Factory")
+        class_name = (
+            factory_class.__name__[:index]
+            + strategy.title()
+            + factory_class.__name__[index:]
+        )
+    else:
+        class_name = factory_class.__name__ + strategy.title()
+
+    return class_name
+
+
+def get_strategy_factory_class_attributes(factory_class, strategy):
+    """Set Factory class attributes"""
+
+    # Set attributes
+    attrs = {}
+    for attr, value in factory_class.__dict__.items():
+        if not attr.startswith("_"):
+            attrs[attr] = value
+
+    # Set Meta
+    meta = set_factory_meta(factory_class, abstract=False, strategy=strategy)
+    attrs["Meta"] = type(
+        get_strategy_factory_class_name(factory_class, strategy) + ".Meta", (), meta
+    )
+
+    # Set Params
+    params = set_factory_params(factory_class)
+    attrs["Params"] = type(
+        get_strategy_factory_class_name(factory_class, strategy) + ".Params", (), params
+    )
+
+    return attrs
+
+
 def get_strategy_factory_class(factory_class, strategy):
+    """Create Factory class according to strategy"""
+
     if strategy == "create":
         strategy_factory_class = factory_class
     else:
         strategy_factory_class = type(
-            (factory_class.__name__ + strategy.title()),
+            get_strategy_factory_class_name(factory_class, strategy),
             factory_class.__bases__,
-            dict(factory_class.__dict__),
+            get_strategy_factory_class_attributes(factory_class, strategy),
         )
-        strategy_factory_class._meta.strategy = strategy
-        strategy_factory_class._meta.abstract = False
-        strategy_factory_class._meta.model = factory_class._meta.model
 
     return strategy_factory_class
 

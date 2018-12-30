@@ -199,19 +199,72 @@ def test_lazy_fixture_post_generation(author):
     assert author.user.password == "asdasd"
 
 
-register_strategies(BookFactory)
-register_strategies(EditionFactory)
 register_strategies(AuthorFactory)
 
 
+def test_register_strategies_factory(
+    author_factory, author_build_factory, author_stub_factory
+):
+    """Test register_strategies model factory fixture."""
+
+    assert author_factory.__name__ == "AuthorFactory"
+    assert author_build_factory.__name__ == "AuthorBuildFactory"
+    assert author_stub_factory.__name__ == "AuthorStubFactory"
+
+    assert author_factory._meta.strategy == "create"
+    assert author_build_factory._meta.strategy == "build"
+    assert author_stub_factory._meta.strategy == "stub"
+
+    assert (
+        len(
+            set((id(author_factory), id(author_build_factory), id(author_stub_factory)))
+        )
+        == 3
+    )
+
+
+register_strategies(BookFactory)
+register_strategies(EditionFactory)
+
+
+def test_register_strategies_relatedfactory(
+    book,
+    edition__book,
+    book_build,
+    edition_build__book,
+    book_stub,
+    edition_stub__book,
+):
+    """Test register_strategies RelatedFactory fixture."""
+
+    assert id(book) == id(edition__book)
+    assert id(book_build) == id(edition_build__book)
+    assert id(book_stub) == id(edition_stub__book)
+
+
+def test_register_strategies_subfactory(
+    book__author,
+    author,
+    book_build__author,
+    author_build,
+    book_stub__author,
+    author_stub,
+):
+    """Test register_strategies SubFactory fixture."""
+    assert id(book__author) == id(author)
+    assert id(book_build__author) == id(author_build)
+    assert id(book_stub__author) == id(author_stub)
+
+
 def test_register_strategies_models(book, book_build, book_stub):
-    """Test strategies models fixture."""
+    """Test register_strategies model fixture."""
+
     objs = (book, book_build, book_stub)
+
     assert all(obj.name == "Alice in Wonderland" for obj in objs)
     assert all(obj.price == 3.99 for obj in objs)
     assert all(obj.author.name == "Charles Dickens" for obj in objs)
     assert all(obj.author.user is None for obj in objs)
-    import ipdb; ipdb.set_trace(context=8)
     # Issue with related factory for build and stub fixtures
     # assert all(obj.editions[0].year == 1999 for obj in objs)
     # assert all(obj.editions[0].book == obj for obj in objs)
@@ -231,7 +284,7 @@ def test_strategies_attr(
     author_stub__name,
     edition_stub__year,
 ):
-    """Test strategies attributes fixtures.
+    """Test register_strategies attributes fixtures.
 
     :note: Most of the attributes are lazy definitions. Use attribute fixtures in
            order to override the initial values.
