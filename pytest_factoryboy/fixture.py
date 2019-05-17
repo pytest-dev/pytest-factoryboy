@@ -17,6 +17,7 @@ else:
     from funcsigs import signature
 
 SEPARATOR = "__"
+IS_SUBFACTORY_DEPS_ENABLED = True
 
 
 FIXTURE_FUNC_FORMAT = """
@@ -87,7 +88,8 @@ def register(factory_class, _name=None, **kwargs):
         else:
             value = kwargs.get(attr, value)
 
-            if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
+            if (IS_SUBFACTORY_DEPS_ENABLED 
+                    and isinstance(value, (factory.SubFactory, factory.RelatedFactory))):
                 subfactory_class = value.get_factory()
                 subfactory_deps = get_deps(subfactory_class, factory_class)
 
