@@ -114,7 +114,8 @@ def pytest_addhooks(pluginmanager):
     """Register plugin hooks."""
     from pytest_factoryboy import hooks
     # addhooks is for older py.test and deprecated; replaced by add_hookspecs
-    add_hookspecs = getattr(pluginmanager, 'add_hookspecs', pluginmanager.addhooks)
+    old_addhooks = getattr(pluginmanager, 'addhooks', None)
+    add_hookspecs = getattr(pluginmanager, 'add_hookspecs', old_addhooks)
     add_hookspecs(hooks)
 
 
@@ -124,4 +125,4 @@ def pytest_generate_tests(metafunc):
         fixturedef = arg2fixturedef[-1]
         related.extend(getattr(fixturedef.func, "_factoryboy_related", []))
 
-    metafunc.funcargnames.extend(related)
+    metafunc.fixturenames.extend(related)
