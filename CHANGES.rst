@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.0.3
+-----
+
+- Fix compatibility with pytest 5.
+
+
 2.0.2
 -----
 
