@@ -1,7 +1,6 @@
 """Factory boy fixture integration."""
 
 import sys
-import inspect
 
 import factory
 import factory.builder
@@ -10,6 +9,12 @@ import factory.enums
 import inflection
 import pytest
 
+from inspect import getmodule
+
+if sys.version_info > (3, 0):
+    from inspect import signature
+else:
+    from funcsigs import signature
 
 SEPARATOR = "__"
 
@@ -316,7 +321,7 @@ def subfactory_fixture(request, factory_class):
 def get_caller_module(depth=2):
     """Get the module of the caller."""
     frame = sys._getframe(depth)
-    module = inspect.getmodule(frame)
+    module = getmodule(frame)
     # Happens when there's no __init__.py in the folder
     if module is None:
         return get_caller_module(depth=depth)  # pragma: no cover
@@ -333,7 +338,11 @@ class LazyFixture(object):
         """
         self.fixture = fixture
         if callable(self.fixture):
-            self.args = list(inspect.getargspec(self.fixture).args)
+            params = signature(self.fixture).parameters.values()
+            self.args = [
+                param.name for param in params
+                if param.kind == param.POSITIONAL_OR_KEYWORD
+            ]
         else:
             self.args = [self.fixture]
 

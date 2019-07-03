@@ -73,7 +73,7 @@ class name.
     from pytest_factoryboy import register
 
     @register
-    class AuthorFactory(Factory):
+    class AuthorFactory(factory.Factory):
 
         class Meta:
             model = Author
