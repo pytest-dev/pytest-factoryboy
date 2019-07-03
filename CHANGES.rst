@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.0.2
+-----
+
+- Fix warning `use of getfuncargvalue is deprecated, use getfixturevalue` (sliverc)
+
+
 2.0.1
 -----
 
