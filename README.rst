@@ -63,7 +63,7 @@ class name.
 Model Fixture
 -------------
 
-Model fixture implements an instance of a model created by the factory. Name convention is lowercase-underscore
+Model fixture implements an instance of a model created by the factory. Name convention is model's lowercase-underscore
 class name.
 
 
