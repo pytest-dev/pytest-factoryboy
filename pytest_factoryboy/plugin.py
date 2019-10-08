@@ -1,6 +1,7 @@
 """pytest-factoryboy plugin."""
 
 from collections import defaultdict
+from factory import enums
 import pytest
 
 
@@ -72,7 +73,8 @@ class Request(object):
             results = self.results.pop(model)
             obj = request.getfixturevalue(model)
             factory = self.model_factories[model]
-            factory._after_postgeneration(obj, create=True, results=results)
+            create = factory._meta.strategy == enums.CREATE_STRATEGY
+            factory._after_postgeneration(obj, create=create, results=results)
 
     def evaluate(self, request):
         """Finalize, run deferred post-generation actions, etc."""
