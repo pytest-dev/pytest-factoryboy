@@ -26,6 +26,7 @@ setup(
     author_email="oleg.pidsadnyi@gmail.com",
     url="https://github.com/pytest-dev/pytest-factoryboy",
     version=VERSION,
+    python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*",
     classifiers=[
         "Development Status :: 6 - Mature",
         "Intended Audience :: Developers",
@@ -38,7 +39,7 @@ setup(
         "Topic :: Utilities",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3"
-    ] + [("Programming Language :: Python :: %s" % x) for x in "2.7 3.4 3.5 3.6 3.7".split()],
+    ] + [("Programming Language :: Python :: %s" % x) for x in "2.7 3.5 3.6 3.7".split()],
     install_requires=[
         "inflection",
         "factory_boy>=2.10.0",
