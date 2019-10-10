@@ -65,6 +65,13 @@ def register(factory_class, _name=None, **kwargs):
     model_name = get_model_name(factory_class) if _name is None else _name
     factory_name = get_factory_name(factory_class)
 
+    assert model_name != factory_name, (
+        "Model fixture cannot be named exactly like factory fixture. "
+        "Fixture name for {factory_class_name} by convention is {factory_name}. "
+        "Please provide different name for model fixture."
+    ).format(factory_class_name=factory_class.__name__, factory_name=factory_name)
+
+
     deps = get_deps(factory_class, model_name=model_name)
     related = []
 
