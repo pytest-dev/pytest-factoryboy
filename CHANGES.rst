@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+- Drop support for Python 3.4.
+- Drop support for pytest < 4.3.
+
+
 2.0.3
 -----
 
