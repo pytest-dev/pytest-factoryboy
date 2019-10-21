@@ -38,8 +38,13 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Topic :: Utilities",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 3"
-    ] + [("Programming Language :: Python :: %s" % x) for x in "2.7 3.5 3.6 3.7".split()],
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+    ],
     install_requires=[
         "inflection",
         "factory_boy>=2.10.0",
