@@ -184,7 +184,7 @@ def test_lazy_fixture_callable(book, another_author):
     ("author__register_user", "author__register_user__password"),
     [
         (LazyFixture(lambda: "lazyfixture"), LazyFixture(lambda: "asdasd")),
-    ]
+    ],
 )
 def test_lazy_fixture_post_generation(author):
     """Test that post-generation values are replaced with lazy fixtures."""
