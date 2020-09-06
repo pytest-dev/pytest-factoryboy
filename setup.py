@@ -17,7 +17,7 @@ long_description = (
 )
 
 with codecs.open(os.path.join(dirname, "pytest_factoryboy", "__init__.py"), encoding="utf-8") as fd:
-    VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(fd.read()).group(1)
+    VERSION = re.compile(r'.*__version__ = "(.*?)"', re.S).match(fd.read()).group(1)
 
 setup(
     name="pytest-factoryboy",
