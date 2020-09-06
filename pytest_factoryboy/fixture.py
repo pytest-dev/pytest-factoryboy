@@ -1,5 +1,5 @@
 """Factory boy fixture integration."""
-
+import inspect
 import sys
 
 import factory
@@ -25,7 +25,7 @@ def {name}({deps}):
 """
 
 
-def make_fixture(name, module, func, args=None, related=None, **kwargs):
+def make_fixture(name, frame_info, func, args=None, related=None, **kwargs):
     """Make fixture function and inject arguments.
 
     :param name: Fixture name.
@@ -41,13 +41,17 @@ def make_fixture(name, module, func, args=None, related=None, **kwargs):
     context.update(kwargs)
     exec(FIXTURE_FUNC_FORMAT.format(name=name, deps=deps), context)
     fixture_func = context[name]
-    fixture_func.__module__ = module.__name__
+
+    module = getmodule(frame_info[0])
+    if module is not None:
+        fixture_func.__module__ = module.__name__
 
     if related:
         fixture_func._factoryboy_related = related
 
     fixture = pytest.fixture(fixture_func)
-    setattr(module, name, fixture)
+    # setattr(module, name, fixture)
+    frame_info[0].f_locals[name] = fixture
     return fixture
 
 
@@ -61,6 +65,7 @@ def register(factory_class, _name=None, **kwargs):
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 
+    caller_frame = inspect.stack()[1]
     module = get_caller_module()
     model_name = get_model_name(factory_class) if _name is None else _name
     factory_name = get_factory_name(factory_class)
@@ -79,7 +84,7 @@ def register(factory_class, _name=None, **kwargs):
 
             make_fixture(
                 name=attr_name,
-                module=module,
+                frame_info=caller_frame,
                 func=attr_fixture,
                 value=value,
                 args=args,
@@ -104,7 +109,7 @@ def register(factory_class, _name=None, **kwargs):
 
                 make_fixture(
                     name=attr_name,
-                    module=module,
+                    frame_info=caller_frame,
                     func=subfactory_fixture,
                     args=args,
                     factory_class=subfactory_class,
@@ -115,7 +120,7 @@ def register(factory_class, _name=None, **kwargs):
 
                 make_fixture(
                     name=attr_name,
-                    module=module,
+                    frame_info=caller_frame,
                     func=attr_fixture,
                     value=value,
                     args=args,
@@ -124,14 +129,14 @@ def register(factory_class, _name=None, **kwargs):
     if not hasattr(module, factory_name):
         make_fixture(
             name=factory_name,
-            module=module,
+            frame_info=caller_frame,
             func=factory_fixture,
             factory_class=factory_class,
         )
 
     make_fixture(
         name=model_name,
-        module=module,
+        frame_info=caller_frame,
         func=model_fixture,
         args=deps,
         factory_name=factory_name,
