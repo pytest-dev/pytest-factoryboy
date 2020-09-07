@@ -144,7 +144,9 @@ def get_model_name(factory_class):
     """Get model fixture name by factory."""
     return (
         inflection.underscore(factory_class._meta.model.__name__)
-        if not isinstance(factory_class._meta.model, str) else factory_class._meta.model)
+        if not isinstance(factory_class._meta.model, str)
+        else factory_class._meta.model
+    )
 
 
 def get_factory_name(factory_class):
@@ -164,7 +166,7 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
         if isinstance(value, factory.RelatedFactory):
             return False
         if isinstance(value, factory.SubFactory) and get_model_name(value.get_factory()) == parent_model_name:
-                return False
+            return False
         if isinstance(value, factory.declarations.PostGeneration):
             # Dependency on extracted value
             return True
@@ -172,9 +174,7 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
         return True
 
     return [
-        SEPARATOR.join((model_name, attr))
-        for attr, value in factory_class._meta.declarations.items()
-        if is_dep(value)
+        SEPARATOR.join((model_name, attr)) for attr, value in factory_class._meta.declarations.items() if is_dep(value)
     ]
 
 
@@ -199,7 +199,8 @@ def model_fixture(request, factory_name):
         pass
 
     Factory._meta.base_declarations = dict(
-        (k, v) for k, v in Factory._meta.base_declarations.items()
+        (k, v)
+        for k, v in Factory._meta.base_declarations.items()
         if not isinstance(v, factory.declarations.PostGenerationDeclaration)
     )
     Factory._meta.post_declarations = factory.builder.DeclarationSet()
@@ -233,7 +234,7 @@ def model_fixture(request, factory_name):
             argname = "".join((prefix, attr))
             extra = {}
             for k, v in factory_class._meta.post_declarations.contexts[attr].items():
-                if k == '':
+                if k == "":
                     continue
                 post_attr = SEPARATOR.join((argname, k))
 
@@ -339,10 +340,7 @@ class LazyFixture(object):
         self.fixture = fixture
         if callable(self.fixture):
             params = signature(self.fixture).parameters.values()
-            self.args = [
-                param.name for param in params
-                if param.kind == param.POSITIONAL_OR_KEYWORD
-            ]
+            self.args = [param.name for param in params if param.kind == param.POSITIONAL_OR_KEYWORD]
         else:
             self.args = [self.fixture]
 

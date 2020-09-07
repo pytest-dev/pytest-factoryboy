@@ -28,17 +28,15 @@ class Author(object):
 
 
 class AuthorFactory(factory.Factory):
-
     class Meta:
         model = Author
 
     name = "Charles Dickens"
 
-    book = factory.RelatedFactory('tests.test_circular.BookFactory', 'author')
+    book = factory.RelatedFactory("tests.test_circular.BookFactory", "author")
 
 
 class BookFactory(factory.Factory):
-
     class Meta:
         model = Book
 

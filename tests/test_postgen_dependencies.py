@@ -7,14 +7,12 @@ from pytest_factoryboy import register
 
 
 class Foo(object):
-
     def __init__(self, value, expected):
         self.value = value
         self.expected = expected
 
 
 class Bar(object):
-
     def __init__(self, foo):
         self.foo = foo
 
@@ -66,8 +64,8 @@ def test_postgen_invoked(foo):
 register(BarFactory)
 
 
-@pytest.mark.parametrize('foo__value', [3])
-@pytest.mark.parametrize('foo__expected', [1])
+@pytest.mark.parametrize("foo__value", [3])
+@pytest.mark.parametrize("foo__expected", [1])
 def test_depends_on(bar):
     """Test that post-generation hooks are done and the value is 1."""
     assert bar.foo.value == 1
@@ -75,14 +73,14 @@ def test_depends_on(bar):
 
 def test_getfixturevalue(request, factoryboy_request):
     """Test post-generation declarations via the getfixturevalue."""
-    foo = request.getfixturevalue('foo')
+    foo = request.getfixturevalue("foo")
     assert not factoryboy_request.deferred
     assert foo.value == 1
 
 
 def test_after_postgeneration(foo):
     """Test _after_postgeneration is called."""
-    assert foo._postgeneration_results == {'set1': None}
+    assert foo._postgeneration_results == {"set1": None}
     assert foo._create is True
 
 
@@ -92,7 +90,6 @@ class Ordered(object):
 
 @register
 class OrderedFactory(factory.Factory):
-
     class Meta:
         model = Ordered
 

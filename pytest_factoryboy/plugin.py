@@ -27,11 +27,11 @@ class Request(object):
         self.deferred.append(functions)
 
     def get_deps(self, request, fixture, deps=None):
-        request = request.getfixturevalue('request')
+        request = request.getfixturevalue("request")
 
         if deps is None:
             deps = set([fixture])
-        if fixture == 'request':
+        if fixture == "request":
             return deps
 
         for fixturedef in request._fixturemanager.getfixturedefs(fixture, request._pyfuncitem.parent.nodeid) or []:
@@ -43,7 +43,7 @@ class Request(object):
 
     def get_current_deps(self, request):
         deps = set()
-        while hasattr(request, '_parent_request'):
+        while hasattr(request, "_parent_request"):
             if request.fixturename and request.fixturename not in getattr(request, "_fixturedefs", {}):
                 deps.add(request.fixturename)
             request = request._parent_request
@@ -113,6 +113,7 @@ def pytest_runtest_call(item):
 def pytest_addhooks(pluginmanager):
     """Register plugin hooks."""
     from pytest_factoryboy import hooks
+
     pluginmanager.add_hookspecs(hooks)
 
 

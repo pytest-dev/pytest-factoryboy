@@ -9,13 +9,15 @@ from setuptools import setup
 dirname = os.path.dirname(__file__)
 
 long_description = (
-    codecs.open(os.path.join(dirname, "README.rst"), encoding="utf-8").read() + "\n" +
-    codecs.open(os.path.join(dirname, "AUTHORS.rst"), encoding="utf-8").read() + "\n" +
-    codecs.open(os.path.join(dirname, "CHANGES.rst"), encoding="utf-8").read()
+    codecs.open(os.path.join(dirname, "README.rst"), encoding="utf-8").read()
+    + "\n"
+    + codecs.open(os.path.join(dirname, "AUTHORS.rst"), encoding="utf-8").read()
+    + "\n"
+    + codecs.open(os.path.join(dirname, "CHANGES.rst"), encoding="utf-8").read()
 )
 
-with codecs.open(os.path.join(dirname, 'pytest_factoryboy', '__init__.py'), encoding='utf-8') as fd:
-    VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(fd.read()).group(1)
+with codecs.open(os.path.join(dirname, "pytest_factoryboy", "__init__.py"), encoding="utf-8") as fd:
+    VERSION = re.compile(r'.*__version__ = "(.*?)"', re.S).match(fd.read()).group(1)
 
 setup(
     name="pytest-factoryboy",
