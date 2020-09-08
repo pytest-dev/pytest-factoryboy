@@ -47,7 +47,6 @@ class name.
     from pytest_factoryboy import register
 
     class AuthorFactory(factory.Factory):
-
         class Meta:
             model = Author
 
@@ -74,7 +73,6 @@ class name.
 
     @register
     class AuthorFactory(factory.Factory):
-
         class Meta:
             model = Author
 
@@ -156,7 +154,6 @@ factories/__init__.py:
 
 
     class AuthorFactory(factory.django.DjangoModelFactory):
-
         """Author factory."""
 
         name = factory.LazyAttribute(lambda x: faker.name())
@@ -166,7 +163,6 @@ factories/__init__.py:
 
 
     class BookFactory(factory.django.DjangoModelFactory):
-
         """Book factory."""
 
         title = factory.LazyAttribute(lambda x: faker.sentence(nb_words=4))
@@ -309,20 +305,17 @@ pytest-factoryboy is trying to detect cycles and resolve post-generation depende
 
 
     class Foo(object):
-
         def __init__(self, value):
             self.value = value
 
 
     class Bar(object):
-
         def __init__(self, foo):
             self.foo = foo
 
 
     @register
     class FooFactory(factory.Factory):
-
         """Foo factory."""
 
         class Meta:
@@ -336,7 +329,6 @@ pytest-factoryboy is trying to detect cycles and resolve post-generation depende
 
 
     class BarFactory(factory.Factory):
-
         """Bar factory."""
 
         foo = factory.SubFactory(FooFactory)
