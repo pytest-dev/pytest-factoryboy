@@ -3,6 +3,7 @@
 import factory
 import pytest
 
+from factory.declarations import NotProvided
 from pytest_factoryboy import register
 
 
@@ -10,6 +11,14 @@ class Foo(object):
     def __init__(self, value, expected):
         self.value = value
         self.expected = expected
+        self.secret = ""
+        self.number = 4
+
+    def set_secret(self, new_secret):
+        self.secret = new_secret
+
+    def set_number(self, new_number=987):
+        self.number = new_number
 
 
 class Bar(object):
@@ -26,12 +35,19 @@ class FooFactory(factory.Factory):
         model = Foo
 
     value = 0
+    #: Value that is expected at the constructor
     expected = 0
-    """Value that is expected at the constructor."""
+    secret = factory.PostGenerationMethodCall("set_secret", "super secret")
+    number = factory.PostGenerationMethodCall("set_number")
 
     @factory.post_generation
     def set1(foo, create, value, **kwargs):
         foo.value = 1
+
+    @factory.post_generation
+    def set2(foo, create, value, **kwargs):
+        if create and value:
+            foo.value = value
 
     @classmethod
     def _after_postgeneration(cls, obj, create, results=None):
@@ -76,12 +92,50 @@ def test_getfixturevalue(request, factoryboy_request):
     foo = request.getfixturevalue("foo")
     assert not factoryboy_request.deferred
     assert foo.value == 1
+    assert foo.secret == "super secret"
+    assert foo.number == 987
+
+
+def test_postgenerationmethodcall_getfixturevalue(request, factoryboy_request):
+    """Test default fixture value generated for ``PostGenerationMethodCall``."""
+    secret = request.getfixturevalue("foo__secret")
+    number = request.getfixturevalue("foo__number")
+    assert not factoryboy_request.deferred
+    assert secret == "super secret"
+    assert number is NotProvided
+
+
+def test_postgeneration_getfixturevalue(request, factoryboy_request):
+    """Ensure default fixture value generated for ``PostGeneration`` is `None`."""
+    set1 = request.getfixturevalue("foo__set1")
+    set2 = request.getfixturevalue("foo__set2")
+    assert not factoryboy_request.deferred
+    assert set1 is None
+    assert set2 is None
 
 
 def test_after_postgeneration(foo):
     """Test _after_postgeneration is called."""
-    assert foo._postgeneration_results == {"set1": None}
+    assert foo._postgeneration_results == {"set1": None, "set2": None, "secret": None, "number": None}
     assert foo._create is True
+
+
+@pytest.mark.parametrize("foo__set2", [123])
+def test_postgeneration_fixture(foo):
+    """Test fixture for ``PosGeneration`` declaration."""
+    assert foo.value == 123
+
+
+@pytest.mark.parametrize(
+    ("foo__secret", "foo__number"),
+    [
+        ("test secret", 456),
+    ],
+)
+def test_postgenerationmethodcall_fixture(foo):
+    """Test fixture for ``PosGenerationMethodCall`` declaration."""
+    assert foo.secret == "test secret"
+    assert foo.number == 456
 
 
 class Ordered(object):

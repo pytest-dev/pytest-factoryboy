@@ -10,6 +10,7 @@ import inflection
 import pytest
 
 from inspect import getmodule
+from factory.declarations import NotProvided
 
 if sys.version_info > (3, 0):
     from inspect import signature
@@ -72,8 +73,22 @@ def register(factory_class, _name=None, **kwargs):
         args = None
         attr_name = SEPARATOR.join((model_name, attr))
 
-        if isinstance(value, factory.declarations.PostGeneration):
-            value = kwargs.get(attr, None)
+        if isinstance(value, factory.declarations.PostGenerationDeclaration) and not isinstance(
+            value, factory.RelatedFactory
+        ):
+            # Creates `attr_fixture`, that is used as an attribute (named
+            # `value`) of `context` argument that is passed to
+            # ``PostGenerationDeclaration.call()``.
+            # ``RelatedFactory`` is excluded, because it is handled
+            # separately in `else` statement.
+            default_value = None
+            # ``PostGenerationMethodCall`` is special case, because it can
+            # handle only one positional argument, for which default value can
+            # be defined, so we also have to use this value as `atrr_fixture`
+            # value.
+            if isinstance(value, factory.PostGenerationMethodCall):
+                default_value = value.method_arg
+            value = kwargs.get(attr, default_value)
             if isinstance(value, LazyFixture):
                 args = value.args
 
@@ -167,7 +182,7 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
             return False
         if isinstance(value, factory.SubFactory) and get_model_name(value.get_factory()) == parent_model_name:
             return False
-        if isinstance(value, factory.declarations.PostGeneration):
+        if isinstance(value, factory.declarations.PostGenerationDeclaration):
             # Dependency on extracted value
             return True
 
@@ -242,10 +257,13 @@ def model_fixture(request, factory_name):
                     extra[k] = evaluate(request, request.getfixturevalue(post_attr))
                 else:
                     extra[k] = v
-
+            # Handle special case for ``PostGenerationMethodCall`` where
+            # `attr_fixture` value is equal to ``NotProvided``, which mean
+            # that `value_provided` should be falsy
+            postgen_value = evaluate(request, request.getfixturevalue(argname))
             postgen_context = factory.builder.PostGenerationContext(
-                value_provided=True,
-                value=evaluate(request, request.getfixturevalue(argname)),
+                value_provided=(postgen_value is not NotProvided),
+                value=postgen_value,
                 extra=extra,
             )
             deferred.append(
