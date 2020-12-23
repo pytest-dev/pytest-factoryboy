@@ -42,15 +42,15 @@ setup(
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
     install_requires=[
         "inflection",
         "factory_boy>=2.10.0",
-        "pytest>=4.3",
+        "pytest>=4.6",
         'funcsigs;python_version<"3.0"',
     ],
     # the following makes a plugin available to py.test

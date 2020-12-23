@@ -4,8 +4,10 @@ Changelog
 Unreleased
 ----------
 
-- Drop support for Python 3.4.
-- Drop support for pytest < 4.3.
+- Add support for Python 3.9.
+- Drop support for Python 3.4, 3.5.
+- Add support for pytest 6.
+- Drop support for pytest < 4.6.
 
 
 2.0.3
