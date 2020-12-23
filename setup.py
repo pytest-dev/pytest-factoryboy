@@ -50,7 +50,7 @@ setup(
     install_requires=[
         "inflection",
         "factory_boy>=2.10.0",
-        "pytest>=4.3",
+        "pytest>=4.6",
         'funcsigs;python_version<"3.0"',
     ],
     # the following makes a plugin available to py.test
