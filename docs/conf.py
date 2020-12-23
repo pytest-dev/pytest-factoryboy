@@ -1,5 +1,4 @@
 """Sphinx config."""
-# -*- coding: utf-8 -*-
 #
 # pytest-factoryboy documentation build configuration file, created by
 # sphinx-quickstart on Sun Apr  7 21:07:56 2013.
