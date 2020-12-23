@@ -1,9 +1,9 @@
 """Test LazyFixture related features."""
-
 import factory
 import pytest
 
-from pytest_factoryboy import register, LazyFixture
+from pytest_factoryboy import LazyFixture
+from pytest_factoryboy import register
 
 
 class User:

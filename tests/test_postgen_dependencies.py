@@ -1,5 +1,4 @@
 """Test post-generation dependecies."""
-
 import factory
 import pytest
 

@@ -1,10 +1,10 @@
 """Factory fixtures tests."""
-
 import factory
-from factory import fuzzy
 import pytest
+from factory import fuzzy
 
-from pytest_factoryboy import register, LazyFixture
+from pytest_factoryboy import LazyFixture
+from pytest_factoryboy import register
 
 
 class User:
