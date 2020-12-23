@@ -28,7 +28,7 @@ setup(
     author_email="oleg.pidsadnyi@gmail.com",
     url="https://github.com/pytest-dev/pytest-factoryboy",
     version=VERSION,
-    python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*",
+    python_requires=">=3.6",
     classifiers=[
         "Development Status :: 6 - Mature",
         "Intended Audience :: Developers",
@@ -39,9 +39,8 @@ setup(
         "Topic :: Software Development :: Testing",
         "Topic :: Software Development :: Libraries",
         "Topic :: Utilities",
-        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -51,7 +50,6 @@ setup(
         "inflection",
         "factory_boy>=2.10.0",
         "pytest>=4.6",
-        'funcsigs;python_version<"3.0"',
     ],
     # the following makes a plugin available to py.test
     entry_points={
