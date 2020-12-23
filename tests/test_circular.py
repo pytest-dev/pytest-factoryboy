@@ -5,7 +5,7 @@ import factory
 from pytest_factoryboy import register
 
 
-class Book(object):
+class Book:
 
     """Book model."""
 
@@ -17,7 +17,7 @@ class Book(object):
         self.author.books.append(self)
 
 
-class Author(object):
+class Author:
 
     """Author model."""
 
