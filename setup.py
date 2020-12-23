@@ -39,19 +39,16 @@ setup(
         "Topic :: Software Development :: Testing",
         "Topic :: Software Development :: Libraries",
         "Topic :: Utilities",
-        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],
+    python_requires='>=3.6',
     install_requires=[
         "inflection",
         "factory_boy>=2.10.0",
         "pytest>=4.3",
-        'funcsigs;python_version<"3.0"',
     ],
     # the following makes a plugin available to py.test
     entry_points={
