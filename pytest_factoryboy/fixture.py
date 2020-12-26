@@ -1,13 +1,17 @@
 """Factory boy fixture integration."""
-import sys
-from inspect import getmodule
-from inspect import signature
 
+import sys
+
+import factory
 import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
 import pytest
+
+from inspect import getmodule
+
+from inspect import signature
 
 SEPARATOR = "__"
 

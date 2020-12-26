@@ -1,7 +1,7 @@
 """Test factory registration validation."""
+
 import factory
 import pytest
-
 from pytest_factoryboy import register
 
 
