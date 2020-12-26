@@ -13,12 +13,7 @@ repos:
     -   id: check-yaml
     -   id: check-added-large-files
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.4
+    rev: v2.7.2
     hooks:
     -   id: pyupgrade
-        args: [--py36-plus]
--   repo: https://github.com/asottile/reorder_python_imports
-    rev: v2.3.6
-    hooks:
-    -   id: reorder-python-imports
         args: [--py36-plus]
