@@ -9,9 +9,7 @@ import factory.enums
 import inflection
 import pytest
 
-from inspect import getmodule
-
-from inspect import signature
+from inspect import getmodule, signature
 
 SEPARATOR = "__"
 
