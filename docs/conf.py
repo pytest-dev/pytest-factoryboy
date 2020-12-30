@@ -1,5 +1,4 @@
 """Sphinx config."""
-# -*- coding: utf-8 -*-
 #
 # pytest-factoryboy documentation build configuration file, created by
 # sphinx-quickstart on Sun Apr  7 21:07:56 2013.
@@ -45,9 +44,9 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"pytest-factoryboy"
+project = "pytest-factoryboy"
 AUTHOR = "Oleg Pidsadnyi, Anatoly Bubenkov and others"
-copyright = u"2015, " + AUTHOR
+copyright = "2015, " + AUTHOR
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -187,7 +186,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ("index", "pytest-factoryboy.tex", u"pytest-factoryboy Documentation", AUTHOR, "manual"),
+    ("index", "pytest-factoryboy.tex", "pytest-factoryboy Documentation", AUTHOR, "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -215,7 +214,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "pytest-factoryboy", u"pytest-factoryboy Documentation", [AUTHOR], 1)]
+man_pages = [("index", "pytest-factoryboy", "pytest-factoryboy Documentation", [AUTHOR], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -230,7 +229,7 @@ texinfo_documents = [
     (
         "index",
         "pytest-factoryboy",
-        u"pytest-factoryboy Documentation",
+        "pytest-factoryboy Documentation",
         AUTHOR,
         "pytest-factoryboy",
         "factory_boy integration the pytest runner.",

@@ -7,7 +7,7 @@ import pytest
 from pytest_factoryboy import register, LazyFixture
 
 
-class User(object):
+class User:
     """User account."""
 
     def __init__(self, username, password, is_active):
@@ -16,7 +16,7 @@ class User(object):
         self.is_active = is_active
 
 
-class Book(object):
+class Book:
     """Book model."""
 
     def __init__(self, name=None, price=None, author=None):
@@ -26,7 +26,7 @@ class Book(object):
         self.author = author
 
 
-class Author(object):
+class Author:
     """Author model."""
 
     def __init__(self, name):
@@ -34,7 +34,7 @@ class Author(object):
         self.user = None
 
 
-class Edition(object):
+class Edition:
     """Book edition."""
 
     def __init__(self, book, year):
