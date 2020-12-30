@@ -7,7 +7,7 @@ from factory.declarations import NotProvided
 from pytest_factoryboy import register
 
 
-class Foo(object):
+class Foo:
     def __init__(self, value, expected):
         self.value = value
         self.expected = expected
@@ -21,7 +21,7 @@ class Foo(object):
         self.number = new_number
 
 
-class Bar(object):
+class Bar:
     def __init__(self, foo):
         self.foo = foo
 
@@ -64,7 +64,7 @@ class BarFactory(factory.Factory):
     @classmethod
     def _create(cls, model_class, foo):
         assert foo.value == foo.expected
-        bar = super(BarFactory, cls)._create(model_class, foo=foo)
+        bar = super()._create(model_class, foo=foo)
         foo.bar = bar
         return bar
 
@@ -138,7 +138,7 @@ def test_postgenerationmethodcall_fixture(foo):
     assert foo.number == 456
 
 
-class Ordered(object):
+class Ordered:
     value = None
 
 
