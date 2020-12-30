@@ -11,6 +11,8 @@ import pytest
 
 from inspect import getmodule
 
+from pytest_factoryboy.compat import PostGenerationContext
+
 if sys.version_info > (3, 0):
     from inspect import signature
 else:
@@ -243,7 +245,7 @@ def model_fixture(request, factory_name):
                 else:
                     extra[k] = v
 
-            postgen_context = factory.builder.PostGenerationContext(
+            postgen_context = PostGenerationContext(
                 value_provided=True,
                 value=evaluate(request, request.getfixturevalue(argname)),
                 extra=extra,
