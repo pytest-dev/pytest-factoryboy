@@ -6,13 +6,13 @@ import pytest
 from pytest_factoryboy import register
 
 
-class Foo(object):
+class Foo:
     def __init__(self, value, expected):
         self.value = value
         self.expected = expected
 
 
-class Bar(object):
+class Bar:
     def __init__(self, foo):
         self.foo = foo
 
@@ -48,7 +48,7 @@ class BarFactory(factory.Factory):
     @classmethod
     def _create(cls, model_class, foo):
         assert foo.value == foo.expected
-        bar = super(BarFactory, cls)._create(model_class, foo=foo)
+        bar = super()._create(model_class, foo=foo)
         foo.bar = bar
         return bar
 
@@ -84,7 +84,7 @@ def test_after_postgeneration(foo):
     assert foo._create is True
 
 
-class Ordered(object):
+class Ordered:
     value = None
 
 
