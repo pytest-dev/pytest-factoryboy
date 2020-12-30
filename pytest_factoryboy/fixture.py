@@ -11,6 +11,8 @@ import pytest
 
 from inspect import getmodule, signature
 
+from pytest_factoryboy.compat import PostGenerationContext
+
 SEPARATOR = "__"
 
 
@@ -238,7 +240,7 @@ def model_fixture(request, factory_name):
                 else:
                     extra[k] = v
 
-            postgen_context = factory.builder.PostGenerationContext(
+            postgen_context = PostGenerationContext(
                 value_provided=True,
                 value=evaluate(request, request.getfixturevalue(argname)),
                 extra=extra,
