@@ -8,6 +8,7 @@ Unreleased
 - Drop support for Python 3.4, 3.5.
 - Add support for pytest 6.
 - Drop support for pytest < 4.6.
+- Add support for factory_boy >= 3.2.0
 
 
 2.0.3
