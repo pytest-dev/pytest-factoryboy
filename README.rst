@@ -39,7 +39,7 @@ Factory Fixture
 ---------------
 
 Factory fixtures allow using factories without importing them. Name convention is lowercase-underscore
-class name.
+class name (the `model` defined in the `Meta` class) with `_factory` appended.
 
 .. code-block:: python
 
@@ -48,7 +48,7 @@ class name.
 
     class AuthorFactory(factory.Factory):
         class Meta:
-            model = Author
+            model = Author  # this will become the factory fixture name, lowercase-underscore + '_factory'
 
 
     register(AuthorFactory)
@@ -63,7 +63,7 @@ Model Fixture
 -------------
 
 Model fixture implements an instance of a model created by the factory. Name convention is model's lowercase-underscore
-class name.
+class name (the `model` defined in the `Meta` class).
 
 
 .. code-block:: python
@@ -74,7 +74,7 @@ class name.
     @register
     class AuthorFactory(factory.Factory):
         class Meta:
-            model = Author
+            model = Author  # this will become the model fixture name, lowercase-underscore
 
         name = "Charles Dickens"
 
