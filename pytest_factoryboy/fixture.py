@@ -13,6 +13,8 @@ from inspect import getmodule, signature
 
 from factory.declarations import NotProvided
 
+from pytest_factoryboy.compat import PostGenerationContext
+
 SEPARATOR = "__"
 
 
@@ -257,7 +259,7 @@ def model_fixture(request, factory_name):
             # `attr_fixture` value is equal to ``NotProvided``, which mean
             # that `value_provided` should be falsy
             postgen_value = evaluate(request, request.getfixturevalue(argname))
-            postgen_context = factory.builder.PostGenerationContext(
+            postgen_context = PostGenerationContext(
                 value_provided=(postgen_value is not NotProvided),
                 value=postgen_value,
                 extra=extra,
