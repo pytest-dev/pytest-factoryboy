@@ -8,6 +8,7 @@ Unreleased
 - Add python 3.9 and 3.10 to the CI test matrix.
 - Add pytest 6 to the CI test matrix.
 - Drop support for pytest < 4.6.
+- Add support for factory_boy >= 3.2.0
 
 
 2.0.3
