@@ -4,9 +4,9 @@ Changelog
 Unreleased
 ----------
 
-- Add support for Python 3.9.
-- Drop support for Python 3.4, 3.5.
-- Add support for pytest 6.
+- Drop support for Python 2.7, 3.4, 3.5. We now support only python >= 3.6.
+- Add python 3.9 and 3.10 to the CI test matrix.
+- Add pytest 6 to the CI test matrix.
 - Drop support for pytest < 4.6.
 - Add support for factory_boy >= 3.2.0
 
