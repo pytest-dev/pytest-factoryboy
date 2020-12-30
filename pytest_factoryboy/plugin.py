@@ -8,7 +8,7 @@ class CycleDetected(Exception):
     pass
 
 
-class Request(object):
+class Request:
     """PyTest FactoryBoy request."""
 
     def __init__(self):
@@ -30,7 +30,7 @@ class Request(object):
         request = request.getfixturevalue("request")
 
         if deps is None:
-            deps = set([fixture])
+            deps = {fixture}
         if fixture == "request":
             return deps
 

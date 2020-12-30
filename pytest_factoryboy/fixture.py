@@ -9,14 +9,9 @@ import factory.enums
 import inflection
 import pytest
 
-from inspect import getmodule
+from inspect import getmodule, signature
 
 from pytest_factoryboy.compat import PostGenerationContext
-
-if sys.version_info > (3, 0):
-    from inspect import signature
-else:
-    from funcsigs import signature
 
 SEPARATOR = "__"
 
@@ -200,11 +195,11 @@ def model_fixture(request, factory_name):
     class Factory(factory_class):
         pass
 
-    Factory._meta.base_declarations = dict(
-        (k, v)
+    Factory._meta.base_declarations = {
+        k: v
         for k, v in Factory._meta.base_declarations.items()
         if not isinstance(v, factory.declarations.PostGenerationDeclaration)
-    )
+    }
     Factory._meta.post_declarations = factory.builder.DeclarationSet()
 
     kwargs = {}
@@ -331,7 +326,7 @@ def get_caller_module(depth=2):
     return module
 
 
-class LazyFixture(object):
+class LazyFixture:
     """Lazy fixture."""
 
     def __init__(self, fixture):
@@ -353,7 +348,7 @@ class LazyFixture(object):
         :return: evaluated fixture.
         """
         if callable(self.fixture):
-            kwargs = dict((arg, request.getfixturevalue(arg)) for arg in self.args)
+            kwargs = {arg: request.getfixturevalue(arg) for arg in self.args}
             return self.fixture(**kwargs)
         else:
             return request.getfixturevalue(self.fixture)
