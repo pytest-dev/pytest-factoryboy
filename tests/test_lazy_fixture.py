@@ -6,7 +6,7 @@ import pytest
 from pytest_factoryboy import register, LazyFixture
 
 
-class User(object):
+class User:
     """User account."""
 
     def __init__(self, username, password, is_active):
