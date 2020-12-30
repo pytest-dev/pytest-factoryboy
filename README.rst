@@ -48,7 +48,7 @@ class name (the `model` defined in the `Meta` class) with `_factory` appended.
 
     class AuthorFactory(factory.Factory):
         class Meta:
-            model = Author  # this will become the factory fixture name, lowercase-underscore + '_factory'
+            model = Author  # this will become the factory fixture name - lower, snake case + '_factory' e.g. `author_factory`
 
 
     register(AuthorFactory)
@@ -74,7 +74,7 @@ class name (the `model` defined in the `Meta` class).
     @register
     class AuthorFactory(factory.Factory):
         class Meta:
-            model = Author  # this will become the model fixture name, lowercase-underscore
+            model = Author  # this will become the model fixture name - lower, snake case e.g. `author`
 
         name = "Charles Dickens"
 
