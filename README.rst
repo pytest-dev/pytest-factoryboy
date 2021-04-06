@@ -5,8 +5,8 @@ factory_boy_ integration with the pytest_ runner
    :target: https://pypi.python.org/pypi/pytest-factoryboy
 .. image:: https://img.shields.io/pypi/pyversions/pytest-factoryboy.svg
   :target: https://pypi.python.org/pypi/pytest-factoryboy
-.. image:: https://travis-ci.org/pytest-dev/pytest-factoryboy.svg?branch=master
-    :target: https://travis-ci.org/pytest-dev/pytest-factoryboy
+.. image:: https://github.com/pytest-dev/pytest-factoryboy/actions/workflows/main.yml/badge.svg
+    :target: https://github.com/pytest-dev/pytest-factoryboy/actions?query=workflow%3Amain
 .. image:: https://readthedocs.org/projects/pytest-factoryboy/badge/?version=latest
     :target: https://readthedocs.org/projects/pytest-factoryboy/?badge=latest
     :alt: Documentation Status
