@@ -50,7 +50,7 @@ class Request:
         return deps
 
     def execute(self, request, function, deferred):
-        """ "Execute deferred function and store the result."""
+        """Execute deferred function and store the result."""
         if function in self.in_progress:
             raise CycleDetected()
         fixture = function.__name__
