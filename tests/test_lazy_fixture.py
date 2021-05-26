@@ -1,4 +1,5 @@
 """Test LazyFixture related features."""
+from typing import NamedTuple
 
 import factory
 import pytest
@@ -6,13 +7,12 @@ import pytest
 from pytest_factoryboy import register, LazyFixture
 
 
-class User:
+class User(NamedTuple):
     """User account."""
 
-    def __init__(self, username, password, is_active):
-        self.username = username
-        self.password = password
-        self.is_active = is_active
+    username: str
+    password: str
+    is_active: bool
 
 
 class UserFactory(factory.Factory):
@@ -50,3 +50,31 @@ def test_lazy_attribute(user):
 def test_lazy_attribute_partial(partial_user):
     """Test LazyFixture value is extracted before the LazyAttribute is called. Partial."""
     assert partial_user.is_active
+
+
+class UserPost(NamedTuple):
+    """A message posted by a user"""
+
+    user: User
+    message: str
+
+
+class UserPostFactory(factory.Factory):
+    class Meta:
+        model = UserPost
+
+    user = LazyFixture("user")
+    message = factory.faker.Faker("paragraph")
+
+
+register(UserPostFactory)
+
+
+def test_lazy_fixture_in_factory_fixture(user_post_factory, user):
+    user_post = user_post_factory()
+    assert user_post.user is user
+
+
+def test_lazy_fixture_in_factory_fixture_create_overrides(user_post_factory, partial_user):
+    user_post = user_post_factory(user=LazyFixture("partial_user"))
+    assert user_post.user is partial_user

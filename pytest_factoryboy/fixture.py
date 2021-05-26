@@ -1,6 +1,7 @@
 """Factory boy fixture integration."""
-
+import inspect
 import sys
+from copy import copy
 
 import factory
 import factory.builder
@@ -300,8 +301,49 @@ def make_deferred_postgen(step, factory_class, fixture, instance, attr, declarat
     return deferred
 
 
+def wrap_factory_class(request, factory_class):
+    decls = inspect.getmembers(factory_class)  # XXX: is this too broad?
+    attrs = dict(vars(factory_class))
+    for name, decl in decls:
+        wrapped_decl = wrap_lazy_decl(request, name, decl)
+        if wrapped_decl is not decl:
+            attrs[name] = wrapped_decl
+
+    Params = attrs.get("Params")
+    params_bases = (Params,) if Params else ()
+
+    # Expose pytest request to simplify LazyFixture resolution
+    class Params(*params_bases):
+        pytest_request = request
+
+    attrs["Params"] = Params
+
+    return type(factory_class.__name__, (factory_class,), attrs)
+
+
+def wrap_lazy_decl(request, name, decl):
+    if isinstance(decl, (factory.RelatedFactory, factory.SubFactory)):
+        # Ensure we pass the pytest request along to any sub factories
+        decl = copy(decl)
+        decl.get_factory = lambda: factory_fixture(request, decl.get_factory())
+
+    elif isinstance(decl, factory.Maybe):
+        decl = copy(decl)
+        decl.yes = wrap_lazy_decl(request, name, decl.yes)
+        decl.no = wrap_lazy_decl(request, name, decl.no)
+
+    return decl
+
+
 def factory_fixture(request, factory_class):
-    """Factory fixture implementation."""
+    """Factory fixture implementation.
+
+    The factory class is wrapped to support LazyFixtures as declarations. This involves adding the
+    pytest `request` fixture as a factoryboy Params declaration (named "pytest_request"), and
+    converting all LazyFixture declarations into factory.LazyFunctions that call
+    LazyFixture.evaluate with this "pytest_request" Param.
+    """
+    factory_class = wrap_factory_class(request, factory_class)
     return factory_class
 
 
@@ -326,7 +368,7 @@ def get_caller_module(depth=2):
     return module
 
 
-class LazyFixture:
+class LazyFixture(factory.declarations.BaseDeclaration):
     """Lazy fixture."""
 
     def __init__(self, fixture):
@@ -334,6 +376,8 @@ class LazyFixture:
 
         :param fixture: Fixture name or callable with dependencies.
         """
+        super().__init__()
+
         self.fixture = fixture
         if callable(self.fixture):
             params = signature(self.fixture).parameters.values()
@@ -341,12 +385,23 @@ class LazyFixture:
         else:
             self.args = [self.fixture]
 
-    def evaluate(self, request):
+    def evaluate(self, instance, step=None, extra=None):
         """Evaluate the lazy fixture.
 
-        :param request: pytest request object.
+        This method is overloaded to support invocation for model fixtures, and from factory class fixtures, as a
+        factory declaration. When invoked for a model fixture, a single argument is passed: the pytest request. When
+        invoked as a factory declaration, we also receive the `step` and `extra` arguments.
+
+        :param instance: pytest request object (when evaluating for a model fixture), or a factory.builder.Resolver
+            (when invoked during factory builds through a factory class fixture)
         :return: evaluated fixture.
         """
+        if step is None and extra is None:
+            request = instance
+        else:
+            # pytest_request is added as a Parameter by the factory_fixture
+            request = instance.pytest_request
+
         if callable(self.fixture):
             kwargs = {arg: request.getfixturevalue(arg) for arg in self.args}
             return self.fixture(**kwargs)

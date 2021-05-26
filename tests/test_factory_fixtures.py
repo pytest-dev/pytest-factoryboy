@@ -99,7 +99,7 @@ register(EditionFactory)
 
 def test_factory(book_factory):
     """Test model factory fixture."""
-    assert book_factory == BookFactory
+    assert issubclass(book_factory, BookFactory)
 
 
 def test_model(book):
