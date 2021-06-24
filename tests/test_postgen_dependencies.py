@@ -122,7 +122,7 @@ def test_after_postgeneration(foo):
 
 @pytest.mark.parametrize("foo__set2", [123])
 def test_postgeneration_fixture(foo):
-    """Test fixture for ``PosGeneration`` declaration."""
+    """Test fixture for ``PostGeneration`` declaration."""
     assert foo.value == 123
 
 
@@ -133,7 +133,7 @@ def test_postgeneration_fixture(foo):
     ],
 )
 def test_postgenerationmethodcall_fixture(foo):
-    """Test fixture for ``PosGenerationMethodCall`` declaration."""
+    """Test fixture for ``PostGenerationMethodCall`` declaration."""
     assert foo.secret == "test secret"
     assert foo.number == 456
 
