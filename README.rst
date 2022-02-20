@@ -283,8 +283,8 @@ passing the SelfAttribute, but in the case of PyTest request fixture functions h
 in the request and to become available to other fixtures.
 
 That's why evaluation of the post-generation declaration in pytest-factoryboy is deferred until calling
-the test funciton.
-This solves circular dependecy resolution for situations like:
+the test function.
+This solves circular dependency resolution for situations like:
 
 ::
 
@@ -294,7 +294,7 @@ This solves circular dependecy resolution for situations like:
 
 
 On the other hand deferring the evaluation of post-generation declarations evaluation makes their result unavailable during the generation
-of objects that are not in the circular dependecy, but they rely on the post-generation action.
+of objects that are not in the circular dependency, but they rely on the post-generation action.
 
 pytest-factoryboy is trying to detect cycles and resolve post-generation dependencies automatically.
 

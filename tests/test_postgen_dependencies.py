@@ -1,4 +1,4 @@
-"""Test post-generation dependecies."""
+"""Test post-generation dependencies."""
 
 import factory
 import pytest
