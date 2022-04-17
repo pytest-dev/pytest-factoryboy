@@ -3,6 +3,8 @@ Changelog
 
 Unreleased
 ----------
+- Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like pdb.
+
 
 2.1.0
 -----
