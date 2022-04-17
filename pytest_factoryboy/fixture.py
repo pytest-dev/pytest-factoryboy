@@ -17,25 +17,23 @@ import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-import jinja2  # Add it to the dependencies, use a simpler template engine
+import mako.template
 
 from pytest_factoryboy.compat import PostGenerationContext
 
-# TODO:
-# - Use mako instead of jinja2
 
 SEPARATOR = "__"
 
 
-tpl = jinja2.Template(
+tpl = mako.template.Template(
     """
 import pytest
 from pytest_factoryboy.fixture import model_fixture, attr_fixture, factory_fixture, subfactory_fixture
 
 __all__ = (
-{%- for fixture_def in fixture_defs %}
-    {{fixture_def.name.__repr__()}},
-{%- endfor %}
+% for fixture_def in fixture_defs:
+    ${ repr(fixture_def.name)},
+% endfor
 )
 
 def _fixture(related):
@@ -45,15 +43,20 @@ def _fixture(related):
 
     return fixture_maker
 
-{% for fixture_def in fixture_defs %}
+% for fixture_def in fixture_defs:
 
-{{ fixture_def.name }}_context = {}
+${ fixture_def.context_var_name } = {}
 
-@_fixture(related={{fixture_def.related.__repr__()}})
-def {{ fixture_def.name }}(request, {{ fixture_def.deps|join(', ') }}):
-    return {{ fixture_def.impl }}(request, **{{ fixture_def.name }}_context)
 
-{% endfor %}
+@_fixture(related=${ repr(fixture_def.related) })
+def ${ fixture_def.name }(
+% for dep in ["request"] + fixture_def.deps:
+    ${ dep },
+% endfor
+):
+    return ${ fixture_def.impl }(request, **${ fixture_def.context_var_name })
+
+% endfor
 
 """
 )
@@ -66,6 +69,10 @@ class FixtureDef:
     deps: list[str] = field(default_factory=list)
     related: list[str] = field(default_factory=list)
     context: dict = field(default_factory=dict)
+
+    @property
+    def context_var_name(self):
+        return f"_{self.name}__context"
 
 
 @lru_cache  # This way we reuse the same folder for the whole execution of the program
@@ -187,9 +194,8 @@ def register(factory_class, _name=None, **kwargs):
     mod = make_module(code, module_name=model_name, package_name="_pytest_factoryboy_generated_fixtures")
 
     for fixture_def in fixture_defs:
-        kwargs_var = f"{fixture_def.name}_context"
-        assert hasattr(mod, kwargs_var)
-        setattr(mod, kwargs_var, fixture_def.context)
+        assert hasattr(mod, fixture_def.context_var_name)
+        setattr(mod, fixture_def.context_var_name, fixture_def.context)
 
     for export in mod.__all__:
         setattr(module, export, getattr(mod, export))
