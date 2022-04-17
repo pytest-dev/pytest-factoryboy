@@ -121,6 +121,7 @@ def pytest_generate_tests(metafunc):
     related = []
     for arg2fixturedef in metafunc._arg2fixturedefs.values():
         fixturedef = arg2fixturedef[-1]
-        related.extend(getattr(fixturedef.func, "_factoryboy_related", []))
+        related_fixtures = getattr(fixturedef.func, "_factoryboy_related", [])
+        related.extend(related_fixtures)
 
     metafunc.fixturenames.extend(related)
