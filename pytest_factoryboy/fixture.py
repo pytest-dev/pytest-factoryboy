@@ -24,28 +24,6 @@ from pytest_factoryboy.compat import PostGenerationContext
 # TODO:
 # - Use mako instead of jinja2
 
-
-@lru_cache  # This way we reuse the same folder for the whole execution of the program
-def make_temp_folder(package_name):
-    """Create a temporary folder and automatically delete it when the process exit."""
-    path = pathlib.Path(tempfile.mkdtemp()) / package_name
-    path.mkdir(parents=True, exist_ok=True)
-
-    atexit.register(shutil.rmtree, str(path))
-
-    return path
-
-
-def make_module(code: str, module_name: str, package_name: str):
-    tmp_module_path = make_temp_folder(package_name) / f"{module_name}.py"
-    tmp_module_path.write_text(code)
-
-    spec = importlib.util.spec_from_file_location(f"{package_name}.{module_name}", tmp_module_path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
 SEPARATOR = "__"
 
 
@@ -88,6 +66,27 @@ class FixtureDef:
     deps: list[str] = field(default_factory=list)
     related: list[str] = field(default_factory=list)
     context: dict = field(default_factory=dict)
+
+
+@lru_cache  # This way we reuse the same folder for the whole execution of the program
+def make_temp_folder(package_name):
+    """Create a temporary folder and automatically delete it when the process exit."""
+    path = pathlib.Path(tempfile.mkdtemp()) / package_name
+    path.mkdir(parents=True, exist_ok=True)
+
+    atexit.register(shutil.rmtree, str(path))
+
+    return path
+
+
+def make_module(code: str, module_name: str, package_name: str):
+    tmp_module_path = make_temp_folder(package_name) / f"{module_name}.py"
+    tmp_module_path.write_text(code)
+
+    spec = importlib.util.spec_from_file_location(f"{package_name}.{module_name}", tmp_module_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def register(factory_class, _name=None, **kwargs):
