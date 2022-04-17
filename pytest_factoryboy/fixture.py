@@ -116,7 +116,7 @@ def register(factory_class, _name=None, **kwargs):
     related: list[str] = []
 
     for attr, value in factory_class._meta.declarations.items():
-        args = None
+        args = []
         attr_name = SEPARATOR.join((model_name, attr))
 
         if isinstance(value, factory.declarations.PostGeneration):
@@ -128,7 +128,7 @@ def register(factory_class, _name=None, **kwargs):
                 FixtureDef(
                     name=attr_name,
                     impl="attr_fixture",
-                    deps=args or [],
+                    deps=args,
                     context={"value": value},
                 )
             )
@@ -154,7 +154,7 @@ def register(factory_class, _name=None, **kwargs):
                     FixtureDef(
                         name=attr_name,
                         impl="subfactory_fixture",
-                        deps=args or [],
+                        deps=args,
                         context={"factory_class": subfactory_class},
                     )
                 )
@@ -166,7 +166,7 @@ def register(factory_class, _name=None, **kwargs):
                     FixtureDef(
                         name=attr_name,
                         impl="attr_fixture",
-                        deps=args or [],
+                        deps=args,
                         context={"value": value},
                     )
                 )
