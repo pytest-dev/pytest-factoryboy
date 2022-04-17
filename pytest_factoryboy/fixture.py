@@ -45,7 +45,7 @@ def _fixture(related):
 
 % for fixture_def in fixture_defs:
 
-${ fixture_def.context_var_name } = {}
+${ fixture_def.kwargs_var_name } = {}
 
 
 @_fixture(related=${ repr(fixture_def.related) })
@@ -54,7 +54,7 @@ def ${ fixture_def.name }(
     ${ dep },
 % endfor
 ):
-    return ${ fixture_def.impl }(request, **${ fixture_def.context_var_name })
+    return ${ fixture_def.function_name }(request, **${ fixture_def.kwargs_var_name })
 
 % endfor
 
@@ -65,13 +65,13 @@ def ${ fixture_def.name }(
 @dataclass
 class FixtureDef:
     name: str
-    impl: typing.Literal["model_fixture", "attr_fixture", "factory_fixture", "subfactory_fixture"]
+    function_name: typing.Literal["model_fixture", "attr_fixture", "factory_fixture", "subfactory_fixture"]
+    function_kwargs: dict = field(default_factory=dict)
     deps: list[str] = field(default_factory=list)
     related: list[str] = field(default_factory=list)
-    context: dict = field(default_factory=dict)
 
     @property
-    def context_var_name(self):
+    def kwargs_var_name(self):
         return f"_{self.name}__context"
 
 
@@ -127,9 +127,9 @@ def register(factory_class, _name=None, **kwargs):
             fixture_defs.append(
                 FixtureDef(
                     name=attr_name,
-                    impl="attr_fixture",
+                    function_name="attr_fixture",
+                    function_kwargs={"value": value},
                     deps=args,
-                    context={"value": value},
                 )
             )
         else:
@@ -153,9 +153,9 @@ def register(factory_class, _name=None, **kwargs):
                 fixture_defs.append(
                     FixtureDef(
                         name=attr_name,
-                        impl="subfactory_fixture",
+                        function_name="subfactory_fixture",
+                        function_kwargs={"factory_class": subfactory_class},
                         deps=args,
-                        context={"factory_class": subfactory_class},
                     )
                 )
             else:
@@ -165,9 +165,9 @@ def register(factory_class, _name=None, **kwargs):
                 fixture_defs.append(
                     FixtureDef(
                         name=attr_name,
-                        impl="attr_fixture",
+                        function_name="attr_fixture",
+                        function_kwargs={"value": value},
                         deps=args,
-                        context={"value": value},
                     )
                 )
 
@@ -175,18 +175,18 @@ def register(factory_class, _name=None, **kwargs):
         fixture_defs.append(
             FixtureDef(
                 name=factory_name,
-                impl="factory_fixture",
-                context={"factory_class": factory_class},
+                function_name="factory_fixture",
+                function_kwargs={"factory_class": factory_class},
             )
         )
 
     fixture_defs.append(
         FixtureDef(
             name=model_name,
-            impl="model_fixture",
+            function_name="model_fixture",
+            function_kwargs={"factory_name": factory_name},
             deps=deps,
             related=related,
-            context={"factory_name": factory_name},
         )
     )
 
@@ -194,8 +194,8 @@ def register(factory_class, _name=None, **kwargs):
     mod = make_module(code, module_name=model_name, package_name="_pytest_factoryboy_generated_fixtures")
 
     for fixture_def in fixture_defs:
-        assert hasattr(mod, fixture_def.context_var_name)
-        setattr(mod, fixture_def.context_var_name, fixture_def.context)
+        assert hasattr(mod, fixture_def.kwargs_var_name)
+        setattr(mod, fixture_def.kwargs_var_name, fixture_def.function_kwargs)
 
     for export in mod.__all__:
         setattr(module, export, getattr(mod, export))
