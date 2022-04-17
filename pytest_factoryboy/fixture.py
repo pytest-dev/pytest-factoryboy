@@ -1,7 +1,12 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
+
+import atexit
+import pathlib
+import shutil
 import sys
 import importlib.util
+import tempfile
 import typing
 from dataclasses import dataclass, field
 from inspect import getmodule, signature
@@ -16,31 +21,38 @@ import jinja2  # Add it to the dependencies, use a simpler template engine
 from pytest_factoryboy.compat import PostGenerationContext
 
 
-class StringLoader(importlib.abc.SourceLoader):
-    def __init__(self, data: str) -> None:
-        self.data = data
+_generated_files_folder: pathlib.Path | None = None
 
-    def get_source(self, fullname: str) -> str:
-        return self.data
 
-    def get_data(self, path: str) -> bytes:
-        return self.data.encode("utf-8")
+def create_generated_files_folder(package_name):
+    global _generated_files_folder
 
-    def get_filename(self, fullname: str) -> str:
-        # TODO: Decide better virtual filename
-        return "<not a real path>/" + fullname + ".py"
+    if _generated_files_folder is not None:
+        return _generated_files_folder
+
+    _generated_files_folder = pathlib.Path(tempfile.mkdtemp()) / package_name
+    _generated_files_folder.mkdir(parents=True, exist_ok=True)
+
+    @atexit.register
+    def cleanup():
+        shutil.rmtree(str(_generated_files_folder))
+
+    return _generated_files_folder
 
 
 def make_module(code, module_name):
-    loader = StringLoader(code)
+    package_name = "_pytest_factoryboy_generated_files"
 
-    spec = importlib.util.spec_from_loader(module_name, loader, origin="built-in")
-    module = importlib.util.module_from_spec(spec)
-    # TODO: Necessary?
-    # sys.modules[module_name] = module
-    spec.loader.exec_module(module)
+    tmp_module_base_path = create_generated_files_folder(package_name)
 
-    return module
+    tmp_module_path = tmp_module_base_path / f"{module_name}.py"
+
+    tmp_module_path.write_text(code)
+
+    spec = importlib.util.spec_from_file_location(f"{package_name}.{module_name}", tmp_module_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 SEPARATOR = "__"
@@ -182,8 +194,7 @@ def register(factory_class, _name=None, **kwargs):
     )
 
     code = tpl.render(fixture_defs=fixture_defs)
-    print(code)  # TODO: Remove before merge
-    mod = make_module(code, f"{factory_name}__pytest_factoryboy")
+    mod = make_module(code, model_name)
 
     for fixture_def in fixture_defs:
         kwargs_var = f"{fixture_def.name}_context"

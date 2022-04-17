@@ -3,7 +3,7 @@ Changelog
 
 Unreleased
 ----------
-- Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like pdb.
+- Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like PDB or PyCharm.
 
 
 2.1.0
