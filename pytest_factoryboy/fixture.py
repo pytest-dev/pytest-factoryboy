@@ -9,6 +9,7 @@ import importlib.util
 import tempfile
 import typing
 from dataclasses import dataclass, field
+from functools import lru_cache
 from inspect import getmodule, signature
 
 import factory
@@ -20,33 +21,23 @@ import jinja2  # Add it to the dependencies, use a simpler template engine
 
 from pytest_factoryboy.compat import PostGenerationContext
 
-
-_generated_files_folder: pathlib.Path | None = None
-
-
-def create_generated_files_folder(package_name):
-    global _generated_files_folder
-
-    if _generated_files_folder is not None:
-        return _generated_files_folder
-
-    _generated_files_folder = pathlib.Path(tempfile.mkdtemp()) / package_name
-    _generated_files_folder.mkdir(parents=True, exist_ok=True)
-
-    @atexit.register
-    def cleanup():
-        shutil.rmtree(str(_generated_files_folder))
-
-    return _generated_files_folder
+# TODO:
+# - Use mako instead of jinja2
 
 
-def make_module(code, module_name):
-    package_name = "_pytest_factoryboy_generated_files"
+@lru_cache  # This way we reuse the same folder for the whole execution of the program
+def make_temp_folder(package_name):
+    """Create a temporary folder and automatically delete it when the process exit."""
+    path = pathlib.Path(tempfile.mkdtemp()) / package_name
+    path.mkdir(parents=True, exist_ok=True)
 
-    tmp_module_base_path = create_generated_files_folder(package_name)
+    atexit.register(shutil.rmtree, str(path))
 
-    tmp_module_path = tmp_module_base_path / f"{module_name}.py"
+    return path
 
+
+def make_module(code: str, module_name: str, package_name: str):
+    tmp_module_path = make_temp_folder(package_name) / f"{module_name}.py"
     tmp_module_path.write_text(code)
 
     spec = importlib.util.spec_from_file_location(f"{package_name}.{module_name}", tmp_module_path)
@@ -194,7 +185,7 @@ def register(factory_class, _name=None, **kwargs):
     )
 
     code = tpl.render(fixture_defs=fixture_defs)
-    mod = make_module(code, model_name)
+    mod = make_module(code, module_name=model_name, package_name="_pytest_factoryboy_generated_fixtures")
 
     for fixture_def in fixture_defs:
         kwargs_var = f"{fixture_def.name}_context"
