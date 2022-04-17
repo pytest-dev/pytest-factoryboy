@@ -26,9 +26,14 @@ SEPARATOR = "__"
 
 
 module_template = mako.template.Template(
-    """
+    """\
 import pytest
-from pytest_factoryboy.fixture import model_fixture, attr_fixture, factory_fixture, subfactory_fixture
+from pytest_factoryboy.fixture import (
+    attr_fixture,
+    factory_fixture,
+    model_fixture,
+    subfactory_fixture,
+)
 
 __all__ = (
 % for fixture_def in fixture_defs:
@@ -36,14 +41,15 @@ __all__ = (
 % endfor
 )
 
+
 def _fixture(related):
     def fixture_maker(fn):
         fn._factoryboy_related = related
         return pytest.fixture(fn)
 
     return fixture_maker
-
 % for fixture_def in fixture_defs:
+
 
 ${ fixture_def.kwargs_var_name } = {}
 
@@ -55,9 +61,7 @@ def ${ fixture_def.name }(
 % endfor
 ):
     return ${ fixture_def.function_name }(request, **${ fixture_def.kwargs_var_name })
-
 % endfor
-
 """
 )
 
@@ -72,7 +76,7 @@ class FixtureDef:
 
     @property
     def kwargs_var_name(self):
-        return f"_{self.name}__context"
+        return f"_{self.name}__kwargs"
 
 
 @lru_cache  # This way we reuse the same folder for the whole execution of the program
