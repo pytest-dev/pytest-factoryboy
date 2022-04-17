@@ -79,7 +79,7 @@ class FixtureDef:
         return f"_{self.name}__kwargs"
 
 
-@lru_cache  # This way we reuse the same folder for the whole execution of the program
+@lru_cache()  # This way we reuse the same folder for the whole execution of the program
 def make_temp_folder(package_name):
     """Create a temporary folder and automatically delete it when the process exit."""
     path = pathlib.Path(tempfile.mkdtemp()) / package_name
