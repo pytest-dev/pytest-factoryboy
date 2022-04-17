@@ -25,7 +25,7 @@ from pytest_factoryboy.compat import PostGenerationContext
 SEPARATOR = "__"
 
 
-tpl = mako.template.Template(
+module_template = mako.template.Template(
     """
 import pytest
 from pytest_factoryboy.fixture import model_fixture, attr_fixture, factory_fixture, subfactory_fixture
@@ -190,7 +190,7 @@ def register(factory_class, _name=None, **kwargs):
         )
     )
 
-    code = tpl.render(fixture_defs=fixture_defs)
+    code = module_template.render(fixture_defs=fixture_defs)
     mod = make_module(code, module_name=model_name, package_name="_pytest_factoryboy_generated_fixtures")
 
     for fixture_def in fixture_defs:
