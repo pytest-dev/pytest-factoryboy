@@ -37,7 +37,7 @@ from pytest_factoryboy.fixture import (
 
 __all__ = (
 % for fixture_def in fixture_defs:
-    ${ repr(fixture_def.name)},
+    ${ repr(fixture_def.name) },
 % endfor
 )
 
