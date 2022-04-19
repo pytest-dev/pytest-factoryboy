@@ -90,7 +90,7 @@ def make_temp_folder(package_name: str) -> Path:
     return path
 
 
-def make_module(code: str, module_name: str, package_name: str):
+def make_module(code: str, module_name: str, package_name: str) -> ModuleType:
     tmp_module_path = make_temp_folder(package_name) / f"{module_name}.py"
     tmp_module_path.write_text(code)
 
