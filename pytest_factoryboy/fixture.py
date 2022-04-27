@@ -11,6 +11,7 @@ import typing
 from dataclasses import dataclass, field
 from functools import lru_cache
 from inspect import getmodule, signature
+from types import ModuleType
 
 import factory
 import factory.builder
@@ -80,7 +81,7 @@ class FixtureDef:
 
 
 @lru_cache()  # This way we reuse the same folder for the whole execution of the program
-def make_temp_folder(package_name: str) -> Path:
+def make_temp_folder(package_name: str) -> pathlib.Path:
     """Create a temporary folder and automatically delete it when the process exit."""
     path = pathlib.Path(tempfile.mkdtemp()) / package_name
     path.mkdir(parents=True, exist_ok=True)
