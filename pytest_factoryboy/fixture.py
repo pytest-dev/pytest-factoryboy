@@ -1,5 +1,6 @@
 """Factory boy fixture integration."""
 
+import functools
 import sys
 
 import factory
@@ -48,13 +49,17 @@ def make_fixture(name, module, func, args=None, related=None, **kwargs):
     return fixture
 
 
-def register(factory_class, _name=None, **kwargs):
+def register(factory_class=None, _name=None, **kwargs):
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
     :param _name: Name of the model fixture. By default is lowercase-underscored model name.
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
+
+    if factory_class is None:
+        return functools.partial(register, _name=_name, **kwargs)
+
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 

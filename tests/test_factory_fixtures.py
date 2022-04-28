@@ -53,6 +53,11 @@ class UserFactory(factory.Factory):
 
 
 @register
+@register(
+    _name="harry_potter_author",
+    name="J.K. Rowling",
+    register_user="jk_rowling",
+)
 class AuthorFactory(factory.Factory):
     """Author factory."""
 
@@ -190,3 +195,22 @@ def test_lazy_fixture_post_generation(author):
     """Test that post-generation values are replaced with lazy fixtures."""
     # assert author.user.username == "lazyfixture"
     assert author.user.password == "asdasd"
+
+
+def test_register_class_decorator_with_kwargs_only(harry_potter_author):
+    """Ensure ``register`` decorator called with kwargs only works normally."""
+    assert harry_potter_author.name == "J.K. Rowling"
+    assert harry_potter_author.user.username == "jk_rowling"
+
+
+register(_name="the_chronicles_of_narnia_author", name="C.S. Lewis")(
+    AuthorFactory,
+    register_user="cs_lewis",
+    register_user__password="Aslan1",
+)
+
+
+def test_register_function_with_kwargs_only(the_chronicles_of_narnia_author):
+    """Ensure ``register`` function called with kwargs only works normally."""
+    assert the_chronicles_of_narnia_author.name == "C.S. Lewis"
+    assert the_chronicles_of_narnia_author.user.password == "Aslan1"
