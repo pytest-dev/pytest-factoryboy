@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from factory.declarations import PostGenerationContext
     from types import ModuleType
 
-    # TODO: Try to make it possible to use FactoryType[Author]
     FactoryType = type[factory.Factory]
     T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
