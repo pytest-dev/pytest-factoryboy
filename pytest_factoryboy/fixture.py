@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     # TODO: Try to make it possible to use FactoryType[Author]
     FactoryType = Type[factory.Factory]
     T = TypeVar("T")
-    F = TypeVar("F", bound=Type[FactoryType])
+    F = TypeVar("F", bound=FactoryType)
 
 SEPARATOR = "__"
 
