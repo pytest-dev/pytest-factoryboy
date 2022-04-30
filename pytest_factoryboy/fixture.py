@@ -12,11 +12,26 @@ import inflection
 
 from .codegen import make_fixture_model_module, FixtureDef
 from .compat import PostGenerationContext
+from typing import TYPE_CHECKING, TypeVar
+
+if TYPE_CHECKING:
+    from typing import Type, Any, Callable
+    from _pytest.fixtures import FixtureRequest
+    from _pytest.fixtures import SubRequest
+    from factory.builder import BuildStep
+    from factory.declarations import PostGeneration
+    from factory.declarations import PostGenerationContext
+    from types import ModuleType
+
+    # TODO: Try to make it possible to use FactoryType[Author]
+    FactoryType = Type[factory.Factory]
+    T = TypeVar("T")
+    F = TypeVar("F", bound=Type[FactoryType])
 
 SEPARATOR = "__"
 
 
-def register(factory_class, _name=None, **kwargs):
+def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
@@ -119,7 +134,7 @@ def register(factory_class, _name=None, **kwargs):
     return factory_class
 
 
-def get_model_name(factory_class):
+def get_model_name(factory_class: FactoryType) -> str:
     """Get model fixture name by factory."""
     return (
         inflection.underscore(factory_class._meta.model.__name__)
@@ -128,12 +143,16 @@ def get_model_name(factory_class):
     )
 
 
-def get_factory_name(factory_class):
+def get_factory_name(factory_class: FactoryType) -> str:
     """Get factory fixture name by factory."""
     return inflection.underscore(factory_class.__name__)
 
 
-def get_deps(factory_class, parent_factory_class=None, model_name=None):
+def get_deps(
+    factory_class: FactoryType,
+    parent_factory_class: FactoryType | None = None,
+    model_name: str | None = None,
+) -> list[str]:
     """Get factory dependencies.
 
     :return: List of the fixture argument names for dependency injection.
@@ -141,7 +160,7 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
     model_name = get_model_name(factory_class) if model_name is None else model_name
     parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
 
-    def is_dep(value):
+    def is_dep(value: Any) -> bool:
         if isinstance(value, factory.RelatedFactory):
             return False
         if isinstance(value, factory.SubFactory) and get_model_name(value.get_factory()) == parent_model_name:
@@ -157,12 +176,12 @@ def get_deps(factory_class, parent_factory_class=None, model_name=None):
     ]
 
 
-def evaluate(request, value):
+def evaluate(request: SubRequest, value: LazyFixture | Any) -> Any:
     """Evaluate the declaration (lazy fixtures, etc)."""
     return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
 
-def model_fixture(request, factory_name):
+def model_fixture(request: SubRequest, factory_name: str) -> Any:
     """Model fixture implementation."""
     factoryboy_request = request.getfixturevalue("factoryboy_request")
 
@@ -237,7 +256,7 @@ def model_fixture(request, factory_name):
     return instance
 
 
-def make_deferred_related(factory, fixture, attr):
+def make_deferred_related(factory: FactoryType, fixture: str, attr: str) -> Callable[[FixtureRequest], None]:
     """Make deferred function for the related factory declaration.
 
     :param factory: Factory class.
@@ -248,7 +267,7 @@ def make_deferred_related(factory, fixture, attr):
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred(request):
+    def deferred(request: FixtureRequest) -> None:
         request.getfixturevalue(name)
 
     deferred.__name__ = name
@@ -258,7 +277,15 @@ def make_deferred_related(factory, fixture, attr):
     return deferred
 
 
-def make_deferred_postgen(step, factory_class, fixture, instance, attr, declaration, context):
+def make_deferred_postgen(
+    step: BuildStep,
+    factory_class: FactoryType,
+    fixture: str,
+    instance: Any,
+    attr: str,
+    declaration: PostGeneration,
+    context: PostGenerationContext,
+) -> Callable[[FixtureRequest], None]:
     """Make deferred function for the post-generation declaration.
 
     :param step: factory_boy builder step.
@@ -272,7 +299,7 @@ def make_deferred_postgen(step, factory_class, fixture, instance, attr, declarat
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred(request):
+    def deferred(request: FixtureRequest) -> None:
         declaration.call(instance, step, context)
 
     deferred.__name__ = name
@@ -282,23 +309,23 @@ def make_deferred_postgen(step, factory_class, fixture, instance, attr, declarat
     return deferred
 
 
-def factory_fixture(request, factory_class):
+def factory_fixture(request: FixtureRequest, factory_class: F) -> F:
     """Factory fixture implementation."""
     return factory_class
 
 
-def attr_fixture(request, value):
+def attr_fixture(request: FixtureRequest, value: T) -> T:
     """Attribute fixture implementation."""
     return value
 
 
-def subfactory_fixture(request, factory_class):
+def subfactory_fixture(request: FixtureRequest, factory_class: FactoryType) -> Any:
     """SubFactory/RelatedFactory fixture implementation."""
     fixture = inflection.underscore(factory_class._meta.model.__name__)
     return request.getfixturevalue(fixture)
 
 
-def get_caller_module(depth=2):
+def get_caller_module(depth: int = 2) -> ModuleType:
     """Get the module of the caller."""
     frame = sys._getframe(depth)
     module = getmodule(frame)
@@ -311,7 +338,7 @@ def get_caller_module(depth=2):
 class LazyFixture:
     """Lazy fixture."""
 
-    def __init__(self, fixture):
+    def __init__(self, fixture: Callable | str) -> None:
         """Lazy pytest fixture wrapper.
 
         :param fixture: Fixture name or callable with dependencies.
@@ -323,7 +350,7 @@ class LazyFixture:
         else:
             self.args = [self.fixture]
 
-    def evaluate(self, request):
+    def evaluate(self, request: SubRequest) -> str:
         """Evaluate the lazy fixture.
 
         :param request: pytest request object.
