@@ -12,10 +12,10 @@ import inflection
 
 from .codegen import make_fixture_model_module, FixtureDef
 from .compat import PostGenerationContext
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any, Callable
+    from typing import Any, Callable, TypeVar
     from _pytest.fixtures import FixtureRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration
