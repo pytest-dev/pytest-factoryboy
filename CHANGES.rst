@@ -6,6 +6,7 @@ Unreleased
 - Drop support for Python 3.6. We now support only python >= 3.7.
 - Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like PDB or PyCharm.
 - Add type annotations. Now `register` and `LazyFixture` are type annotated.
+- Fix `_after_postgeneration` not getting the evaluated post_generations and RelatedFactory results correctly in the `result` param.
 
 
 2.1.0
