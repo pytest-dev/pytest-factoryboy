@@ -21,8 +21,10 @@ import factory.declarations
 import factory.enums
 import inflection
 import mako.template
-
+from appdirs import AppDirs
 from pytest_factoryboy.compat import PostGenerationContext
+
+cache_dir = pathlib.Path(AppDirs("pytest-factoryboy").user_cache_dir)
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +100,7 @@ def make_temp_folder(package_name: str) -> pathlib.Path:
 
 @lru_cache()  # This way we reuse the same folder for the whole execution of the program
 def make_directory(package_name: str) -> pathlib.Path:
-    path = PWD / "_pytest_factoryboy_cache" / package_name
+    path = cache_dir / package_name
     try:
         if path.exists():
             shutil.rmtree(str(path))
@@ -117,8 +119,9 @@ def make_module(code: str, module_name: str, package_name: str) -> ModuleType:
     while tmp_module_path.exists():
         count = next(counter)
         new_stem = f"{tmp_module_path.stem}_{count}"
-        logger.info(f"{tmp_module_path} already exists, using {new_stem} instead")
         tmp_module_path = tmp_module_path.with_stem(new_stem)
+
+    logger.info(f"Writing generated fixtures for {module_name!r} into {tmp_module_path} ")
 
     tmp_module_path.write_text(code)
 
