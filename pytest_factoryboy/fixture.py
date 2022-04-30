@@ -43,12 +43,6 @@ from pytest_factoryboy.fixture import (
     subfactory_fixture,
 )
 
-__all__ = (
-% for fixture_def in fixture_defs:
-    ${ repr(fixture_def.name) },
-% endfor
-)
-
 
 def _fixture(related):
     def fixture_maker(fn):
@@ -237,14 +231,15 @@ def register(factory_class, _name=None, **kwargs):
     )
 
     code = module_template.render(fixture_defs=fixture_defs)
-    mod = make_module(code, module_name=model_name, package_name="_pytest_factoryboy_generated_fixtures")
+    generated_module = make_module(code, module_name=model_name, package_name="_pytest_factoryboy_generated_fixtures")
 
     for fixture_def in fixture_defs:
-        assert hasattr(mod, fixture_def.kwargs_var_name)
-        setattr(mod, fixture_def.kwargs_var_name, fixture_def.function_kwargs)
+        assert hasattr(generated_module, fixture_def.kwargs_var_name)
+        setattr(generated_module, fixture_def.kwargs_var_name, fixture_def.function_kwargs)
 
-    for export in mod.__all__:
-        setattr(module, export, getattr(mod, export))
+    for fixture_def in fixture_defs:
+        exported_name = fixture_def.name
+        setattr(module, exported_name, getattr(generated_module, exported_name))
     return factory_class
 
 
