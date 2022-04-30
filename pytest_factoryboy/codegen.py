@@ -15,6 +15,8 @@ from types import ModuleType
 import mako.template
 from appdirs import AppDirs
 
+from .compat import path_with_stem
+
 cache_dir = pathlib.Path(AppDirs("pytest-factoryboy").user_cache_dir)
 
 logger = logging.getLogger(__name__)
@@ -112,7 +114,7 @@ def make_module(code: str, module_name: str, package_name: str) -> ModuleType:
     while tmp_module_path.exists():
         count = next(counter)
         new_stem = f"{tmp_module_path.stem}_{count}"
-        tmp_module_path = tmp_module_path.with_stem(new_stem)
+        tmp_module_path = path_with_stem(tmp_module_path, new_stem)
 
     logger.info(f"Writing content of {module_name!r} into {tmp_module_path}.")
 
