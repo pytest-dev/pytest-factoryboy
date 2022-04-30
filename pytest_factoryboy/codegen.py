@@ -96,8 +96,8 @@ def create_package(package_name: str, init_py_content=init_py_content) -> pathli
             shutil.rmtree(str(path))
 
         path.mkdir(parents=True, exist_ok=False)
-    # TODO: Catch the right error
     except OSError:  # Catch cases where the directory can't be removed or can't be created
+        logger.warning(f"Can't create the cache directory {path}. Using a temporary directory instead.", exc_info=True)
         return make_temp_folder(package_name)
 
     (path / "__init__.py").write_text(init_py_content)
