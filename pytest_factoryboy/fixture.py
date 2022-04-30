@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, TypeVar
 if TYPE_CHECKING:
     from typing import Type, Any, Callable
     from _pytest.fixtures import FixtureRequest
-    from _pytest.fixtures import SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration
     from factory.declarations import PostGenerationContext
@@ -176,19 +175,19 @@ def get_deps(
     ]
 
 
-def evaluate(request: SubRequest, value: LazyFixture | Any) -> Any:
+def evaluate(request: FixtureRequest, value: LazyFixture | Any) -> Any:
     """Evaluate the declaration (lazy fixtures, etc)."""
     return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
 
-def model_fixture(request: SubRequest, factory_name: str) -> Any:
+def model_fixture(request: FixtureRequest, factory_name: str) -> Any:
     """Model fixture implementation."""
     factoryboy_request = request.getfixturevalue("factoryboy_request")
 
     # Try to evaluate as much post-generation dependencies as possible
     factoryboy_request.evaluate(request)
 
-    factory_class = request.getfixturevalue(factory_name)
+    factory_class: FactoryType = request.getfixturevalue(factory_name)
     prefix = "".join((request.fixturename, SEPARATOR))
 
     # Create model fixture instance
@@ -350,7 +349,7 @@ class LazyFixture:
         else:
             self.args = [self.fixture]
 
-    def evaluate(self, request: SubRequest) -> str:
+    def evaluate(self, request: FixtureRequest) -> str:
         """Evaluate the lazy fixture.
 
         :param request: pytest request object.

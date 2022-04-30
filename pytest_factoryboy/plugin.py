@@ -5,9 +5,9 @@ from collections import defaultdict
 import pytest
 from typing import TYPE_CHECKING
 
-
 if TYPE_CHECKING:
-    from typing import Callable
+    from typing import Callable, Type, Any
+    from factory import Factory
     from _pytest.fixtures import FixtureRequest
     from _pytest.config import PytestPluginManager
     from _pytest.python import Metafunc
@@ -23,10 +23,10 @@ class Request:
 
     def __init__(self) -> None:
         """Create pytest_factoryboy request."""
-        self.deferred = []
-        self.results = defaultdict(dict)
-        self.model_factories = {}
-        self.in_progress = set()
+        self.deferred: list[list[Callable]] = []
+        self.results: dict[str, dict[str, Any]] = defaultdict(dict)
+        self.model_factories: dict[str, type[Factory]] = {}
+        self.in_progress: set = set()
 
     def defer(self, functions: list[Callable]) -> None:
         """Defer post-generation declaration execution until the end of the test setup.
