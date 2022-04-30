@@ -1,51 +1,19 @@
 """Factory boy fixture integration."""
+from __future__ import annotations
 
 import sys
+from inspect import getmodule, signature
 
 import factory
 import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-import pytest
 
-from inspect import getmodule, signature
-
-from pytest_factoryboy.compat import PostGenerationContext
+from .codegen import make_fixture_model_module, FixtureDef
+from .compat import PostGenerationContext
 
 SEPARATOR = "__"
-
-
-FIXTURE_FUNC_FORMAT = """
-def {name}({deps}):
-    return _fixture_impl(request, **kwargs)
-"""
-
-
-def make_fixture(name, module, func, args=None, related=None, **kwargs):
-    """Make fixture function and inject arguments.
-
-    :param name: Fixture name.
-    :param module: Python module to contribute the fixture into.
-    :param func: Fixture implementation function.
-    :param args: Argument names.
-    """
-    args = [] if args is None else list(args)
-    if "request" not in args:
-        args.insert(0, "request")
-    deps = ", ".join(args)
-    context = dict(_fixture_impl=func, kwargs=kwargs)
-    context.update(kwargs)
-    exec(FIXTURE_FUNC_FORMAT.format(name=name, deps=deps), context)
-    fixture_func = context[name]
-    fixture_func.__module__ = module.__name__
-
-    if related:
-        fixture_func._factoryboy_related = related
-
-    fixture = pytest.fixture(fixture_func)
-    setattr(module, name, fixture)
-    return fixture
 
 
 def register(factory_class, _name=None, **kwargs):
@@ -58,15 +26,17 @@ def register(factory_class, _name=None, **kwargs):
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 
+    fixture_defs: list[FixtureDef] = []
+
     module = get_caller_module()
     model_name = get_model_name(factory_class) if _name is None else _name
     factory_name = get_factory_name(factory_class)
 
     deps = get_deps(factory_class, model_name=model_name)
-    related = []
+    related: list[str] = []
 
     for attr, value in factory_class._meta.declarations.items():
-        args = None
+        args = []
         attr_name = SEPARATOR.join((model_name, attr))
 
         if isinstance(value, factory.declarations.PostGeneration):
@@ -74,12 +44,13 @@ def register(factory_class, _name=None, **kwargs):
             if isinstance(value, LazyFixture):
                 args = value.args
 
-            make_fixture(
-                name=attr_name,
-                module=module,
-                func=attr_fixture,
-                value=value,
-                args=args,
+            fixture_defs.append(
+                FixtureDef(
+                    name=attr_name,
+                    function_name="attr_fixture",
+                    function_kwargs={"value": value},
+                    deps=args,
+                )
             )
         else:
             value = kwargs.get(attr, value)
@@ -99,41 +70,52 @@ def register(factory_class, _name=None, **kwargs):
                 if isinstance(value, factory.SubFactory):
                     args.append(inflection.underscore(subfactory_class._meta.model.__name__))
 
-                make_fixture(
-                    name=attr_name,
-                    module=module,
-                    func=subfactory_fixture,
-                    args=args,
-                    factory_class=subfactory_class,
+                fixture_defs.append(
+                    FixtureDef(
+                        name=attr_name,
+                        function_name="subfactory_fixture",
+                        function_kwargs={"factory_class": subfactory_class},
+                        deps=args,
+                    )
                 )
             else:
                 if isinstance(value, LazyFixture):
                     args = value.args
 
-                make_fixture(
-                    name=attr_name,
-                    module=module,
-                    func=attr_fixture,
-                    value=value,
-                    args=args,
+                fixture_defs.append(
+                    FixtureDef(
+                        name=attr_name,
+                        function_name="attr_fixture",
+                        function_kwargs={"value": value},
+                        deps=args,
+                    )
                 )
 
     if not hasattr(module, factory_name):
-        make_fixture(
-            name=factory_name,
-            module=module,
-            func=factory_fixture,
-            factory_class=factory_class,
+        fixture_defs.append(
+            FixtureDef(
+                name=factory_name,
+                function_name="factory_fixture",
+                function_kwargs={"factory_class": factory_class},
+            )
         )
 
-    make_fixture(
-        name=model_name,
-        module=module,
-        func=model_fixture,
-        args=deps,
-        factory_name=factory_name,
-        related=related,
+    fixture_defs.append(
+        FixtureDef(
+            name=model_name,
+            function_name="model_fixture",
+            function_kwargs={"factory_name": factory_name},
+            deps=deps,
+            related=related,
+        )
     )
+
+    generated_module = make_fixture_model_module(model_name, fixture_defs)
+
+    for fixture_def in fixture_defs:
+        exported_name = fixture_def.name
+        setattr(module, exported_name, getattr(generated_module, exported_name))
+
     return factory_class
 
 

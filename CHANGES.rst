@@ -3,6 +3,9 @@ Changelog
 
 Unreleased
 ----------
+- Drop support for Python 3.6. We now support only python >= 3.7.
+- Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like PDB or PyCharm.
+
 
 2.1.0
 -----
