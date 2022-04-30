@@ -15,7 +15,7 @@ from .compat import PostGenerationContext
 from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
-    from typing import Type, Any, Callable
+    from typing import Any, Callable
     from _pytest.fixtures import FixtureRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from types import ModuleType
 
     # TODO: Try to make it possible to use FactoryType[Author]
-    FactoryType = Type[factory.Factory]
+    FactoryType = type[factory.Factory]
     T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
 

@@ -6,7 +6,7 @@ import pytest
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Callable, Type, Any
+    from typing import Callable, Any
     from factory import Factory
     from _pytest.fixtures import FixtureRequest
     from _pytest.config import PytestPluginManager
