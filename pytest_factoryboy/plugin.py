@@ -129,7 +129,7 @@ def pytest_addhooks(pluginmanager: PytestPluginManager) -> None:
 
 
 def pytest_generate_tests(metafunc: Metafunc) -> None:
-    related = []
+    related: list[str] = []
     for arg2fixturedef in metafunc._arg2fixturedefs.values():
         fixturedef = arg2fixturedef[-1]
         related_fixtures = getattr(fixturedef.func, "_factoryboy_related", [])
