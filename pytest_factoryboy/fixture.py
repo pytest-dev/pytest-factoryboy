@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from inspect import getmodule, signature
 
 import factory
@@ -26,7 +27,19 @@ if TYPE_CHECKING:
     T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
 
+
 SEPARATOR = "__"
+
+
+@dataclass(eq=False)
+class DeferredFunction:
+    name: str
+    factory: FactoryType
+    is_related: bool
+    function: Callable[[FixtureRequest], Any]
+
+    def __call__(self, request: FixtureRequest) -> Any:
+        return self.function(request)
 
 
 def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
@@ -218,7 +231,7 @@ def model_fixture(request: FixtureRequest, factory_name: str) -> Any:
     request._fixture_defs[request.fixturename] = request._fixturedef
 
     # Defer post-generation declarations
-    deferred = []
+    deferred: list[DeferredFunction] = []
 
     for attr in factory_class._meta.post_declarations.sorted():
 
@@ -254,7 +267,7 @@ def model_fixture(request: FixtureRequest, factory_name: str) -> Any:
     return instance
 
 
-def make_deferred_related(factory: FactoryType, fixture: str, attr: str) -> Callable[[FixtureRequest], None]:
+def make_deferred_related(factory: FactoryType, fixture: str, attr: str) -> DeferredFunction:
     """Make deferred function for the related factory declaration.
 
     :param factory: Factory class.
@@ -265,14 +278,16 @@ def make_deferred_related(factory: FactoryType, fixture: str, attr: str) -> Call
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred(request: FixtureRequest) -> None:
+    def deferred_impl(request: FixtureRequest) -> None:
+        # TODO: Shouldn't we return this result?
         request.getfixturevalue(name)
 
-    deferred.__name__ = name
-    deferred._factory = factory
-    deferred._fixture = fixture
-    deferred._is_related = True
-    return deferred
+    return DeferredFunction(
+        name=name,
+        factory=factory,
+        is_related=True,
+        function=deferred_impl,
+    )
 
 
 def make_deferred_postgen(
@@ -283,7 +298,7 @@ def make_deferred_postgen(
     attr: str,
     declaration: PostGeneration,
     context: PostGenerationContext,
-) -> Callable[[FixtureRequest], None]:
+) -> DeferredFunction:
     """Make deferred function for the post-generation declaration.
 
     :param step: factory_boy builder step.
@@ -297,14 +312,16 @@ def make_deferred_postgen(
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred(request: FixtureRequest) -> None:
+    def deferred_impl(request: FixtureRequest) -> None:
+        # TODO: Shouldn't we return this result?
         declaration.call(instance, step, context)
 
-    deferred.__name__ = name
-    deferred._factory = factory_class
-    deferred._fixture = fixture
-    deferred._is_related = False
-    return deferred
+    return DeferredFunction(
+        name=name,
+        factory=factory_class,
+        is_related=False,
+        function=deferred_impl,
+    )
 
 
 def factory_fixture(request: FixtureRequest, factory_class: F) -> F:

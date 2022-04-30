@@ -5,13 +5,16 @@ from collections import defaultdict
 import pytest
 from typing import TYPE_CHECKING
 
+
 if TYPE_CHECKING:
-    from typing import Callable, Any
+    from typing import Any
     from factory import Factory
     from _pytest.fixtures import FixtureRequest
     from _pytest.config import PytestPluginManager
     from _pytest.python import Metafunc
     from _pytest.nodes import Item
+
+    from .fixture import DeferredFunction
 
 
 class CycleDetected(Exception):
@@ -23,12 +26,12 @@ class Request:
 
     def __init__(self) -> None:
         """Create pytest_factoryboy request."""
-        self.deferred: list[list[Callable]] = []
+        self.deferred: list[list[DeferredFunction]] = []
         self.results: dict[str, dict[str, Any]] = defaultdict(dict)
         self.model_factories: dict[str, type[Factory]] = {}
         self.in_progress: set = set()
 
-    def defer(self, functions: list[Callable]) -> None:
+    def defer(self, functions: list[DeferredFunction]) -> None:
         """Defer post-generation declaration execution until the end of the test setup.
 
         :param functions: Functions to be deferred.
@@ -59,17 +62,17 @@ class Request:
             request = request._parent_request
         return deps
 
-    def execute(self, request: FixtureRequest, function: Callable, deferred: list[Callable]) -> None:
+    def execute(self, request: FixtureRequest, function: DeferredFunction, deferred: list[DeferredFunction]) -> None:
         """Execute deferred function and store the result."""
         if function in self.in_progress:
             raise CycleDetected()
-        fixture = function.__name__
+        fixture = function.name
         model, attr = fixture.split("__", 1)
-        if function._is_related:
+        if function.is_related:
             deps = self.get_deps(request, fixture)
             if deps.intersection(self.get_current_deps(request)):
                 raise CycleDetected()
-        self.model_factories[model] = function._factory
+        self.model_factories[model] = function.factory
 
         self.in_progress.add(function)
         self.results[model][attr] = function(request)
