@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import atexit
+import logging
+import itertools
 import pathlib
 import shutil
 import sys
@@ -22,6 +24,9 @@ import mako.template
 
 from pytest_factoryboy.compat import PostGenerationContext
 
+logger = logging.getLogger(__name__)
+
+PWD = pathlib.Path(__file__).parent
 
 SEPARATOR = "__"
 
@@ -91,8 +96,30 @@ def make_temp_folder(package_name: str) -> pathlib.Path:
     return path
 
 
+@lru_cache()  # This way we reuse the same folder for the whole execution of the program
+def make_directory(package_name: str) -> pathlib.Path:
+    path = PWD / "_pytest_factoryboy_cache" / package_name
+    try:
+        if path.exists():
+            shutil.rmtree(str(path))
+
+        path.mkdir(parents=True, exist_ok=False)
+    except ArithmeticError:  # Catch cases where the directory can't be removed or can't be created
+        return make_temp_folder(package_name)
+
+    return path
+
+
 def make_module(code: str, module_name: str, package_name: str) -> ModuleType:
-    tmp_module_path = make_temp_folder(package_name) / f"{module_name}.py"
+    tmp_module_path = make_directory(package_name) / f"{module_name}.py"
+
+    counter = itertools.count(1)
+    while tmp_module_path.exists():
+        count = next(counter)
+        new_stem = f"{tmp_module_path.stem}_{count}"
+        logger.info(f"{tmp_module_path} already exists, using {new_stem} instead")
+        tmp_module_path = tmp_module_path.with_stem(new_stem)
+
     tmp_module_path.write_text(code)
 
     spec = importlib.util.spec_from_file_location(f"{package_name}.{module_name}", tmp_module_path)
