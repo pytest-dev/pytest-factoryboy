@@ -278,9 +278,8 @@ def make_deferred_related(factory: FactoryType, fixture: str, attr: str) -> Defe
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred_impl(request: FixtureRequest) -> None:
-        # TODO: Shouldn't we return this result?
-        request.getfixturevalue(name)
+    def deferred_impl(request: FixtureRequest) -> Any:
+        return request.getfixturevalue(name)
 
     return DeferredFunction(
         name=name,
@@ -312,9 +311,8 @@ def make_deferred_postgen(
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred_impl(request: FixtureRequest) -> None:
-        # TODO: Shouldn't we return this result?
-        declaration.call(instance, step, context)
+    def deferred_impl(request: FixtureRequest) -> Any:
+        return declaration.call(instance, step, context)
 
     return DeferredFunction(
         name=name,

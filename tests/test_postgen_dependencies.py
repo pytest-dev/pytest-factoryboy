@@ -25,6 +25,19 @@ class Bar:
     foo: Foo
 
 
+@dataclass
+class Baz:
+    foo: Foo
+
+
+@register
+class BazFactory(factory.Factory):
+    class Meta:
+        model = Baz
+
+    foo = None
+
+
 @register
 class FooFactory(factory.Factory):
 
@@ -38,8 +51,11 @@ class FooFactory(factory.Factory):
     """Value that is expected at the constructor."""
 
     @factory.post_generation
-    def set1(foo: Foo, create: bool, value: Any, **kwargs: Any) -> None:
+    def set1(foo: Foo, create: bool, value: Any, **kwargs: Any) -> str:
         foo.value = 1
+        return "set to 1"
+
+    baz = factory.RelatedFactory(BazFactory, "foo")
 
     @classmethod
     def _after_postgeneration(cls, obj: Foo, create: bool, results: dict[str, Any] | None = None) -> None:
@@ -88,8 +104,11 @@ def test_getfixturevalue(request, factoryboy_request: Request):
 
 def test_after_postgeneration(foo: Foo):
     """Test _after_postgeneration is called."""
-    assert foo._postgeneration_results == {"set1": None}
     assert foo._create is True
+
+    foo._postgeneration_results["set1"] == "set to 1"
+    foo._postgeneration_results["baz"].foo is foo
+    assert len(foo._postgeneration_results) == 2
 
 
 class Ordered:
