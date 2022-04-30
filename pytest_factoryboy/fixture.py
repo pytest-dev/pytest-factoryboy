@@ -348,7 +348,7 @@ class LazyFixture:
         else:
             self.args = [self.fixture]
 
-    def evaluate(self, request: FixtureRequest) -> str:
+    def evaluate(self, request: FixtureRequest) -> Any:
         """Evaluate the lazy fixture.
 
         :param request: pytest request object.
