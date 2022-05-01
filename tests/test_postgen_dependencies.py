@@ -1,4 +1,4 @@
-"""Test post-generation dependecies."""
+"""Test post-generation dependencies."""
 from __future__ import annotations
 
 from dataclasses import dataclass
