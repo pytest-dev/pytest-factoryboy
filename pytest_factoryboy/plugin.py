@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from factory import enums
 import pytest
 from typing import TYPE_CHECKING
 
@@ -85,7 +86,8 @@ class Request:
             results = self.results.pop(model)
             obj = request.getfixturevalue(model)
             factory = self.model_factories[model]
-            factory._after_postgeneration(obj, create=True, results=results)
+            create = factory._meta.strategy == enums.CREATE_STRATEGY
+            factory._after_postgeneration(obj, create=create, results=results)
 
     def evaluate(self, request: FixtureRequest) -> None:
         """Finalize, run deferred post-generation actions, etc."""

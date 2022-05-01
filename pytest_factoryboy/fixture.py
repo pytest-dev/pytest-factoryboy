@@ -220,7 +220,7 @@ def model_fixture(request: FixtureRequest, factory_name: str) -> Any:
         if argname in request._fixturedef.argnames:
             kwargs[key] = evaluate(request, request.getfixturevalue(argname))
 
-    strategy = factory.enums.CREATE_STRATEGY
+    strategy = Factory._meta.strategy
     builder = factory.builder.StepBuilder(Factory._meta, kwargs, strategy)
     step = factory.builder.BuildStep(builder=builder, sequence=Factory._meta.next_sequence())
 
