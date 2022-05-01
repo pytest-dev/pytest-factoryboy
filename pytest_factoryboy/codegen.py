@@ -111,16 +111,17 @@ def make_module(code: str, module_name: str, package_name: str) -> ModuleType:
     tmp_module_path = create_package(package_name) / f"{module_name}.py"
 
     counter = itertools.count(1)
+    stem = tmp_module_path.stem
     while tmp_module_path.exists():
         count = next(counter)
-        new_stem = f"{tmp_module_path.stem}_{count}"
+        new_stem = f"{stem}_{count}"
         tmp_module_path = path_with_stem(tmp_module_path, new_stem)
 
     logger.info(f"Writing content of {module_name!r} into {tmp_module_path}.")
 
     tmp_module_path.write_text(code)
-
-    spec = importlib.util.spec_from_file_location(f"{package_name}.{module_name}", tmp_module_path)
+    name = f"{package_name}.{module_name}"
+    spec = importlib.util.spec_from_file_location(name, tmp_module_path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
