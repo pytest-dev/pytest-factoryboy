@@ -1,46 +1,56 @@
 """Factory fixtures tests."""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 
 import factory
 from factory import fuzzy
 import pytest
 
 from pytest_factoryboy import register, LazyFixture
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any
+    from factory.declarations import LazyAttribute
 
 
+@dataclass
 class User:
     """User account."""
 
-    def __init__(self, username, password, is_active):
-        self.username = username
-        self.password = password
-        self.is_active = is_active
+    username: str
+    password: str
+    is_active: bool
 
 
+@dataclass
 class Book:
     """Book model."""
 
-    def __init__(self, name=None, price=None, author=None):
-        self.editions = []
-        self.name = name
-        self.price = price
-        self.author = author
+    name: str
+    price: float
+    author: Author
+    editions: list[Edition] = field(default_factory=list, init=False)
 
 
+@dataclass
 class Author:
     """Author model."""
 
-    def __init__(self, name):
-        self.name = name
-        self.user = None
+    name: str
+    user: User | None = field(init=False, default=None)
 
 
+@dataclass
 class Edition:
     """Book edition."""
 
-    def __init__(self, book, year):
-        self.book = book
-        self.year = year
-        book.editions.append(self)
+    book: Book
+    year: int
+
+    def __post_init__(self) -> None:
+        self.book.editions.append(self)
 
 
 class UserFactory(factory.Factory):
@@ -65,7 +75,7 @@ class AuthorFactory(factory.Factory):
     register_user__password = "qwerty"  # Make sure fixture is generated
 
     @factory.post_generation
-    def register_user(author, create, username, **kwargs):
+    def register_user(author: Author, create: bool, username: str | None, **kwargs: Any) -> None:
         """Register author as a user in the system."""
         if username is not None:
             author.user = UserFactory(username=username, **kwargs)
@@ -97,12 +107,12 @@ register(BookFactory)
 register(EditionFactory)
 
 
-def test_factory(book_factory):
+def test_factory(book_factory) -> None:
     """Test model factory fixture."""
     assert book_factory == BookFactory
 
 
-def test_model(book):
+def test_model(book: Book):
     """Test model fixture."""
     assert book.name == "Alice in Wonderland"
     assert book.price == 3.99
@@ -128,7 +138,7 @@ def test_attr(book__name, book__price, author__name, edition__year):
 @pytest.mark.parametrize("book__price", [1.0])
 @pytest.mark.parametrize("author__name", ["Bill Gates"])
 @pytest.mark.parametrize("edition__year", [2000])
-def test_parametrized(book):
+def test_parametrized(book: Book):
     """Test model factory fixture."""
     assert book.name == "PyTest for Dummies"
     assert book.price == 1.0
@@ -138,7 +148,7 @@ def test_parametrized(book):
 
 
 @pytest.mark.parametrize("author__register_user", ["admin"])
-def test_post_generation(author):
+def test_post_generation(author: Author):
     """Test post generation declaration."""
     assert author.user.username == "admin"
     assert author.user.is_active is True
@@ -148,7 +158,7 @@ register(AuthorFactory, "second_author")
 
 
 @pytest.mark.parametrize("second_author__name", ["Mr. Hyde"])
-def test_second_author(author, second_author):
+def test_second_author(author: Author, second_author: Author):
     """Test factory registration with specific name."""
     assert author != second_author
     assert second_author.name == "Mr. Hyde"
@@ -157,7 +167,7 @@ def test_second_author(author, second_author):
 register(AuthorFactory, "partial_author", name="John Doe", register_user=LazyFixture(lambda: "jd@jd.com"))
 
 
-def test_partial(partial_author):
+def test_partial(partial_author: Author):
     """Test fixture partial specialization."""
     assert partial_author.name == "John Doe"
     assert partial_author.user.username == "jd@jd.com"
@@ -167,14 +177,14 @@ register(AuthorFactory, "another_author", name=LazyFixture(lambda: "Another Auth
 
 
 @pytest.mark.parametrize("book__author", [LazyFixture("another_author")])
-def test_lazy_fixture_name(book, another_author):
+def test_lazy_fixture_name(book: Book, another_author: Author):
     """Test that book author is replaced with another author by fixture name."""
     assert book.author == another_author
     assert book.author.name == "Another Author"
 
 
 @pytest.mark.parametrize("book__author", [LazyFixture(lambda another_author: another_author)])
-def test_lazy_fixture_callable(book, another_author):
+def test_lazy_fixture_callable(book: Book, another_author: Author) -> None:
     """Test that book author is replaced with another author by callable."""
     assert book.author == another_author
     assert book.author.name == "Another Author"
@@ -186,7 +196,7 @@ def test_lazy_fixture_callable(book, another_author):
         (LazyFixture(lambda: "lazyfixture"), LazyFixture(lambda: "asdasd")),
     ],
 )
-def test_lazy_fixture_post_generation(author):
+def test_lazy_fixture_post_generation(author: Author):
     """Test that post-generation values are replaced with lazy fixtures."""
     # assert author.user.username == "lazyfixture"
     assert author.user.password == "asdasd"

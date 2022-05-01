@@ -3,6 +3,10 @@ Changelog
 
 Unreleased
 ----------
+- Drop support for Python 3.6. We now support only python >= 3.7.
+- Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like PDB or PyCharm.
+- Add type annotations. Now `register` and `LazyFixture` are type annotated.
+
 
 2.1.0
 -----
@@ -63,7 +67,7 @@ Breaking change due to the heavy refactor of both pytest and factory_boy.
 1.2.1
 -----
 
-- automatical resolution of the post-generation dependencies (olegpidsadnyi, kvas-it)
+- automatic resolution of the post-generation dependencies (olegpidsadnyi, kvas-it)
 
 
 1.1.6
