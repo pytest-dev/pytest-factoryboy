@@ -83,7 +83,7 @@ class name.
         assert author.name == "Charles Dickens"
 
 
-Model fixtures can be registered with specific names. For example if you address instances of some collection
+Model fixtures can be registered with specific names. For example, if you address instances of some collection
 by the name like "first", "second" or of another parent as "other":
 
 
@@ -192,7 +192,7 @@ tests/test_models.py:
 
     def test_book_factory(book_factory):
         """Factories become fixtures automatically."""
-        assert isinstance(book_factory, BookFactory)
+        assert book_factory is BookFactory
 
     def test_book(book):
         """Instances become fixtures automatically."""
@@ -212,7 +212,7 @@ Fixture partial specialization
 There is a possibility to pass keyword parameters in order to override factory attribute values during fixture
 registration. This comes in handy when your test case is requesting a lot of fixture flavors. Too much for the
 regular pytest parametrization.
-In this case you can register fixture flavors in the local test module and specify value deviations inside ``register``
+In this case, you can register fixture flavors in the local test module and specify value deviations inside ``register``
 function calls.
 
 
@@ -293,7 +293,7 @@ This solves circular dependency resolution for situations like:
     o----(C depends on A)----o
 
 
-On the other hand deferring the evaluation of post-generation declarations evaluation makes their result unavailable during the generation
+On the other hand, deferring the evaluation of post-generation declarations evaluation makes their result unavailable during the generation
 of objects that are not in the circular dependency, but they rely on the post-generation action.
 
 pytest-factoryboy is trying to detect cycles and resolve post-generation dependencies automatically.
@@ -360,7 +360,7 @@ Hooks
 pytest-factoryboy exposes several `pytest hooks <http://pytest.org/latest/plugins.html#well-specified-hooks>`_
 which might be helpful for e.g. controlling database transaction, for reporting etc:
 
-* pytest_factoryboy_done(request) - Called after all factory based fixtures and their post-generation actions have been evaluated.
+* pytest_factoryboy_done(request) - Called after all factory-based fixtures and their post-generation actions have been evaluated.
 
 
 License
