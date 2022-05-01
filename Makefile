@@ -6,6 +6,6 @@
 develop: .env
 	.env/bin/pip install -e . -r requirements-testing.txt tox
 
-# clean the development envrironment
+# clean the development environment
 clean:
 	-rm -rf .env

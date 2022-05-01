@@ -69,7 +69,7 @@ Breaking change due to the heavy refactor of both pytest and factory_boy.
 1.2.1
 -----
 
-- automatical resolution of the post-generation dependencies (olegpidsadnyi, kvas-it)
+- automatic resolution of the post-generation dependencies (olegpidsadnyi, kvas-it)
 
 
 1.1.6
