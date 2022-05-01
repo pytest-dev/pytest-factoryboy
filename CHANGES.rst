@@ -7,6 +7,7 @@ Unreleased
 - Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like PDB or PyCharm.
 - Add type annotations. Now `register` and `LazyFixture` are type annotated.
 - Fix `_after_postgeneration` not getting the evaluated post_generations and RelatedFactory results correctly in the `result` param.
+- Factories can now be registered inside classes (even nested classes) and they won't pollute the module namespace.
 
 
 2.1.0
