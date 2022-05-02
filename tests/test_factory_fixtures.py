@@ -2,16 +2,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import factory
-from factory import fuzzy
 import pytest
+from factory import fuzzy
 
-from pytest_factoryboy import register, LazyFixture
-from typing import TYPE_CHECKING
+from pytest_factoryboy import LazyFixture, register
 
 if TYPE_CHECKING:
     from typing import Any
+
     from factory.declarations import LazyAttribute
 
 
