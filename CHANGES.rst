@@ -3,6 +3,9 @@ Changelog
 
 Unreleased
 ----------
+
+2.2.0
+----------
 - Drop support for Python 3.6. We now support only python >= 3.7.
 - Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like PDB or PyCharm.
 - Add type annotations. Now ``register`` and ``LazyFixture`` are type annotated.
@@ -15,7 +18,6 @@ Unreleased
     @register("other_author")
     class AuthorFactory(Factory):
         ...
-
 
 
 2.1.0
