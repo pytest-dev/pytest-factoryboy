@@ -1,5 +1,5 @@
+---
 name: Main testing workflow
-
 on:
   push:
   pull_request:
@@ -7,7 +7,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -25,5 +24,4 @@ jobs:
         pip install -U setuptools
         pip install tox tox-gh-actions
     - name: Test with tox
-      run: |
-        tox
+      run: tox
