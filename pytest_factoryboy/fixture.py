@@ -4,7 +4,7 @@ from __future__ import annotations
 import functools
 import sys
 from dataclasses import dataclass
-from inspect import getmodule, signature
+from inspect import signature
 
 import factory
 import factory.builder
@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration
     from factory.declarations import PostGenerationContext
-    from types import ModuleType
 
     FactoryType = type[factory.Factory]
     T = TypeVar("T")
@@ -85,7 +84,6 @@ def register(
 
     fixture_defs: list[FixtureDef] = []
 
-    module = get_caller_module()
     model_name = get_model_name(factory_class) if _name is None else _name
     factory_name = get_factory_name(factory_class)
 
@@ -148,7 +146,9 @@ def register(
                     )
                 )
 
-    if not hasattr(module, factory_name):
+    caller_locals = get_caller_locals()
+
+    if factory_name not in caller_locals:
         fixture_defs.append(
             FixtureDef(
                 name=factory_name,
@@ -171,9 +171,29 @@ def register(
 
     for fixture_def in fixture_defs:
         exported_name = fixture_def.name
-        setattr(module, exported_name, getattr(generated_module, exported_name))
+        fixture_function = getattr(generated_module, exported_name)
+        inject_into_caller(exported_name, fixture_function, caller_locals)
 
     return factory_class
+
+
+def inject_into_caller(name: str, function: Callable, locals_: dict[str, Any]) -> None:
+    """Inject a function into the caller's locals, making sure that the function will work also within classes."""
+    # We need to check if the caller frame is a class, since in that case the first argument is the class itself.
+    # In that case, we can apply the staticmethod() decorator to the injected function, so that the first param
+    # will be disregarded.
+    # To figure out if the caller frame is a class, we can check if the __qualname__ attribute is present.
+
+    # According to the python docs, __qualname__ is available for both **classes and functions**.
+    # However, it seems that for functions it is not yet available in the function namespace before it's defined.
+    # This could change in the future, but it shouldn't be too much of a problem since registering a factory
+    # in a function namespace would not make it usable anyway.
+    # Therefore, we can just check for __qualname__ to figure out if we are in a class, and apply the @staticmethod.
+    is_class_or_function = "__qualname__" in locals_
+    if is_class_or_function:
+        function = staticmethod(function)
+
+    locals_[name] = function
 
 
 def get_model_name(factory_class: FactoryType) -> str:
@@ -369,14 +389,9 @@ def subfactory_fixture(request: FixtureRequest, factory_class: FactoryType) -> A
     return request.getfixturevalue(fixture)
 
 
-def get_caller_module(depth: int = 2) -> ModuleType:
-    """Get the module of the caller."""
-    frame = sys._getframe(depth)
-    module = getmodule(frame)
-    # Happens when there's no __init__.py in the folder
-    if module is None:
-        return get_caller_module(depth=depth)  # pragma: no cover
-    return module
+def get_caller_locals(depth: int = 2) -> dict[str, Any]:
+    """Get the local namespace of the caller frame."""
+    return sys._getframe(depth).f_locals
 
 
 class LazyFixture:
