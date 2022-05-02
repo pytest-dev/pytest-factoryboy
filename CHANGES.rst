@@ -4,6 +4,23 @@ Changelog
 Unreleased
 ----------
 
+2.2.0
+----------
+- Drop support for Python 3.6. We now support only python >= 3.7.
+- Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like PDB or PyCharm.
+- Add type annotations. Now ``register`` and ``LazyFixture`` are type annotated.
+- Fix `Factory._after_postgeneration <https://factoryboy.readthedocs.io/en/stable/reference.html#factory.Factory._after_postgeneration>`_ method not getting the evaluated ``post_generations`` and ``RelatedFactory`` results correctly in the ``result`` param.
+- Factories can now be registered inside classes (even nested classes) and they won't pollute the module namespace.
+- Allow the ``@register`` decorator to be called with parameters:
+
+.. code-block:: python
+
+    @register
+    @register("other_author")
+    class AuthorFactory(Factory):
+        ...
+
+
 2.1.0
 -----
 
@@ -63,7 +80,7 @@ Breaking change due to the heavy refactor of both pytest and factory_boy.
 1.2.1
 -----
 
-- automatical resolution of the post-generation dependencies (olegpidsadnyi, kvas-it)
+- automatic resolution of the post-generation dependencies (olegpidsadnyi, kvas-it)
 
 
 1.1.6
