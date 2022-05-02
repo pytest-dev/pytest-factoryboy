@@ -14,7 +14,8 @@ import inflection
 
 from .codegen import make_fixture_model_module, FixtureDef
 from .compat import PostGenerationContext
-from typing import TYPE_CHECKING, overload, Protocol
+from typing import TYPE_CHECKING, overload
+from typing_extensions import Protocol
 
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
