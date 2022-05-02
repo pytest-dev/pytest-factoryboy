@@ -11,5 +11,5 @@ python -m build
 
 # Upload them
 
-twine upload dist/*
+twine check dist/* && twine upload dist/*
 ```

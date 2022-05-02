@@ -12,6 +12,7 @@ Unreleased
 - Fix `Factory._after_postgeneration <https://factoryboy.readthedocs.io/en/stable/reference.html#factory.Factory._after_postgeneration>`_ method not getting the evaluated ``post_generations`` and ``RelatedFactory`` results correctly in the ``result`` param.
 - Factories can now be registered inside classes (even nested classes) and they won't pollute the module namespace.
 - Allow the ``@register`` decorator to be called with parameters:
+
 .. code-block:: python
 
     @register
