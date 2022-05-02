@@ -1,6 +1,7 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
+import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
@@ -13,7 +14,8 @@ import inflection
 
 from .codegen import make_fixture_model_module, FixtureDef
 from .compat import PostGenerationContext
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
+from typing_extensions import Protocol
 
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
@@ -41,13 +43,42 @@ class DeferredFunction:
         return self.function(request)
 
 
+class RegisterProtocol(Protocol):
+    """Protocol for ``register`` function called with ``factory_class``."""
+
+    def __call__(self, factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
+        """``register`` fuction called with ``factory_class``."""
+
+
+@overload
+def register(
+    factory_class: None = None,
+    _name: str | None = None,
+    **kwargs: Any,
+) -> RegisterProtocol:
+    ...
+
+
+@overload
 def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
+    ...
+
+
+def register(
+    factory_class: F | None = None,
+    _name: str | None = None,
+    **kwargs: Any,
+) -> F | RegisterProtocol:
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
     :param _name: Name of the model fixture. By default is lowercase-underscored model name.
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
+
+    if factory_class is None:
+        return functools.partial(register, _name=_name, **kwargs)
+
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 
