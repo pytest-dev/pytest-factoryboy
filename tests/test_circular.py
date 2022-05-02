@@ -1,30 +1,31 @@
 """Test circular definitions."""
+from __future__ import annotations
+
+from dataclasses import field, dataclass
 
 import factory
 
 from pytest_factoryboy import register
 
 
+@dataclass
 class Book:
-
     """Book model."""
 
-    def __init__(self, name=None, price=None, author=None):
-        self.editions = []
-        self.name = name
-        self.price = price
-        self.author = author
+    name: str
+    price: float
+    author: Author
+
+    def __post_init__(self):
         self.author.books.append(self)
 
 
+@dataclass
 class Author:
-
     """Author model."""
 
-    def __init__(self, name):
-        self.books = []
-        self.name = name
-        self.user = None
+    name: str
+    books: list[Book] = field(default_factory=list, init=False)
 
 
 class AuthorFactory(factory.Factory):
@@ -49,5 +50,5 @@ register(AuthorFactory)
 register(BookFactory)
 
 
-def test_circular(author, factoryboy_request, request):
+def test_circular(author: Author, factoryboy_request, request):
     assert author.books

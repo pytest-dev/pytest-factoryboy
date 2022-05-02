@@ -1,20 +1,41 @@
-"""Test post-generation dependecies."""
+"""Test post-generation dependencies."""
+from __future__ import annotations
+
+from dataclasses import dataclass
 
 import factory
 import pytest
 
 from pytest_factoryboy import register
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any
+    from pytest_factoryboy.plugin import Request
 
 
+@dataclass
 class Foo:
-    def __init__(self, value, expected):
-        self.value = value
-        self.expected = expected
+    value: int
+    expected: int
 
 
+@dataclass
 class Bar:
-    def __init__(self, foo):
-        self.foo = foo
+    foo: Foo
+
+
+@dataclass
+class Baz:
+    foo: Foo
+
+
+@register
+class BazFactory(factory.Factory):
+    class Meta:
+        model = Baz
+
+    foo = None
 
 
 @register
@@ -30,11 +51,14 @@ class FooFactory(factory.Factory):
     """Value that is expected at the constructor."""
 
     @factory.post_generation
-    def set1(foo, create, value, **kwargs):
+    def set1(foo: Foo, create: bool, value: Any, **kwargs: Any) -> str:
         foo.value = 1
+        return "set to 1"
+
+    baz = factory.RelatedFactory(BazFactory, "foo")
 
     @classmethod
-    def _after_postgeneration(cls, obj, create, results=None):
+    def _after_postgeneration(cls, obj: Foo, create: bool, results: dict[str, Any] | None = None) -> None:
         obj._postgeneration_results = results
         obj._create = create
 
@@ -46,7 +70,7 @@ class BarFactory(factory.Factory):
     foo = factory.SubFactory(FooFactory)
 
     @classmethod
-    def _create(cls, model_class, foo):
+    def _create(cls, model_class: type[Bar], foo: Foo) -> Bar:
         assert foo.value == foo.expected
         bar = super()._create(model_class, foo=foo)
         foo.bar = bar
@@ -56,7 +80,7 @@ class BarFactory(factory.Factory):
         model = Bar
 
 
-def test_postgen_invoked(foo):
+def test_postgen_invoked(foo: Foo):
     """Test that post-generation hooks are done and the value is 2."""
     assert foo.value == 1
 
@@ -66,22 +90,25 @@ register(BarFactory)
 
 @pytest.mark.parametrize("foo__value", [3])
 @pytest.mark.parametrize("foo__expected", [1])
-def test_depends_on(bar):
+def test_depends_on(bar: Bar):
     """Test that post-generation hooks are done and the value is 1."""
     assert bar.foo.value == 1
 
 
-def test_getfixturevalue(request, factoryboy_request):
+def test_getfixturevalue(request, factoryboy_request: Request):
     """Test post-generation declarations via the getfixturevalue."""
     foo = request.getfixturevalue("foo")
     assert not factoryboy_request.deferred
     assert foo.value == 1
 
 
-def test_after_postgeneration(foo):
+def test_after_postgeneration(foo: Foo):
     """Test _after_postgeneration is called."""
-    assert foo._postgeneration_results == {"set1": None}
     assert foo._create is True
+
+    foo._postgeneration_results["set1"] == "set to 1"
+    foo._postgeneration_results["baz"].foo is foo
+    assert len(foo._postgeneration_results) == 2
 
 
 class Ordered:
@@ -94,14 +121,14 @@ class OrderedFactory(factory.Factory):
         model = Ordered
 
     @factory.post_generation
-    def zzz(obj, create, val, **kwargs):
+    def zzz(obj: Ordered, create: bool, val: Any, **kwargs: Any) -> None:
         obj.value = "zzz"
 
     @factory.post_generation
-    def aaa(obj, create, val, **kwargs):
+    def aaa(obj: Ordered, create: bool, val: Any, **kwargs: Any) -> None:
         obj.value = "aaa"
 
 
-def test_ordered(ordered):
+def test_ordered(ordered: Ordered):
     """Test post generation are ordered by creation counter."""
     assert ordered.value == "aaa"
