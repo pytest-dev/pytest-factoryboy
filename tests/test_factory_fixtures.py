@@ -155,6 +155,7 @@ def test_parametrized(book: Book):
 @pytest.mark.parametrize("author__register_user", ["admin"])
 def test_post_generation(author: Author):
     """Test post generation declaration."""
+    assert author.user
     assert author.user.username == "admin"
     assert author.user.is_active is True
 
@@ -175,6 +176,7 @@ register(AuthorFactory, "partial_author", name="John Doe", register_user=LazyFix
 def test_partial(partial_author: Author):
     """Test fixture partial specialization."""
     assert partial_author.name == "John Doe"
+    assert partial_author.user
     assert partial_author.user.username == "jd@jd.com"
 
 
@@ -204,12 +206,14 @@ def test_lazy_fixture_callable(book: Book, another_author: Author) -> None:
 def test_lazy_fixture_post_generation(author: Author):
     """Test that post-generation values are replaced with lazy fixtures."""
     # assert author.user.username == "lazyfixture"
+    assert author.user
     assert author.user.password == "asdasd"
 
 
-def test_register_class_decorator_with_kwargs_only(harry_potter_author):
+def test_register_class_decorator_with_kwargs_only(harry_potter_author: Author):
     """Ensure ``register`` decorator called with kwargs only works normally."""
     assert harry_potter_author.name == "J.K. Rowling"
+    assert harry_potter_author.user
     assert harry_potter_author.user.username == "jk_rowling"
 
 
@@ -220,7 +224,8 @@ register(_name="the_chronicles_of_narnia_author", name="C.S. Lewis")(
 )
 
 
-def test_register_function_with_kwargs_only(the_chronicles_of_narnia_author):
+def test_register_function_with_kwargs_only(the_chronicles_of_narnia_author: Author):
     """Ensure ``register`` function called with kwargs only works normally."""
     assert the_chronicles_of_narnia_author.name == "C.S. Lewis"
+    assert the_chronicles_of_narnia_author.user
     assert the_chronicles_of_narnia_author.user.password == "Aslan1"

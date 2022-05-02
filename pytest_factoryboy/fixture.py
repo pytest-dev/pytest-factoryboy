@@ -14,7 +14,7 @@ import inflection
 
 from .codegen import make_fixture_model_module, FixtureDef
 from .compat import PostGenerationContext
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload, Protocol
 
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
@@ -43,7 +43,32 @@ class DeferredFunction:
         return self.function(request)
 
 
-def register(factory_class: F | None = None, _name: str | None = None, **kwargs: Any) -> F:
+class RegisterProtocol(Protocol):
+    """Protocol for ``register`` function called with ``factory_class``."""
+
+    def __call__(self, factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
+        """``register`` fuction called with ``factory_class``."""
+
+
+@overload
+def register(
+    factory_class: None = None,
+    _name: str | None = None,
+    **kwargs: Any,
+) -> RegisterProtocol:
+    ...
+
+
+@overload
+def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
+    ...
+
+
+def register(
+    factory_class: F | None = None,
+    _name: str | None = None,
+    **kwargs: Any,
+) -> F | RegisterProtocol:
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
