@@ -1,7 +1,6 @@
 from __future__ import annotations
-
-import pathlib
 import sys
+import pathlib
 
 try:
     from factory.declarations import PostGenerationContext

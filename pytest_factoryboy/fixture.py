@@ -4,7 +4,6 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from inspect import getmodule, signature
-from typing import TYPE_CHECKING
 
 import factory
 import factory.builder
@@ -12,16 +11,17 @@ import factory.declarations
 import factory.enums
 import inflection
 
-from .codegen import FixtureDef, make_fixture_model_module
+from .codegen import make_fixture_model_module, FixtureDef
 from .compat import PostGenerationContext
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from types import ModuleType
     from typing import Any, Callable, TypeVar
-
     from _pytest.fixtures import FixtureRequest
     from factory.builder import BuildStep
-    from factory.declarations import PostGeneration, PostGenerationContext
+    from factory.declarations import PostGeneration
+    from factory.declarations import PostGenerationContext
+    from types import ModuleType
 
     FactoryType = type[factory.Factory]
     T = TypeVar("T")

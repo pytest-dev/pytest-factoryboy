@@ -22,6 +22,3 @@ warn_unreachable = true
 warn_no_return = true
 pretty = true
 show_error_codes = true
-
-[tool.isort]
-profile = 'black'

@@ -8,7 +8,7 @@ import pathlib
 import shutil
 import tempfile
 import typing
-from dataclasses import dataclass, field
+from dataclasses import field, dataclass
 from functools import lru_cache
 from types import ModuleType
 

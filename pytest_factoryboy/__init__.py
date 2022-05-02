@@ -1,5 +1,5 @@
 """pytest-factoryboy public API."""
-from .fixture import LazyFixture, register
+from .fixture import register, LazyFixture
 
 __version__ = "2.1.0"
 

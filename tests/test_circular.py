@@ -1,7 +1,7 @@
 """Test circular definitions."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import field, dataclass
 
 import factory
 

@@ -2,16 +2,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import factory
 import pytest
 
 from pytest_factoryboy import register
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
-
     from pytest_factoryboy.plugin import Request
 
 
