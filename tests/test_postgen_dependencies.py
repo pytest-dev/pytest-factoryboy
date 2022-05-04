@@ -1,7 +1,7 @@
 """Test post-generation dependencies."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import factory
 import pytest
@@ -18,6 +18,12 @@ if TYPE_CHECKING:
 class Foo:
     value: int
     expected: int
+
+    bar: Bar | None = None
+
+    # NOTE: following attributes are used internally only for assertions
+    _create: bool | None = None
+    _postgeneration_results: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -59,7 +65,7 @@ class FooFactory(factory.Factory):
 
     @classmethod
     def _after_postgeneration(cls, obj: Foo, create: bool, results: dict[str, Any] | None = None) -> None:
-        obj._postgeneration_results = results
+        obj._postgeneration_results = results or {}
         obj._create = create
 
 
@@ -111,8 +117,9 @@ def test_after_postgeneration(foo: Foo):
     assert len(foo._postgeneration_results) == 2
 
 
+@dataclass
 class Ordered:
-    value = None
+    value: str | None = None
 
 
 @register

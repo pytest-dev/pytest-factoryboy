@@ -7,6 +7,7 @@ line-length = 120
 target-version = ['py37', 'py38', 'py39', 'py310']
 
 [tool.mypy]
+exclude = ['docs/']
 allow_redefinition = false
 check_untyped_defs = true
 disallow_untyped_decorators = true
@@ -26,3 +27,7 @@ warn_unreachable = true
 warn_no_return = true
 pretty = true
 show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_decorators = false

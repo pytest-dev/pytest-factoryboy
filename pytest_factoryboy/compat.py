@@ -2,6 +2,8 @@ from __future__ import annotations
 import sys
 import pathlib
 
+__all__ = ("PostGenerationContext", "path_with_stem")
+
 try:
     from factory.declarations import PostGenerationContext
 except ImportError:  # factory_boy < 3.2.0
