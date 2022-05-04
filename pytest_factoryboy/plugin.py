@@ -2,17 +2,18 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import pytest
 from typing import TYPE_CHECKING
 
+import pytest
 
 if TYPE_CHECKING:
     from typing import Any
-    from factory import Factory
-    from _pytest.fixtures import FixtureRequest
+
     from _pytest.config import PytestPluginManager
-    from _pytest.python import Metafunc
+    from _pytest.fixtures import FixtureRequest
     from _pytest.nodes import Item
+    from _pytest.python import Metafunc
+    from factory import Factory
 
     from .fixture import DeferredFunction
 
