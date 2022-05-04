@@ -12,7 +12,7 @@ import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-from typing_extensions import Protocol, TypeAlias
+from typing_extensions import Protocol
 
 from .codegen import FixtureDef, make_fixture_model_module
 from .compat import PostGenerationContext
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
-    FactoryType: TypeAlias = type[factory.Factory]
+    FactoryType = type[factory.Factory]
     T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
 
@@ -51,7 +51,7 @@ class RegisterProtocol(Protocol):
 
 
 @overload
-def register(  # type: ignore[misc]
+def register(
     factory_class: None = None,
     _name: str | None = None,
     **kwargs: Any,
@@ -196,7 +196,7 @@ def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[st
     locals_[name] = function
 
 
-def get_model_name(factory_class: FactoryType) -> str:
+def get_model_name(factory_class: F) -> str:
     """Get model fixture name by factory."""
     return (
         inflection.underscore(factory_class._meta.model.__name__)
@@ -205,14 +205,14 @@ def get_model_name(factory_class: FactoryType) -> str:
     )
 
 
-def get_factory_name(factory_class: FactoryType) -> str:
+def get_factory_name(factory_class: F) -> str:
     """Get factory fixture name by factory."""
     return inflection.underscore(factory_class.__name__)
 
 
 def get_deps(
-    factory_class: FactoryType,
-    parent_factory_class: FactoryType | None = None,
+    factory_class: F,
+    parent_factory_class: F | None = None,
     model_name: str | None = None,
 ) -> list[str]:
     """Get factory dependencies.
@@ -250,12 +250,14 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     # Try to evaluate as much post-generation dependencies as possible
     factoryboy_request.evaluate(request)
 
-    fixture_name = str(request.fixturename)
-    factory_class: FactoryType = request.getfixturevalue(factory_name)
+    assert request.fixturename  # NOTE: satisfy mypy
+    fixture_name = request.fixturename
     prefix = "".join((fixture_name, SEPARATOR))
+    # NOTE: following type hinting is required, because of `mypy` bug.
+    # Reference: https://github.com/python/mypy/issues/2477
+    factory_class: factory.FactoryMetaClass = request.getfixturevalue(factory_name)
 
     # Create model fixture instance
-
     class Factory(factory_class):
         pass
 
