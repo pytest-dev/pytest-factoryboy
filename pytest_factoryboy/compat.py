@@ -1,6 +1,7 @@
 from __future__ import annotations
-import sys
+
 import pathlib
+import sys
 
 __all__ = ("PostGenerationContext", "path_with_stem")
 

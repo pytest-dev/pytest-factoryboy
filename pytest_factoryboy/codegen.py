@@ -7,14 +7,14 @@ import logging
 import pathlib
 import shutil
 import tempfile
-from dataclasses import field, dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from types import ModuleType
 from typing import Any
-from typing_extensions import Literal
 
 import mako.template
 from appdirs import AppDirs
+from typing_extensions import Literal
 
 from .compat import path_with_stem
 

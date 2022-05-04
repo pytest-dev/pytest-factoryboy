@@ -5,26 +5,26 @@ import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
+from typing import TYPE_CHECKING, cast, overload
 
 import factory
 import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-
-from .codegen import make_fixture_model_module, FixtureDef
-from .compat import PostGenerationContext
-from typing import TYPE_CHECKING, overload, cast
 from typing_extensions import Protocol, TypeAlias
+
+from .codegen import FixtureDef, make_fixture_model_module
+from .compat import PostGenerationContext
 
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
-    from _pytest.fixtures import SubRequest, FixtureFunction
-    from factory.builder import BuildStep
-    from factory.declarations import PostGeneration
-    from factory.declarations import PostGenerationContext
 
-    FactoryType: TypeAlias = factory.Factory
+    from _pytest.fixtures import FixtureFunction, FixtureRequest, SubRequest
+    from factory.builder import BuildStep
+    from factory.declarations import PostGeneration, PostGenerationContext
+
+    FactoryType: TypeAlias = type[factory.Factory]
     T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
 

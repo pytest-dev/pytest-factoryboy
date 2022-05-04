@@ -6,6 +6,9 @@ build-backend = "setuptools.build_meta"
 line-length = 120
 target-version = ['py37', 'py38', 'py39', 'py310']
 
+[tool.isort]
+profile = 'black'
+
 [tool.mypy]
 exclude = ['docs/']
 allow_redefinition = false
