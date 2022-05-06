@@ -7,13 +7,14 @@ import logging
 import pathlib
 import shutil
 import tempfile
-import typing
 from dataclasses import dataclass, field
 from functools import lru_cache
 from types import ModuleType
+from typing import Any
 
 import mako.template
 from appdirs import AppDirs
+from typing_extensions import Literal
 
 from .compat import path_with_stem
 
@@ -25,8 +26,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FixtureDef:
     name: str
-    function_name: typing.Literal["model_fixture", "attr_fixture", "factory_fixture", "subfactory_fixture"]
-    function_kwargs: dict = field(default_factory=dict)
+    function_name: Literal["model_fixture", "attr_fixture", "factory_fixture", "subfactory_fixture"]
+    function_kwargs: dict[str, Any] = field(default_factory=dict)
     deps: list[str] = field(default_factory=list)
     related: list[str] = field(default_factory=list)
 
@@ -122,7 +123,9 @@ def make_module(code: str, module_name: str, package_name: str) -> ModuleType:
     tmp_module_path.write_text(code)
     name = f"{package_name}.{module_name}"
     spec = importlib.util.spec_from_file_location(name, tmp_module_path)
+    assert spec  # NOTE: satisfy `mypy`
     mod = importlib.util.module_from_spec(spec)
+    assert spec.loader  # NOTE: satisfy `mypy`
     spec.loader.exec_module(mod)
     return mod
 
