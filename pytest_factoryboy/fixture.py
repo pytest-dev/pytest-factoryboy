@@ -47,7 +47,7 @@ class RegisterProtocol(Protocol):
     """Protocol for ``register`` function called with ``factory_class``."""
 
     def __call__(self, factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
-        """``register`` fuction called with ``factory_class``."""
+        """``register`` function called with ``factory_class``."""
 
 
 @overload
@@ -72,7 +72,7 @@ def register(
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
-    :param _name: Name of the model fixture. By default is lowercase-underscored model name.
+    :param _name: Name of the model fixture. By default, is lowercase-underscored model name.
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
 
