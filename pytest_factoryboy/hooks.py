@@ -1,6 +1,10 @@
 """pytest-factoryboy pytest hooks."""
+from __future__ import annotations
 
-from pytest import FixtureRequest
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pytest import FixtureRequest
 
 
 def pytest_factoryboy_done(request: FixtureRequest) -> None:
