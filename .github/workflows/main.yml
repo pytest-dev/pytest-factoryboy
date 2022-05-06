@@ -12,13 +12,18 @@ jobs:
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11-dev"]
 
-    steps:
-    - uses: ./.github/workflows/my-action
-      with:
-        python-version: ${{ matrix.python-version }}
+    uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
+    with:
+      python-version: ${{ matrix.python-version }}
 
-    - name: Test with tox
-      run: tox
+    steps:
+      # https://github.com/github/feedback/discussions/10679
+      - uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Test with tox
+        run: tox
 
 ---
 name: Code quality
@@ -34,8 +39,13 @@ jobs:
       matrix:
         python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
 
+    uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
+    with:
+      python-version: ${{ matrix.python-version }}
+
     steps:
-      - uses: ./.github/workflows/my-action
+      # https://github.com/github/feedback/discussions/10679
+      - uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
         with:
           python-version: ${{ matrix.python-version }}
       - name: Mypy
