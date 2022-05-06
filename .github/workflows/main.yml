@@ -12,44 +12,40 @@ jobs:
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11-dev"]
 
-    uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
+    uses: pytest/pytest-factoryboy/.github/workflows/prepare.yml@master
     with:
       python-version: ${{ matrix.python-version }}
 
     steps:
-      # https://github.com/github/feedback/discussions/10679
-      - uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Test with tox
         run: tox
 
----
-name: Code quality
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
-
-    uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
-    with:
-      python-version: ${{ matrix.python-version }}
-
-    steps:
-      # https://github.com/github/feedback/discussions/10679
-      - uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Mypy
-        run: |
-          tox --devenv venv
-          venv/bin/activate
-          mypy .
+#---
+#name: Code quality
+#on:
+#  push:
+#  pull_request:
+#  workflow_dispatch:
+#
+#jobs:
+#  build:
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
+#
+#    uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
+#    with:
+#      python-version: ${{ matrix.python-version }}
+#
+#    steps:
+#      # https://github.com/github/feedback/discussions/10679
+#      - uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#      - name: Mypy
+#        run: |
+#          tox --devenv venv
+#          venv/bin/activate
+#          mypy .
