@@ -33,4 +33,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools tox
       - name: Mypy
-        run: tox -e py${{ matrix.tox-py-version }}-mypy
+        run: |
+          tox -e py${{ matrix.tox-py-version }}-mypy
+          exit 1
+        continue-on-error: ${{ contains( '[ "3.7", "3.8", "3.9" ]' , '${{ matrix.python-version }}') }}
