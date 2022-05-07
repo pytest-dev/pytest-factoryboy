@@ -47,4 +47,4 @@ jobs:
         run: |
           tox -e py${{ matrix.tox-py-version }}-mypy
           exit 1
-        continue-on-error: ${{ fromJSON(matrix.contine-on-mypy-error) }}
+        continue-on-error: ${{ fromJSON(matrix.continue-on-mypy-error) }}
