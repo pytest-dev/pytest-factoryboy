@@ -9,6 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
         include:
@@ -24,15 +25,15 @@ jobs:
           - python-version: "3.11-dev"
             tox-py-version: "311"
 
-          # Do not stop the run for known buggy mypy behavior on older pythons
-          - python-version: "3.7"
-            continue-on-mypy-error: "true"
-          - python-version: "3.8"
-            continue-on-mypy-error: "true"
-          - python-version: "3.9"
-            continue-on-mypy-error: "true"
-          # Otherwise stp the run
-          - continue-on-mypy-error: "false"
+#          # Do not stop the run for known buggy mypy behavior on older pythons
+#          - python-version: "3.7"
+#            continue-on-mypy-error: "true"
+#          - python-version: "3.8"
+#            continue-on-mypy-error: "true"
+#          - python-version: "3.9"
+#            continue-on-mypy-error: "true"
+#          # Otherwise stp the run
+#          - continue-on-mypy-error: "false"
 
     steps:
       - uses: actions/checkout@v3
@@ -46,4 +47,4 @@ jobs:
       - name: Mypy
         run: |
           tox -e py${{ matrix.tox-py-version }}-mypy
-        continue-on-error: ${{ fromJSON(matrix.continue-on-mypy-error) }}
+#        continue-on-error: ${{ fromJSON(matrix.continue-on-mypy-error) }}
