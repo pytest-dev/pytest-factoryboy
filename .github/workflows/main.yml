@@ -10,42 +10,44 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11-dev"]
-
-    uses: pytest/pytest-factoryboy/.github/workflows/prepare.yml@master
-    with:
-      python-version: ${{ matrix.python-version }}
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
+        pytest-version: [ "50", "51", "52", "53", "54", "60", "61", "62", "70", "71", "latest", "main" ]
 
     steps:
-
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip setuptools tox
       - name: Test with tox
-        run: tox
+        run: tox -e py${{ inputs.python-version }}-pytest-${{ inputs.pytest-version }}
 
-#---
-#name: Code quality
-#on:
-#  push:
-#  pull_request:
-#  workflow_dispatch:
-#
-#jobs:
-#  build:
-#    runs-on: ubuntu-latest
-#    strategy:
-#      matrix:
-#        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
-#
-#    uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
-#    with:
-#      python-version: ${{ matrix.python-version }}
-#
-#    steps:
-#      # https://github.com/github/feedback/discussions/10679
-#      - uses: pytest/pytest-factoryboy/.github/workflows/prepare@master
-#        with:
-#          python-version: ${{ matrix.python-version }}
-#      - name: Mypy
-#        run: |
-#          tox --devenv venv
-#          venv/bin/activate
-#          mypy .
+
+---
+name: Code quality
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip setuptools tox
+      - name: Mypy
+        run: tox -e py${{ inputs.python-version }}-mypy
