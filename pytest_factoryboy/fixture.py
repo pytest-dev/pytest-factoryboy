@@ -20,7 +20,7 @@ from .compat import PostGenerationContext
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
 
-    from _pytest.fixtures import FixtureFunction, FixtureRequest, SubRequest
+    from _pytest.fixtures import FixtureFunction, SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
