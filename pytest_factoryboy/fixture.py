@@ -5,7 +5,7 @@ import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, overload
 
 import factory
 import factory.builder
@@ -51,40 +51,46 @@ class RegisterProtocol(Protocol):
 
 
 @overload
-def register(
-    factory_class: None = None,
-    _name: str | None = None,
-    **kwargs: Any,
-) -> RegisterProtocol:
+def register(factory_class: None, name: str | None = None, factory_kwargs: dict[str, Any] = None) -> RegisterProtocol:
     ...
 
 
 @overload
-def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
+def register(factory_class: F, name: str | None = None, factory_kwargs: dict[str, Any] = None) -> F:
     ...
 
 
 def register(
     factory_class: F | None = None,
-    _name: str | None = None,
+    name: str | None = None,
+    factory_kwargs: dict[str, Any] = None,
     **kwargs: Any,
 ) -> F | RegisterProtocol:
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
-    :param _name: Name of the model fixture. By default, is lowercase-underscored model name.
-    :param \**kwargs: Optional keyword arguments that override factory attributes.
+    :param name: Name of the model fixture. By default, is lowercase-underscored model name.
+    :param factory_kwargs: Optional keyword arguments that override factory attributes.
     """
 
     if factory_class is None:
-        return functools.partial(register, _name=_name, **kwargs)
+        return functools.partial(register, name=name, factory_kwargs=factory_kwargs, **kwargs)
+
+    if factory_kwargs is None:
+        factory_kwargs = {}
+
+    if kwargs:
+        # TODO: Give better instructions on how to migrate to new usage
+        if "_name" in kwargs:
+            raise ValueError("_name param became name param")
+        raise ValueError("**kwargs params became factory_kwargs param")
 
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 
     fixture_defs: list[FixtureDef] = []
 
-    model_name = get_model_name(factory_class) if _name is None else _name
+    model_name = get_model_name(factory_class) if name is None else name
     factory_name = get_factory_name(factory_class)
 
     deps = get_deps(factory_class, model_name=model_name)
@@ -95,7 +101,7 @@ def register(
         attr_name = SEPARATOR.join((model_name, attr))
 
         if isinstance(value, factory.declarations.PostGeneration):
-            value = kwargs.get(attr, None)
+            value = factory_kwargs.get(attr, None)
             if isinstance(value, LazyFixture):
                 args = value.args
 
@@ -108,7 +114,7 @@ def register(
                 )
             )
         else:
-            value = kwargs.get(attr, value)
+            value = factory_kwargs.get(attr, value)
 
             if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
                 subfactory_class = value.get_factory()
