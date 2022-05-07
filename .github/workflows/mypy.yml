@@ -16,24 +16,19 @@ jobs:
           # Convert python-version to a string that tox understands
           - python-version: "3.7"
             tox-py-version: "37"
+            continue-on-mypy-error: "true"
           - python-version: "3.8"
             tox-py-version: "38"
+            continue-on-mypy-error: "true"
           - python-version: "3.9"
             tox-py-version: "39"
+            continue-on-mypy-error: "true"
           - python-version: "3.10"
             tox-py-version: "310"
+            continue-on-mypy-error: "false"
           - python-version: "3.11-dev"
             tox-py-version: "311"
-
-          # Ignore mypy errors for known buggy behaviour of mypy with older pythons
-          - python-version: "3.7"
-            continue-on-mypy-error: "true"
-          - python-version: "3.8"
-            continue-on-mypy-error: "true"
-          - python-version: "3.9"
-            continue-on-mypy-error: "true"
-          # Otherwise, require the mypy run to succeed
-          - continue-on-mypy-error: "false"
+            continue-on-mypy-error: "false"
 
     steps:
       - uses: actions/checkout@v3
@@ -50,11 +45,14 @@ jobs:
           echo "continue-on-mypy-error: ${{ matrix.continue-on-mypy-error }}"
           echo "jsonified: ${{ fromJSON( matrix.continue-on-mypy-error ) }}"
           echo "jsonified (negative): ${{ ! fromJSON( matrix.continue-on-mypy-error ) }}"
+
+      # Ignore mypy errors for known buggy behaviour of mypy with older pythons
       - name: Mypy (ignore failure)
         if: ${{ fromJSON( matrix.continue-on-mypy-error ) }}
         run: |
           - tox -e py${{ matrix.tox-py-version }}-mypy
 
+      # Otherwise, require the mypy run to succeed
       - name: Mypy
         if: ${{ ! fromJSON( matrix.continue-on-mypy-error ) }}
         run: |
