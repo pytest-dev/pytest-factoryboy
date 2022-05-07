@@ -50,10 +50,15 @@ jobs:
       - name: Mypy (ignore failure)
         if: ${{ fromJSON( matrix.continue-on-mypy-error ) }}
         run: |
-          -tox -e py${{ matrix.tox-py-version }}-mypy
+          tox -e py${{ matrix.tox-py-version }}-mypy || true
 
       # Otherwise, require the mypy run to succeed
       - name: Mypy
         if: ${{ ! fromJSON( matrix.continue-on-mypy-error ) }}
         run: |
           tox -e py${{ matrix.tox-py-version }}-mypy
+
+      - name: Should I ignore mypy failure?
+        if: "matrix.continue-on-mypy-error"
+        run: |
+          echo "yes"
