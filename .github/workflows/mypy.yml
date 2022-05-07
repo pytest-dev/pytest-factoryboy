@@ -44,7 +44,12 @@ jobs:
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip setuptools tox
-
+      - name: Echo matrix config
+        run: |
+          echo "Python version: ${{ matrix.python-version }}"
+          echo "continue-on-mypy-error: ${{ matrix.continue-on-mypy-error }}"
+          echo "jsonified: ${{ fromJSON( matrix.continue-on-mypy-error ) }}"
+          echo "jsonified (negative): ${{ ! fromJSON( matrix.continue-on-mypy-error ) }}"
       - name: Mypy (ignore failure)
         if: ${{ fromJSON( matrix.continue-on-mypy-error ) }}
         run: |
