@@ -51,4 +51,4 @@ jobs:
 #        if: ${{ ! fromJSON( matrix.ignore-mypy-error ) }}
         continue-on-error: ${{ fromJSON( matrix.ignore-mypy-error ) }}
         run: |
-          tox -e py${{ matrix.tox-py-version }}-mypy
+          tox -e py${{ matrix.tox-py-version }}-mypy && false
