@@ -13,19 +13,25 @@ jobs:
         python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
         continue-on-mypy-error: ["false"]
         include:
+          # Convert python-version to a string that tox understands
           - python-version: "3.7"
             tox-py-version: "37"
-            continue-on-mypy-error: "true"
           - python-version: "3.8"
             tox-py-version: "38"
-            continue-on-mypy-error: "true"
           - python-version: "3.9"
             tox-py-version: "39"
-            continue-on-mypy-error: "true"
           - python-version: "3.10"
             tox-py-version: "310"
           - python-version: "3.11-dev"
             tox-py-version: "311"
+
+          # Do not stop the run for known buggy mypy behavior on older pythons
+          - python-version: "3.7"
+            continue-on-mypy-error: "true"
+          - python-version: "3.8"
+            continue-on-mypy-error: "true"
+          - python-version: "3.9"
+            continue-on-mypy-error: "true"
 
     steps:
       - uses: actions/checkout@v3
