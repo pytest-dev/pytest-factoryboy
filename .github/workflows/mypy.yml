@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  mypy-run:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
