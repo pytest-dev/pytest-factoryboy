@@ -1,5 +1,5 @@
 ---
-name: Code quality
+name: Type checking with mypy
 on:
   push:
   pull_request:
