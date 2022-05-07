@@ -12,19 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
-        pytest-group: ["all", "new"]
-
-        exclude:
-          - python-version: "3.10"
-            pytest-group: "all"
-          - python-version: "3.11-dev"
-            pytest-group: "all"
-          - python-version: "3.7"
-            pytest-group: "new"
-          - python-version: "3.8"
-            pytest-group: "new"
-          - python-version: "3.9"
-            pytest-group: "new"
+        pytest-version: [ "62", "70", "71", "latest", "main" ]
 
         include:
           # Convert python-version to a string that tox understands
@@ -39,11 +27,59 @@ jobs:
           - python-version: "3.11-dev"
             tox-py-version: "311"
 
-          # pytest versions to use on each environment
-          - pytest-group: "all"
-            pytest-version: [ "50", "51", "52", "53", "54", "60", "61", "62", "70", "71", "latest", "main" ]
-          - python-group: "new"
-            pytest-version: [ "62", "70", "71", "latest", "main" ]
+          # Include older pytest versions `5.0 < pytest < 6.2` for python 3.7, 3.8, 3.9
+          # python 3.7
+          - python-version: "3.7"
+            pytest-version: "50"
+          - python-version: "3.7"
+            pytest-version: "51"
+          - python-version: "3.7"
+            pytest-version: "52"
+          - python-version: "3.7"
+            pytest-version: "53"
+          - python-version: "3.7"
+            pytest-version: "54"
+          - python-version: "3.7"
+            pytest-version: "60"
+          - python-version: "3.7"
+            pytest-version: "61"
+          - python-version: "3.7"
+            pytest-version: "62"
+          # python 3.8
+          - python-version: "3.8"
+            pytest-version: "50"
+          - python-version: "3.8"
+            pytest-version: "51"
+          - python-version: "3.8"
+            pytest-version: "52"
+          - python-version: "3.8"
+            pytest-version: "53"
+          - python-version: "3.8"
+            pytest-version: "54"
+          - python-version: "3.8"
+            pytest-version: "60"
+          - python-version: "3.8"
+            pytest-version: "61"
+          - python-version: "3.8"
+            pytest-version: "62"
+          # python 3.9
+          - python-version: "3.9"
+            pytest-version: "50"
+          - python-version: "3.9"
+            pytest-version: "51"
+          - python-version: "3.9"
+            pytest-version: "52"
+          - python-version: "3.9"
+            pytest-version: "53"
+          - python-version: "3.9"
+            pytest-version: "54"
+          - python-version: "3.9"
+            pytest-version: "60"
+          - python-version: "3.9"
+            pytest-version: "61"
+          - python-version: "3.9"
+            pytest-version: "62"
+
 
     steps:
       - uses: actions/checkout@v3
