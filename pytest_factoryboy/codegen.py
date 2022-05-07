@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ast
 import atexit
+import copy
 import importlib.util
 import itertools
 import logging
@@ -10,13 +12,18 @@ import tempfile
 from dataclasses import dataclass, field
 from functools import lru_cache
 from types import ModuleType
-from typing import Any
+from typing import TYPE_CHECKING
 
 import mako.template
 from appdirs import AppDirs
-from typing_extensions import Literal
+from tokenize_rt import Offset, reversed_enumerate, src_to_tokens, tokens_to_src
 
 from .compat import path_with_stem
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from typing_extensions import Literal, Self
 
 cache_dir = pathlib.Path(AppDirs("pytest-factoryboy").user_cache_dir)
 
@@ -137,3 +144,102 @@ def make_fixture_model_module(model_name, fixture_defs: list[FixtureDef]):
         assert hasattr(generated_module, fixture_def.kwargs_var_name)
         setattr(generated_module, fixture_def.kwargs_var_name, fixture_def.function_kwargs)
     return generated_module
+
+
+def pop_kwarg(node: ast.Call, key: str) -> ast.Expr | None:
+    for i, arg in enumerate(node.keywords):
+        if isinstance(arg, ast.keyword) and arg.arg == key:
+            node.keywords.pop(i)
+            return arg.value
+    return None
+
+
+def rewrite_register_node(node: ast.Call) -> str | None:
+    node = copy.copy(node)
+    kwargs_names = {k.arg for k in node.keywords}
+    unknown_kwargs = kwargs_names - {"factory_class", "name", "factory_kwargs"}
+
+    if not unknown_kwargs:
+        return None
+
+    if "factory_kwargs" in kwargs_names:
+        raise ValueError("Cannot fix a function that uses both factory_kwargs and **kwargs")
+
+    if len(node.args) < 2 and "_name" in unknown_kwargs:
+        name = pop_kwarg(node, "_name")
+        unknown_kwargs -= {"_name"}
+        if name is not None:
+            node.keywords.insert(0, ast.keyword("name", name))
+
+    factory_kwargs = {}
+    for kwarg in node.keywords:
+        if kwarg.arg not in unknown_kwargs:
+            continue
+        factory_kwargs[kwarg.arg] = pop_kwarg(node, kwarg.arg)
+
+    factory_kwargs_node = ast.Expr(value=ast.Dict(keys=[], values=[]))
+    for key, value in factory_kwargs.items():
+        factory_kwargs_node.value.keys.append(ast.Str(s=key))
+        factory_kwargs_node.value.values.append(value)
+
+    if factory_kwargs:
+        node.keywords.append(ast.keyword("factory_kwargs", factory_kwargs_node))
+    source = ast.unparse(node)
+    return source
+
+
+@dataclass
+class DecoratorInfo:
+    node: ast.Call
+    offset_start: Offset
+    offset_end: Offset
+
+    @classmethod
+    def from_node(cls, node: ast.Call) -> Self:
+        return cls(
+            node=node,
+            offset_start=Offset(node.lineno, node.col_offset),
+            offset_end=Offset(node.end_lineno, node.end_col_offset),
+        )
+
+
+def upgrade_source(source: str, source_filename: str) -> str:
+    tree = ast.parse(source, filename=source_filename)
+    found: list[DecoratorInfo] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            for decorator in node.decorator_list:
+                if not isinstance(decorator, ast.Call):
+                    continue
+                func = decorator.func
+                if not isinstance(func, ast.Name):
+                    # TODO: implement this case
+                    raise NotImplementedError
+                if func.id != "register":
+                    continue
+                found.append(DecoratorInfo.from_node(decorator))
+        elif isinstance(node, ast.Call):
+            func = node.func
+            if not isinstance(func, ast.Name):
+                # TODO: implement this case
+                raise NotImplementedError
+            if func.id != "register":
+                continue
+            found.append(DecoratorInfo.from_node(node))
+
+    found_by_start_offset: dict[Offset, DecoratorInfo] = {dec_info.offset_start: dec_info for dec_info in found}
+    tokens = src_to_tokens(source)
+    for i, token in reversed_enumerate(tokens):
+        if (dec_info := found_by_start_offset.get(token.offset)) is None:
+            continue
+
+        if not token.src:
+            # skip possible DEDENT tokens
+            continue
+
+        end_token_pos = next(i for i, t in reversed_enumerate(tokens) if t.offset == dec_info.offset_end)
+        new_decorator = rewrite_register_node(dec_info.node)
+        if new_decorator is not None:
+            tokens[i:end_token_pos] = [tokens[i]._replace(src=new_decorator)]
+    new_source = tokens_to_src(tokens)
+    return new_source

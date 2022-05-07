@@ -51,7 +51,9 @@ class RegisterProtocol(Protocol):
 
 
 @overload
-def register(factory_class: None, name: str | None = None, factory_kwargs: dict[str, Any] = None) -> RegisterProtocol:
+def register(
+    factory_class: None = None, name: str | None = None, factory_kwargs: dict[str, Any] = None
+) -> RegisterProtocol:
     ...
 
 
@@ -80,10 +82,16 @@ def register(
         factory_kwargs = {}
 
     if kwargs:
+        import warnings
+
         # TODO: Give better instructions on how to migrate to new usage
-        if "_name" in kwargs:
-            raise ValueError("_name param became name param")
-        raise ValueError("**kwargs params became factory_kwargs param")
+
+        warnings.warn("_name param became name param; **kwargs params became factory_kwargs param")
+
+        # return register(factory_class, name=name, factory_kwargs=factory_kwargs)
+        # Raise here, telling the user to invoke the upgrade script
+
+        return factory_class
 
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
