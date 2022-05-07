@@ -46,11 +46,11 @@ jobs:
           python -m pip install --upgrade pip setuptools tox
 
       - name: Mypy (ignore failure)
-        if: fromJSON( ${{matrix.continue-on-mypy-error}} )
+        if: ${{ fromJSON( matrix.continue-on-mypy-error ) }}
         run: |
           - tox -e py${{ matrix.tox-py-version }}-mypy
 
       - name: Mypy
-        if: ! fromJSON( ${{matrix.continue-on-mypy-error}} )
+        if: ${{ ! fromJSON( matrix.continue-on-mypy-error ) }}
         run: |
           tox -e py${{ matrix.tox-py-version }}-mypy
