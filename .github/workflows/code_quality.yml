@@ -11,7 +11,6 @@ jobs:
     strategy:
       matrix:
         python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
-        continue-on-mypy-error: ["false"]
         include:
           # Convert python-version to a string that tox understands
           - python-version: "3.7"
@@ -32,6 +31,8 @@ jobs:
             continue-on-mypy-error: "true"
           - python-version: "3.9"
             continue-on-mypy-error: "true"
+          # Otherwise stp the run
+          - continue-on-mypy-error: "false"
 
     steps:
       - uses: actions/checkout@v3
