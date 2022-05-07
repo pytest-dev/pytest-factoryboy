@@ -12,6 +12,20 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
+        pytest-group: ["all", "new"]
+
+        exclude:
+          - python-version: "3.10"
+            pytest-group: "all"
+          - python-version: "3.11-dev"
+            pytest-group: "all"
+          - python-version: "3.7"
+            pytest-group: "new"
+          - python-version: "3.8"
+            pytest-group: "new"
+          - python-version: "3.9"
+            pytest-group: "new"
+
         include:
           # Convert python-version to a string that tox understands
           - python-version: "3.7"
@@ -26,17 +40,9 @@ jobs:
             tox-py-version: "311"
 
           # pytest versions to use on each environment
-          - python-version: "3.7"
+          - pytest-group: "all"
             pytest-version: [ "50", "51", "52", "53", "54", "60", "61", "62", "70", "71", "latest", "main" ]
-          - python-version: "3.8"
-            pytest-version: [ "50", "51", "52", "53", "54", "60", "61", "62", "70", "71", "latest", "main" ]
-          - python-version: "3.9"
-            pytest-version: [ "50", "51", "52", "53", "54", "60", "61", "62", "70", "71", "latest", "main" ]
-
-          # python >= 3.10 requires pytest >= 6.2
-          - python-version: "3.10"
-            pytest-version: [ "62", "70", "71", "latest", "main" ]
-          - python-version: "3.11-dev"
+          - python-group: "new"
             pytest-version: [ "62", "70", "71", "latest", "main" ]
 
     steps:
