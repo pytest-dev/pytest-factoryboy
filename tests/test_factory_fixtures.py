@@ -64,11 +64,6 @@ class UserFactory(factory.Factory):
 
 
 @register
-@register(
-    _name="harry_potter_author",
-    name="J.K. Rowling",
-    register_user="jk_rowling",
-)
 class AuthorFactory(factory.Factory):
     """Author factory."""
 
@@ -161,41 +156,40 @@ def test_post_generation(author: Author):
     assert author.user.is_active is True
 
 
-register(AuthorFactory, "second_author")
+class TestParametrizeAlternativeNameFixture:
+    register(AuthorFactory, "second_author")
+
+    @pytest.mark.parametrize("second_author__name", ["Mr. Hyde"])
+    def test_second_author(self, author: Author, second_author: Author):
+        """Test parametrization of attributes for fixture registered under a different name
+        ("second_author")."""
+        assert author != second_author
+        assert second_author.name == "Mr. Hyde"
 
 
-@pytest.mark.parametrize("second_author__name", ["Mr. Hyde"])
-def test_second_author(author: Author, second_author: Author):
-    """Test factory registration with specific name."""
-    assert author != second_author
-    assert second_author.name == "Mr. Hyde"
+class TestPartialSpecialization:
+    register(AuthorFactory, "partial_author", name="John Doe", register_user=LazyFixture(lambda: "jd@jd.com"))
+
+    def test_partial(self, partial_author: Author):
+        """Test fixture partial specialization."""
+        assert partial_author.name == "John Doe"
+        assert partial_author.user.username == "jd@jd.com"
 
 
-register(AuthorFactory, "partial_author", name="John Doe", register_user=LazyFixture(lambda: "jd@jd.com"))
+class TestLazyFixture:
+    register(AuthorFactory, "another_author", name=LazyFixture(lambda: "Another Author"))
 
+    @pytest.mark.parametrize("book__author", [LazyFixture("another_author")])
+    def test_lazy_fixture_name(self, book: Book, another_author: Author):
+        """Test that book author is replaced with another author by fixture name."""
+        assert book.author == another_author
+        assert book.author.name == "Another Author"
 
-def test_partial(partial_author: Author):
-    """Test fixture partial specialization."""
-    assert partial_author.name == "John Doe"
-    assert partial_author.user
-    assert partial_author.user.username == "jd@jd.com"
-
-
-register(AuthorFactory, "another_author", name=LazyFixture(lambda: "Another Author"))
-
-
-@pytest.mark.parametrize("book__author", [LazyFixture("another_author")])
-def test_lazy_fixture_name(book: Book, another_author: Author):
-    """Test that book author is replaced with another author by fixture name."""
-    assert book.author == another_author
-    assert book.author.name == "Another Author"
-
-
-@pytest.mark.parametrize("book__author", [LazyFixture(lambda another_author: another_author)])
-def test_lazy_fixture_callable(book: Book, another_author: Author) -> None:
-    """Test that book author is replaced with another author by callable."""
-    assert book.author == another_author
-    assert book.author.name == "Another Author"
+    @pytest.mark.parametrize("book__author", [LazyFixture(lambda another_author: another_author)])
+    def test_lazy_fixture_callable(self, book: Book, another_author: Author) -> None:
+        """Test that book author is replaced with another author by callable."""
+        assert book.author == another_author
+        assert book.author.name == "Another Author"
 
 
 @pytest.mark.parametrize(
@@ -209,11 +203,3 @@ def test_lazy_fixture_post_generation(author: Author):
     # assert author.user.username == "lazyfixture"
     assert author.user
     assert author.user.password == "asdasd"
-
-
-def test_register_class_decorator_with_kwargs_only(harry_potter_author: Author):
-    """Ensure ``register`` decorator called with kwargs only works normally."""
-    assert harry_potter_author.name == "J.K. Rowling"
-    assert harry_potter_author.user
-    assert harry_potter_author.user.username == "jk_rowling"
-
