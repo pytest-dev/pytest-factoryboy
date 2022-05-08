@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import functools
+import inspect
+import os
 import sys
 from dataclasses import dataclass
 from inspect import signature
@@ -14,7 +16,7 @@ import factory.enums
 import inflection
 from typing_extensions import Protocol
 
-from .codegen import FixtureDef, make_fixture_model_module
+from .codegen import FixtureDef, make_fixture_model_module, upgrade_module
 from .compat import PostGenerationContext
 
 if TYPE_CHECKING:
@@ -28,6 +30,8 @@ if TYPE_CHECKING:
     T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
 
+
+REWRITE_SOURCE = os.getenv("PYTEST_FACTORYBOY_REWRITE_SOURCE", "false") == "true"
 
 SEPARATOR = "__"
 
@@ -54,7 +58,15 @@ class RegisterProtocol(Protocol):
 
 def raise_if_upgrade_necessary():
     if raise_on_usage:
-        raise RuntimeError("You must upgrade your usages of `register(...)`. You can do so by ...")
+        if REWRITE_SOURCE:
+            raise RuntimeError("Source code is rewritten, you can now restart the pytest run.")
+        else:
+            raise RuntimeError(
+                "You must upgrade your usages of `register(...)`. "
+                "You can let pytest-factoryboy rewrite your source code by setting "
+                "the environment variable PYTEST_FACTORYBOY_REWRITE_SOURCE=true "
+                "and restarting the pytest run."
+            )
 
 
 def _register_old(factory_class: F | None = None, _name: str | None = None, **kwargs: Any) -> F | RegisterProtocol:
@@ -93,19 +105,30 @@ def register(factory_class: F | None = None, *args, **kwargs) -> F | RegisterPro
 
     import warnings
 
-    # TODO: Give better instructions on how to migrate to new usage
-
-    warnings.warn("_name param became name param; **kwargs params became factory_kwargs param")
     name = old_match.arguments.pop("_name", None)
     global raise_on_usage
     raise_on_usage = True
-
-    return _register_new(
+    params = dict(
         factory_class=factory_class,
         name=name,
         factory_kwargs=old_match.kwargs,
         _caller_locals=caller_locals,
     )
+
+    # TODO: Give better instructions on how to migrate to new usage
+    if not REWRITE_SOURCE:
+        warnings.warn(
+            "_name param became name param; **kwargs params became factory_kwargs param. "
+            "You can let pytest-factoryboy rewrite your source code by setting "
+            "the environment variable PYTEST_FACTORYBOY_REWRITE_SOURCE=true "
+            "and restarting the pytest run."
+        )
+    else:
+        caller_frame = sys._getframe(1)
+        caller_module = inspect.getmodule(caller_frame)
+        upgrade_module(module=caller_module)
+
+    return _register_new(**params)
 
 
 def _register_new(

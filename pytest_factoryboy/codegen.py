@@ -3,7 +3,9 @@ from __future__ import annotations
 import ast
 import atexit
 import copy
+import functools
 import importlib.util
+import inspect
 import itertools
 import logging
 import pathlib
@@ -159,9 +161,6 @@ def rewrite_register_node(node: ast.Call) -> str | None:
     kwargs_names = {k.arg for k in node.keywords}
     unknown_kwargs = kwargs_names - {"factory_class", "name", "factory_kwargs"}
 
-    if not unknown_kwargs:
-        return None
-
     if "factory_kwargs" in kwargs_names:
         raise ValueError("Cannot fix a function that uses both factory_kwargs and **kwargs")
 
@@ -243,3 +242,16 @@ def upgrade_source(source: str, source_filename: str) -> str:
             tokens[i:end_token_pos] = [tokens[i]._replace(src=new_decorator)]
     new_source = tokens_to_src(tokens)
     return new_source
+
+
+@functools.lru_cache()  # So that we rewrite each file only once
+def upgrade_module(module: ModuleType) -> None:
+    # TODO: Double check that module.__file__ is always accessible. Maybe it wasn't always an absolute path
+    # TODO: Handle case where module.__file__ or module.__source__ is not accessible
+    source = inspect.getsource(module)
+    source_filename = inspect.getsourcefile(module)
+    new_source = upgrade_source(source=source, source_filename=source_filename)
+
+    source_file = pathlib.Path(source_filename)
+    new_source_file = source_file.with_stem(source_file.stem + "_upgraded")
+    new_source_file.write_text(new_source)
