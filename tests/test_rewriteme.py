@@ -35,5 +35,6 @@ class AuthorFactory(factory.Factory):
 
 register(AuthorFactory, "third_author", factory_kwargs={"last_name": "Dickens as kwargs"})
 register(AuthorFactory, name="author_explicit_name_call")
+register(AuthorFactory, "partial_author", factory_kwargs{"name": "John Doe"})
 """
     )

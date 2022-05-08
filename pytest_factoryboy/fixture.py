@@ -31,6 +31,8 @@ if TYPE_CHECKING:
 
 SEPARATOR = "__"
 
+raise_on_usage = False
+
 
 @dataclass(eq=False)
 class DeferredFunction:
@@ -50,6 +52,18 @@ class RegisterProtocol(Protocol):
         """``register`` function called with ``factory_class``."""
 
 
+def raise_if_upgrade_necessary():
+    if raise_on_usage:
+        raise RuntimeError("You must upgrade your usages of `register(...)`. You can do so by ...")
+
+
+def _register_old(factory_class: F | None = None, _name: str | None = None, **kwargs: Any) -> F | RegisterProtocol:
+    ...
+
+
+old_register_signature = signature(_register_old)
+
+
 @overload
 def register(
     factory_class: None = None, name: str | None = None, factory_kwargs: dict[str, Any] = None
@@ -62,36 +76,55 @@ def register(factory_class: F, name: str | None = None, factory_kwargs: dict[str
     ...
 
 
-def register(
+def register(factory_class: F | None = None, *args, **kwargs) -> F | RegisterProtocol:
+    if factory_class is None:
+        return functools.partial(register, *args, **kwargs)
+    caller_locals = get_caller_locals()
+
+    try:
+        match = new_register_signature.bind(factory_class, *args, **kwargs, _caller_locals=caller_locals)
+    except TypeError:
+        pass
+    else:
+        return _register_new(*match.args, **match.kwargs)
+
+    old_match = old_register_signature.bind(factory_class, *args, **kwargs)
+
+    import warnings
+
+    # TODO: Give better instructions on how to migrate to new usage
+
+    warnings.warn("_name param became name param; **kwargs params became factory_kwargs param")
+    name = old_match.arguments.pop("_name", None)
+    global raise_on_usage
+    raise_on_usage = True
+
+    return _register_new(
+        factory_class=factory_class,
+        name=name,
+        factory_kwargs=old_match.kwargs,
+        _caller_locals=caller_locals,
+    )
+
+
+def _register_new(
     factory_class: F | None = None,
-    name: str | None = None,
+    name: str | None = None,  # TODO: Rename to model_name
     factory_kwargs: dict[str, Any] = None,
-    **kwargs: Any,
+    _caller_locals: dict[str, Any] = None,
 ) -> F | RegisterProtocol:
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
-    :param name: Name of the model fixture. By default, is lowercase-underscored model name.
+    :param model_name: Name of the model fixture. By default, is lowercase-underscored model name.
     :param factory_kwargs: Optional keyword arguments that override factory attributes.
     """
 
     if factory_class is None:
-        return functools.partial(register, name=name, factory_kwargs=factory_kwargs, **kwargs)
+        return functools.partial(register, model_name=model_name, factory_kwargs=factory_kwargs, **kwargs)
 
     if factory_kwargs is None:
         factory_kwargs = {}
-
-    if kwargs:
-        import warnings
-
-        # TODO: Give better instructions on how to migrate to new usage
-
-        warnings.warn("_name param became name param; **kwargs params became factory_kwargs param")
-
-        # return register(factory_class, name=name, factory_kwargs=factory_kwargs)
-        # Raise here, telling the user to invoke the upgrade script
-
-        return factory_class
 
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
@@ -160,9 +193,10 @@ def register(
                     )
                 )
 
-    caller_locals = get_caller_locals()
+    if _caller_locals is None:
+        _caller_locals = get_caller_locals()
 
-    if factory_name not in caller_locals:
+    if factory_name not in _caller_locals:
         fixture_defs.append(
             FixtureDef(
                 name=factory_name,
@@ -186,9 +220,12 @@ def register(
     for fixture_def in fixture_defs:
         exported_name = fixture_def.name
         fixture_function = getattr(generated_module, exported_name)
-        inject_into_caller(exported_name, fixture_function, caller_locals)
+        inject_into_caller(exported_name, fixture_function, _caller_locals)
 
     return factory_class
+
+
+new_register_signature = signature(_register_new)
 
 
 def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[str, Any]) -> None:
@@ -259,6 +296,7 @@ def evaluate(request: SubRequest, value: LazyFixture | Any) -> Any:
 
 def model_fixture(request: SubRequest, factory_name: str) -> Any:
     """Model fixture implementation."""
+    raise_if_upgrade_necessary()
     factoryboy_request = request.getfixturevalue("factoryboy_request")
 
     # Try to evaluate as much post-generation dependencies as possible
@@ -392,16 +430,19 @@ def make_deferred_postgen(
 
 def factory_fixture(request: SubRequest, factory_class: F) -> F:
     """Factory fixture implementation."""
+    raise_if_upgrade_necessary()
     return factory_class
 
 
 def attr_fixture(request: SubRequest, value: T) -> T:
     """Attribute fixture implementation."""
+    raise_if_upgrade_necessary()
     return value
 
 
 def subfactory_fixture(request: SubRequest, factory_class: FactoryType) -> Any:
     """SubFactory/RelatedFactory fixture implementation."""
+    raise_if_upgrade_necessary()
     fixture = inflection.underscore(factory_class._meta.model.__name__)
     return request.getfixturevalue(fixture)
 

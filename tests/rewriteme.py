@@ -22,3 +22,5 @@ class AuthorFactory(factory.Factory):
 
 register(AuthorFactory, "third_author", last_name="Dickens as kwargs")
 register(AuthorFactory, _name="author_explicit_name_call")
+register(AuthorFactory, "partial_author", name="John Doe")
+register(AuthorFactory, "author", model_name="attr of the factory")
