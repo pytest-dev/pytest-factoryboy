@@ -217,16 +217,3 @@ def test_register_class_decorator_with_kwargs_only(harry_potter_author: Author):
     assert harry_potter_author.user
     assert harry_potter_author.user.username == "jk_rowling"
 
-
-register(_name="the_chronicles_of_narnia_author", name="C.S. Lewis")(
-    AuthorFactory,
-    register_user="cs_lewis",
-    register_user__password="Aslan1",
-)
-
-
-def test_register_function_with_kwargs_only(the_chronicles_of_narnia_author: Author):
-    """Ensure ``register`` function called with kwargs only works normally."""
-    assert the_chronicles_of_narnia_author.name == "C.S. Lewis"
-    assert the_chronicles_of_narnia_author.user
-    assert the_chronicles_of_narnia_author.user.password == "Aslan1"

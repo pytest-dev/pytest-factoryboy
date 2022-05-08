@@ -67,6 +67,8 @@ def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
 def register(
     factory_class: F | None = None,
     _name: str | None = None,
+    *,
+    _caller_locals: dict[str, Any] = None,
     **kwargs: Any,
 ) -> F | RegisterProtocol:
     r"""Register fixtures for the factory class.
@@ -75,9 +77,15 @@ def register(
     :param _name: Name of the model fixture. By default, is lowercase-underscored model name.
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
+    if _caller_locals is None:
+        _caller_locals = get_caller_locals()
 
     if factory_class is None:
-        return functools.partial(register, _name=_name, **kwargs)
+
+        def register_(factory_class: F) -> F:
+            return register(factory_class, _name=_name, _caller_locals=_caller_locals, **kwargs)
+
+        return register_
 
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
@@ -146,9 +154,7 @@ def register(
                     )
                 )
 
-    caller_locals = get_caller_locals()
-
-    if factory_name not in caller_locals:
+    if factory_name not in _caller_locals:
         fixture_defs.append(
             FixtureDef(
                 name=factory_name,
@@ -172,7 +178,7 @@ def register(
     for fixture_def in fixture_defs:
         exported_name = fixture_def.name
         fixture_function = getattr(generated_module, exported_name)
-        inject_into_caller(exported_name, fixture_function, caller_locals)
+        inject_into_caller(exported_name, fixture_function, _caller_locals)
 
     return factory_class
 
