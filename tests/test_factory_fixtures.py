@@ -173,6 +173,7 @@ class TestPartialSpecialization:
     def test_partial(self, partial_author: Author):
         """Test fixture partial specialization."""
         assert partial_author.name == "John Doe"
+        assert partial_author.user  # Makes mypy happy
         assert partial_author.user.username == "jd@jd.com"
 
 
