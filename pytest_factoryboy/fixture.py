@@ -77,6 +77,7 @@ def register(factory_class: F, name: str | None = None, factory_kwargs: dict[str
 
 
 def register(factory_class: F | None = None, *args, **kwargs) -> F | RegisterProtocol:
+    # TODO: Try delegating the usage as decorator to a `_register_inner` function.
     if factory_class is None:
         return functools.partial(register, *args, **kwargs)
     caller_locals = get_caller_locals()
