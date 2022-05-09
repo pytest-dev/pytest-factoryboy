@@ -11,6 +11,7 @@ import logging
 import pathlib
 import shutil
 import tempfile
+from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import lru_cache
 from types import ModuleType
@@ -18,6 +19,9 @@ from typing import TYPE_CHECKING
 
 import mako.template
 from appdirs import AppDirs
+
+# TODO: Remove pyupgrade usage
+from pyupgrade._ast_helpers import is_name_attr
 from tokenize_rt import Offset, reversed_enumerate, src_to_tokens, tokens_to_src
 
 from .compat import path_with_stem
@@ -156,33 +160,42 @@ def pop_kwarg(node: ast.Call, key: str) -> ast.Expr | None:
     return None
 
 
+def replace_keyword(node: ast.Call, key: str, new_key: str) -> None:
+    for keyword in node.keywords:
+        if isinstance(keyword, ast.keyword) and keyword.arg == key:
+            keyword.arg = new_key
+            return
+    raise ValueError(f"Keyword {key} not found in {node}")
+
+
 def rewrite_register_node(node: ast.Call) -> str | None:
     node = copy.copy(node)
+
+    # For debugging purposes
+    node_str = ast.unparse(node)  # noqa
     kwargs_names = {k.arg for k in node.keywords}
-    unknown_kwargs = kwargs_names - {"factory_class", "name", "factory_kwargs"}
 
-    if "factory_kwargs" in kwargs_names:
-        raise ValueError("Cannot fix a function that uses both factory_kwargs and **kwargs")
+    # Fix #1: _name -> name
+    if "_name" in kwargs_names:
+        replace_keyword(node, "_name", "name")
 
-    if len(node.args) < 2 and "_name" in unknown_kwargs:
-        name = pop_kwarg(node, "_name")
-        unknown_kwargs -= {"_name"}
-        if name is not None:
-            node.keywords.insert(0, ast.keyword("name", name))
+    if "factory_kwargs" not in kwargs_names:
 
-    factory_kwargs = {}
-    for kwarg in node.keywords:
-        if kwarg.arg not in unknown_kwargs:
-            continue
-        factory_kwargs[kwarg.arg] = pop_kwarg(node, kwarg.arg)
+        # Fix #2: **kwargs -> factory_kwargs
+        factory_kwargs = {}
+        for kwarg in node.keywords:
+            if kwarg.arg == "factory_class":
+                continue
+            factory_kwargs[kwarg.arg] = pop_kwarg(node, kwarg.arg)
 
-    factory_kwargs_node = ast.Expr(value=ast.Dict(keys=[], values=[]))
-    for key, value in factory_kwargs.items():
-        factory_kwargs_node.value.keys.append(ast.Str(s=key))
-        factory_kwargs_node.value.values.append(value)
+        factory_kwargs_node = ast.Expr(value=ast.Dict(keys=[], values=[]))
+        for key, value in factory_kwargs.items():
+            factory_kwargs_node.value.keys.append(ast.Str(s=key))
+            factory_kwargs_node.value.values.append(value)
 
-    if factory_kwargs:
-        node.keywords.append(ast.keyword("factory_kwargs", factory_kwargs_node))
+        if factory_kwargs:
+            node.keywords.append(ast.keyword("factory_kwargs", factory_kwargs_node))
+
     source = ast.unparse(node)
     return source
 
@@ -205,26 +218,21 @@ class DecoratorInfo:
 def upgrade_source(source: str, source_filename: str) -> str:
     tree = ast.parse(source, filename=source_filename)
     found: list[DecoratorInfo] = []
+    from_imports: dict[str, set] = defaultdict(set)
     for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef):
-            for decorator in node.decorator_list:
-                if not isinstance(decorator, ast.Call):
-                    continue
-                func = decorator.func
-                if not isinstance(func, ast.Name):
-                    # TODO: implement this case
-                    raise NotImplementedError
-                if func.id != "register":
-                    continue
-                found.append(DecoratorInfo.from_node(decorator))
+        if isinstance(node, ast.ImportFrom) and not node.level and node.module in ["pytest_factoryboy"]:
+            from_imports[node.module].update(name.name for name in node.names if not name.asname)
+
         elif isinstance(node, ast.Call):
             func = node.func
-            if not isinstance(func, ast.Name):
-                # TODO: implement this case
-                raise NotImplementedError
-            if func.id != "register":
-                continue
-            found.append(DecoratorInfo.from_node(node))
+            if is_name_attr(
+                func,
+                from_imports,
+                ("pytest_factoryboy",),
+                ("register",),
+            ):
+                print(f"Found register call at {node.lineno}:{node.col_offset}. {ast.unparse(node)}")
+                found.append(DecoratorInfo.from_node(node))
 
     found_by_start_offset: dict[Offset, DecoratorInfo] = {dec_info.offset_start: dec_info for dec_info in found}
     tokens = src_to_tokens(source)
@@ -237,9 +245,9 @@ def upgrade_source(source: str, source_filename: str) -> str:
             continue
 
         end_token_pos = next(i for i, t in reversed_enumerate(tokens) if t.offset == dec_info.offset_end)
-        new_decorator = rewrite_register_node(dec_info.node)
-        if new_decorator is not None:
-            tokens[i:end_token_pos] = [tokens[i]._replace(src=new_decorator)]
+        new_call = rewrite_register_node(dec_info.node)
+        if new_call is not None:
+            tokens[i:end_token_pos] = [tokens[i]._replace(src=new_call)]
     new_source = tokens_to_src(tokens)
     return new_source
 
