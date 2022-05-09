@@ -89,13 +89,17 @@ by the name like "first", "second" or of another parent as "other":
 
 .. code-block:: python
 
-    register(BookFactory)  # book
-    register(BookFactory, "second_book")  # second_book
+    register(AuthorFactory)  # author
+    register(AuthorFactory, "second_author")  # second_author
 
-    register(AuthorFactory) # author
-    register(AuthorFactory, "second_author") # second_author
+    # `register(...)` can be used as a decorator too
+    @register  # book
+    @register(_name="second_book")  # second_book
+    @register(_name="other_book")  # other_book, book of another author
+    class BookFactory(factory.Factory):
+        class Meta:
+            model = Book
 
-    register(BookFactory, "other_book")  # other_book, book of another author
 
     @pytest.fixture
     def other_book__author(second_author):
@@ -143,9 +147,9 @@ Integration
 
 An example of factory_boy_ and pytest_ integration.
 
-factories/__init__.py:
-
 .. code-block:: python
+
+    # factories/__init__.py
 
     import factory
     from faker import Factory as FakerFactory
@@ -172,9 +176,10 @@ factories/__init__.py:
 
         author = factory.SubFactory(AuthorFactory)
 
-tests/conftest.py:
 
 .. code-block:: python
+
+    # tests/conftest.py
 
     from pytest_factoryboy import register
 
@@ -183,20 +188,24 @@ tests/conftest.py:
     register(AuthorFactory)
     register(BookFactory)
 
-tests/test_models.py:
 
 .. code-block:: python
 
+    # tests/test_models.py
+
     from app.models import Book
     from factories import BookFactory
+
 
     def test_book_factory(book_factory):
         """Factories become fixtures automatically."""
         assert book_factory is BookFactory
 
+
     def test_book(book):
         """Instances become fixtures automatically."""
         assert isinstance(book, Book)
+
 
     @pytest.mark.parametrize("book__title", ["PyTest for Dummies"])
     @pytest.mark.parametrize("author__name", ["Bill Gates"])
@@ -342,10 +351,7 @@ pytest-factoryboy is trying to detect cycles and resolve post-generation depende
             model = Bar
 
 
-    register(
-        BarFactory,
-        'bar',
-    )
+    register(BarFactory, "bar")
     """Forces 'set1' to be evaluated first."""
 
 
