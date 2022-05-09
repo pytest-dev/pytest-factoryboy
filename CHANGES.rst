@@ -4,6 +4,31 @@ Changelog
 Unreleased
 ----------
 
+2.2.1
+----------
+- ``@register()`` decorator now refuses kwargs after the initial specialization. This behaviour was mistakenly introduced in version 2.2.0, and it compicates the usage of the ``register`` function uncecessarily. For example, the following is not allowed anymore:
+
+.. code-block:: python
+
+    # INVALID
+    register(
+        _name="second_author",
+        name="C.S. Lewis",
+    )(
+        AuthorFactory,
+        register_user="cs_lewis",
+        register_user__password="Aslan1",
+    )
+
+    # VALID
+    register(
+        AuthorFactory,
+        _name="second_author",
+        name="C.S. Lewis",
+        register_user="cs_lewis",
+        register_user__password="Aslan1",
+    )
+
 2.2.0
 ----------
 - Drop support for Python 3.6. We now support only python >= 3.7.
