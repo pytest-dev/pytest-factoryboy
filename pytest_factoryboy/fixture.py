@@ -1,18 +1,16 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
-import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, overload
 
 import factory
 import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-from typing_extensions import Protocol
 
 from .codegen import FixtureDef, make_fixture_model_module
 from .compat import PostGenerationContext
@@ -20,7 +18,7 @@ from .compat import PostGenerationContext
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
 
-    from _pytest.fixtures import FixtureFunction, FixtureRequest, SubRequest
+    from _pytest.fixtures import FixtureFunction, SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
@@ -43,41 +41,45 @@ class DeferredFunction:
         return self.function(request)
 
 
-class RegisterProtocol(Protocol):
-    """Protocol for ``register`` function called with ``factory_class``."""
-
-    def __call__(self, factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
-        """``register`` function called with ``factory_class``."""
-
-
+# register(AuthorFactory, ...)
+#
+# @register
+# class AuthorFactory(factory.Factory): ...
 @overload
-def register(
-    factory_class: None = None,
-    _name: str | None = None,
-    **kwargs: Any,
-) -> RegisterProtocol:
+def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
     ...
 
 
+# @register(...)
+# class AuthorFactory(factory.Factory): ...
 @overload
-def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
+def register(*, _name: str | None = None, **kwargs: Any) -> Callable[[F], F]:
     ...
 
 
 def register(
     factory_class: F | None = None,
     _name: str | None = None,
+    *,
+    _caller_locals: dict[str, Any] | None = None,
     **kwargs: Any,
-) -> F | RegisterProtocol:
+) -> F | Callable[[F], F]:
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
     :param _name: Name of the model fixture. By default, is lowercase-underscored model name.
+    :param _caller_locals: Dictionary where to inject the generated fixtures. Defaults to the caller's locals().
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
+    if _caller_locals is None:
+        _caller_locals = get_caller_locals()
 
     if factory_class is None:
-        return functools.partial(register, _name=_name, **kwargs)
+
+        def register_(factory_class: F) -> F:
+            return register(factory_class, _name=_name, _caller_locals=_caller_locals, **kwargs)
+
+        return register_
 
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
@@ -146,9 +148,7 @@ def register(
                     )
                 )
 
-    caller_locals = get_caller_locals()
-
-    if factory_name not in caller_locals:
+    if factory_name not in _caller_locals:
         fixture_defs.append(
             FixtureDef(
                 name=factory_name,
@@ -172,7 +172,7 @@ def register(
     for fixture_def in fixture_defs:
         exported_name = fixture_def.name
         fixture_function = getattr(generated_module, exported_name)
-        inject_into_caller(exported_name, fixture_function, caller_locals)
+        inject_into_caller(exported_name, fixture_function, _caller_locals)
 
     return factory_class
 
