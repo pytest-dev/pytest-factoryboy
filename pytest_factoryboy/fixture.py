@@ -14,7 +14,6 @@ import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-from typing_extensions import Protocol
 
 from .codegen import FixtureDef, make_fixture_model_module, upgrade_module
 from .compat import PostGenerationContext
@@ -49,13 +48,6 @@ class DeferredFunction:
         return self.function(request)
 
 
-class RegisterProtocol(Protocol):
-    """Protocol for ``register`` function called with ``factory_class``."""
-
-    def __call__(self, factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
-        """``register`` function called with ``factory_class``."""
-
-
 def raise_if_upgrade_necessary():
     if raise_on_usage:
         if REWRITE_SOURCE:
@@ -69,26 +61,20 @@ def raise_if_upgrade_necessary():
             )
 
 
-def _register_old(factory_class: F | None = None, _name: str | None = None, **kwargs: Any) -> F | RegisterProtocol:
+def _register_old(
+    factory_class: F | None = None,
+    _name: str | None = None,
+    *,
+    _caller_locals: dict[str, Any] | None = None,
+    **kwargs: Any,
+) -> F | Callable[[F], F]:
     ...
 
 
 old_register_signature = signature(_register_old)
 
 
-@overload
-def register(
-    factory_class: None = None, name: str | None = None, factory_kwargs: dict[str, Any] = None
-) -> RegisterProtocol:
-    ...
-
-
-@overload
-def register(factory_class: F, name: str | None = None, factory_kwargs: dict[str, Any] = None) -> F:
-    ...
-
-
-def register(factory_class: F | None = None, *args, **kwargs) -> F | RegisterProtocol:
+def register(factory_class: F | None = None, *args, **kwargs) -> F | Callable[[F], F]:
     # TODO: Try delegating the usage as decorator to a `_register_inner` function.
     if factory_class is None:
         return functools.partial(register, *args, **kwargs)
@@ -136,16 +122,23 @@ def _register_new(
     name: str | None = None,  # TODO: Rename to model_name
     factory_kwargs: dict[str, Any] = None,
     _caller_locals: dict[str, Any] = None,
-) -> F | RegisterProtocol:
+) -> F | Callable[[F], F]:
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
-    :param model_name: Name of the model fixture. By default, is lowercase-underscored model name.
+    :param name: Name of the model fixture. By default, is lowercase-underscored model name.
     :param factory_kwargs: Optional keyword arguments that override factory attributes.
+    :param _caller_locals: Dictionary where to inject the generated fixtures. Defaults to the caller's locals().
     """
+    if _caller_locals is None:
+        _caller_locals = get_caller_locals()
 
     if factory_class is None:
-        return functools.partial(register, model_name=model_name, factory_kwargs=factory_kwargs, **kwargs)
+
+        def register_(factory_class: F) -> F:
+            return register(factory_class, name=name, factory_kwargs=factory_kwargs, _caller_locals=_caller_locals)
+
+        return register_
 
     if factory_kwargs is None:
         factory_kwargs = {}
@@ -216,9 +209,6 @@ def _register_new(
                         deps=args,
                     )
                 )
-
-    if _caller_locals is None:
-        _caller_locals = get_caller_locals()
 
     if factory_name not in _caller_locals:
         fixture_defs.append(
