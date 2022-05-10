@@ -15,13 +15,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import lru_cache
 from types import ModuleType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Container
 
 import mako.template
 from appdirs import AppDirs
-
-# TODO: Remove pyupgrade usage
-from pyupgrade._ast_helpers import is_name_attr
 from tokenize_rt import Offset, reversed_enumerate, src_to_tokens, tokens_to_src
 
 from .compat import path_with_stem
@@ -150,6 +147,22 @@ def make_fixture_model_module(model_name, fixture_defs: list[FixtureDef]):
         assert hasattr(generated_module, fixture_def.kwargs_var_name)
         setattr(generated_module, fixture_def.kwargs_var_name, fixture_def.function_kwargs)
     return generated_module
+
+
+# copied from pyupgrade:
+# https://github.com/asottile/pyupgrade/blob/75f5b9eaf80353346d1ccb36171ff8426307d5fe/pyupgrade/_ast_helpers.py#L21
+def is_name_attr(
+    node: ast.AST,
+    imports: dict[str, set[str]],
+    mods: tuple[str, ...],
+    names: Container[str],
+) -> bool:
+    return (isinstance(node, ast.Name) and node.id in names and any(node.id in imports[mod] for mod in mods)) or (
+        isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id in mods
+        and node.attr in names
+    )
 
 
 def rewrite_register_node(
