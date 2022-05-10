@@ -12,6 +12,7 @@ PREFIX = "from pytest_factoryboy import register\n"
     ["src", "expected"],
     [
         ('register(F, _name="second_foo")', 'register(F, name="second_foo")'),
+        ("register(F, _name='second_foo')", "register(F, name='second_foo')"),
         ('register(F, foo="v")', 'register(F, factory_kwargs={"foo": "v"})'),
         (
             'register(F, foo3="c", foo2="b", foo1="a")',
