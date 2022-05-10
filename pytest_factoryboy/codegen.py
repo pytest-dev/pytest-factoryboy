@@ -274,5 +274,5 @@ def upgrade_module(module: ModuleType) -> None:
     new_source = upgrade_source(source=source, source_filename=source_filename)
 
     source_file = pathlib.Path(source_filename)
-    new_source_file = source_file.with_stem(source_file.stem + "_upgraded")
-    new_source_file.write_text(new_source)
+    source_file.write_text(new_source)
+    print(f"Rewritten {source_file}")

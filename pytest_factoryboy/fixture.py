@@ -30,7 +30,9 @@ if TYPE_CHECKING:
     F = TypeVar("F", bound=FactoryType)
 
 
-REWRITE_SOURCE = os.getenv("PYTEST_FACTORYBOY_REWRITE_SOURCE", "false") == "true"
+def should_rewrite_source() -> bool:
+    return os.getenv("PYTEST_FACTORYBOY_REWRITE_SOURCE", "false") == "true"
+
 
 SEPARATOR = "__"
 
@@ -50,7 +52,7 @@ class DeferredFunction:
 
 def raise_if_upgrade_necessary():
     if raise_on_usage:
-        if REWRITE_SOURCE:
+        if should_rewrite_source():
             raise RuntimeError("Source code is rewritten, you can now restart the pytest run.")
         else:
             raise RuntimeError(
@@ -102,7 +104,7 @@ def register(factory_class: F | None = None, *args, **kwargs) -> F | Callable[[F
     )
 
     # TODO: Give better instructions on how to migrate to new usage
-    if not REWRITE_SOURCE:
+    if not should_rewrite_source():
         warnings.warn(
             "_name param became name param; **kwargs params became factory_kwargs param. "
             "You can let pytest-factoryboy rewrite your source code by setting "
