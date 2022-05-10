@@ -1,5 +1,5 @@
 ---
-name: Tests
+name: CI
 on:
   push:
   pull_request:
@@ -92,3 +92,43 @@ jobs:
           python -m pip install --upgrade pip setuptools tox
       - name: Test with tox
         run: tox -e py${{ matrix.tox-py-version }}-pytest${{ matrix.pytest-version }}
+
+  mypy-run:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
+        include:
+          # Convert python-version to a string that tox understands
+          - python-version: "3.7"
+            tox-py-version: "37"
+            ignore-mypy-error: "true"
+          - python-version: "3.8"
+            tox-py-version: "38"
+            ignore-mypy-error: "true"
+          - python-version: "3.9"
+            tox-py-version: "39"
+            ignore-mypy-error: "true"
+          - python-version: "3.10"
+            tox-py-version: "310"
+            ignore-mypy-error: "false"
+          - python-version: "3.11-dev"
+            tox-py-version: "311"
+            ignore-mypy-error: "false"
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip setuptools tox
+
+      - name: Mypy
+        # Ignore mypy errors for known buggy behaviour of mypy with older pythons
+        continue-on-error: ${{ fromJSON( matrix.ignore-mypy-error ) }}
+        run: |
+          tox -e py${{ matrix.tox-py-version }}-mypy
