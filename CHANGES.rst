@@ -6,7 +6,7 @@ Unreleased
 
 2.2.1
 ----------
-- ``@register()`` decorator now refuses kwargs after the initial specialization. This behaviour was mistakenly introduced in version 2.2.0, and it compicates the usage of the ``register`` function uncecessarily. For example, the following is not allowed anymore:
+- ``@register()`` decorator now refuses kwargs after the initial specialization. This behaviour was mistakenly introduced in version 2.2.0, and it complicates the usage of the ``register`` function unnecessarily. For example, the following is not allowed anymore:
 
 .. code-block:: python
 
