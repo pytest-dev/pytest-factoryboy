@@ -13,6 +13,14 @@ PREFIX = "from pytest_factoryboy import register\n"
     [
         ('register(F, _name="second_foo")', 'register(F, name="second_foo")'),
         ('register(F, foo="v")', 'register(F, factory_kwargs={"foo": "v"})'),
+        (
+            'register(F, foo3="c", foo2="b", foo1="a")',
+            'register(F, factory_kwargs={"foo3": "c", "foo2": "b", "foo1": "a"})',
+        ),
+        ('register(F, foo="v", **myargs)', 'register(F, factory_kwargs={"foo": "v", **myargs})'),
+        ('register(F, "f", foo="v", **myargs)', 'register(F, "f", factory_kwargs={"foo": "v", **myargs})'),
+        ('register(F, _name="f", foo="v", **myargs)', 'register(F, name="f", factory_kwargs={"foo": "v", **myargs})'),
+        ('register(F, foo="v", **myargs, _name="f")', 'register(F, name="f", factory_kwargs={"foo": "v", **myargs})'),
     ],
 )
 def test_upgrade_source(src, expected):

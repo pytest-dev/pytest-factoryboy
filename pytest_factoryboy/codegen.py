@@ -152,49 +152,49 @@ def make_fixture_model_module(model_name, fixture_defs: list[FixtureDef]):
     return generated_module
 
 
-def pop_kwarg(node: ast.Call, key: str) -> ast.Expr | None:
-    for i, arg in enumerate(node.keywords):
-        if isinstance(arg, ast.keyword) and arg.arg == key:
-            node.keywords.pop(i)
-            return arg.value
-    return None
+def rewrite_register_node(
+    node: ast.Call, new_name_param="name", new_factory_kwargs_param="factory_kwargs"
+) -> str | None:
+    node = copy.deepcopy(node)
 
-
-def replace_keyword(node: ast.Call, key: str, new_key: str) -> None:
-    for keyword in node.keywords:
-        if isinstance(keyword, ast.keyword) and keyword.arg == key:
-            keyword.arg = new_key
-            return
-    raise ValueError(f"Keyword {key} not found in {node}")
-
-
-def rewrite_register_node(node: ast.Call) -> str | None:
-    node = copy.copy(node)
+    new_node_keywords = []
 
     # For debugging purposes
     node_str = ast.unparse(node)  # noqa
+
     kwargs_names = {k.arg for k in node.keywords}
 
-    # Fix #1: _name -> name
-    if "_name" in kwargs_names:
-        replace_keyword(node, "_name", "name")
+    if new_factory_kwargs_param not in kwargs_names:
 
-    if "factory_kwargs" not in kwargs_names:
+        factory_kwargs_keyword = {}
 
-        # Fix #2: **kwargs -> factory_kwargs
-        factory_kwargs = {}
         for kwarg in node.keywords:
-            if kwarg.arg == "factory_class":
+            key = kwarg.arg
+            value = kwarg.value
+            if key == "factory_class":
                 continue
-            factory_kwargs[kwarg.arg] = pop_kwarg(node, kwarg.arg)
 
-        factory_kwargs_node = ast.Expr(value=ast.Dict(keys=[], values=[]))
-        for key, value in factory_kwargs.items():
-            factory_kwargs_node.value.keys.append(ast.Str(s=key))
-            factory_kwargs_node.value.values.append(value)
+            # Fix #1: _name -> name
+            if key == "_name":
+                name_kwarg = copy.deepcopy(kwarg)
+                name_kwarg.arg = new_name_param
+                new_node_keywords.append(name_kwarg)
+                continue
 
-        if factory_kwargs:
-            node.keywords.append(ast.keyword("factory_kwargs", factory_kwargs_node))
+            # Fix #2: foo=bar, **kwargs -> factory_kwargs={...}
+            if key is not None:
+                # the argument is a "foo="bar" style keyword argument
+                key = ast.Str(s=key)
+            # otherwise it's a "**kwargs"
+
+            factory_kwargs_keyword[key] = value
+
+        if factory_kwargs_keyword:
+            keys, values = zip(*factory_kwargs_keyword.items())
+            factory_kwargs_node = ast.Expr(value=ast.Dict(keys=keys, values=values))
+            new_node_keywords.append(ast.keyword(new_factory_kwargs_param, factory_kwargs_node))
+
+    node.keywords = new_node_keywords
 
     source = ast.unparse(node)
     return source
