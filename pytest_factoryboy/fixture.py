@@ -1,7 +1,6 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
-import functools
 import inspect
 import os
 import sys
@@ -19,7 +18,8 @@ from .codegen import FixtureDef, make_fixture_model_module, upgrade_module
 from .compat import PostGenerationContext
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, TypeVar
+    from types import FrameType
+    from typing import Any, Callable, Mapping, TypeVar
 
     from _pytest.fixtures import FixtureFunction, SubRequest
     from factory.builder import BuildStep
@@ -53,10 +53,14 @@ class DeferredFunction:
 def raise_if_upgrade_necessary():
     if raise_on_usage:
         if should_rewrite_source():
-            raise RuntimeError("Source code is rewritten, you can now restart the pytest run.")
-        else:
             raise RuntimeError(
+                "Source code is rewritten, you can now restart the pytest run "
+                "**without the env variable** PYTEST_FACTORYBOY_REWRITE_SOURCE."
+            )
+        else:
+            raise TypeError(
                 "You must upgrade your usages of `register(...)`. "
+                "_name param became name param; **kwargs params became factory_kwargs param. "
                 "You can let pytest-factoryboy rewrite your source code by setting "
                 "the environment variable PYTEST_FACTORYBOY_REWRITE_SOURCE=true "
                 "and restarting the pytest run."
@@ -75,11 +79,39 @@ def _register_old(
 
 old_register_signature = signature(_register_old)
 
+# register(AuthorFactory, ...)
+#
+# @register
+# class AuthorFactory(factory.Factory): ...
+@overload
+def register(
+    factory_class: F,
+    name: str | None = None,
+    factory_kwargs: Mapping[str, Any] = None,
+    _caller_locals: dict[str, Any] = None,
+) -> F:
+    ...
+
+
+# @register(...)
+# class AuthorFactory(factory.Factory): ...
+@overload
+def register(
+    *,
+    name: str | None = None,
+    factory_kwargs: Mapping[str, Any] = None,
+    _caller_locals: dict[str, Any] = None,
+) -> Callable[[F], F]:
+    ...
+
 
 def register(factory_class: F | None = None, *args, **kwargs) -> F | Callable[[F], F]:
-    # TODO: Try delegating the usage as decorator to a `_register_inner` function.
     if factory_class is None:
-        return functools.partial(register, *args, **kwargs)
+
+        def register_(factory_class: F) -> F:
+            return register(factory_class, *args, **kwargs)
+
+        return register_
     caller_locals = get_caller_locals()
 
     try:
@@ -91,38 +123,54 @@ def register(factory_class: F | None = None, *args, **kwargs) -> F | Callable[[F
 
     old_match = old_register_signature.bind(factory_class, *args, **kwargs)
 
-    import warnings
-
     name = old_match.arguments.pop("_name", None)
     global raise_on_usage
     raise_on_usage = True
-    params = dict(
+
+    # TODO: Give better instructions on how to migrate to new usage
+    if should_rewrite_source():
+        caller_frame = get_caller_frame()
+        caller_module = inspect.getmodule(caller_frame)
+        upgrade_module(module=caller_module)
+
+    return _register_new(
         factory_class=factory_class,
         name=name,
         factory_kwargs=old_match.kwargs,
         _caller_locals=caller_locals,
     )
 
-    # TODO: Give better instructions on how to migrate to new usage
-    if not should_rewrite_source():
-        warnings.warn(
-            "_name param became name param; **kwargs params became factory_kwargs param. "
-            "You can let pytest-factoryboy rewrite your source code by setting "
-            "the environment variable PYTEST_FACTORYBOY_REWRITE_SOURCE=true "
-            "and restarting the pytest run."
-        )
-    else:
-        caller_frame = sys._getframe(1)
-        caller_module = inspect.getmodule(caller_frame)
-        upgrade_module(module=caller_module)
 
-    return _register_new(**params)
+# register(AuthorFactory, ...)
+#
+# @register
+# class AuthorFactory(factory.Factory): ...
+@overload
+def _register_new(
+    factory_class: F,
+    name: str | None = None,
+    factory_kwargs: Mapping[str, Any] = None,
+    _caller_locals: dict[str, Any] = None,
+) -> F:
+    ...
+
+
+# @register(...)
+# class AuthorFactory(factory.Factory): ...
+@overload
+def _register_new(
+    *,
+    name: str | None = None,
+    factory_kwargs: Mapping[str, Any] = None,
+    _caller_locals: dict[str, Any] = None,
+) -> Callable[[F], F]:
+    ...
 
 
 def _register_new(
     factory_class: F | None = None,
     name: str | None = None,  # TODO: Rename to model_name
-    factory_kwargs: dict[str, Any] = None,
+    factory_kwargs: Mapping[str, Any] = None,
     _caller_locals: dict[str, Any] = None,
 ) -> F | Callable[[F], F]:
     r"""Register fixtures for the factory class.
@@ -463,9 +511,13 @@ def subfactory_fixture(request: SubRequest, factory_class: FactoryType) -> Any:
     return request.getfixturevalue(fixture)
 
 
+def get_caller_frame(depth: int = 2) -> FrameType:
+    return sys._getframe(depth)
+
+
 def get_caller_locals(depth: int = 2) -> dict[str, Any]:
     """Get the local namespace of the caller frame."""
-    return sys._getframe(depth).f_locals
+    return get_caller_frame(depth + 1).f_locals
 
 
 class LazyFixture:
