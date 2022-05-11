@@ -9,7 +9,7 @@ def test_rewrite_me(testdir):
     testrun = testdir.runpytest()
     assert testrun.ret != 0
     assert "You can let pytest-factoryboy rewrite your source code" in testrun.stdout.str()
-    with mock.patch.dict(os.environ, os.environ | {"PYTEST_FACTORYBOY_REWRITE_SOURCE": "true"}):
+    with mock.patch.dict(os.environ, {**os.environ, "PYTEST_FACTORYBOY_REWRITE_SOURCE": "true"}):
         testrun = testdir.runpytest("-s")
         assert testrun.ret != 0
         assert f"Rewritten {testfile}" in testrun.stdout.str()

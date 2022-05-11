@@ -1,5 +1,12 @@
-import ast
+import sys
+
+if sys.version_info < (3, 9):
+    from ast_compat import unparse
+else:
+    from ast import unparse
+
 import re
+from ast import parse
 
 import pytest
 
@@ -32,8 +39,8 @@ def test_upgrade_source(src, expected):
     rewritten = re.sub(r"^" + re.escape(PREFIX), "", rewritten)
     # assert rewritten == expected  # TODO: enable this when we handle output correctly
 
-    source_ast = ast.parse(rewritten)
-    expected_ast = ast.parse(expected)
-    source_ast_out = ast.unparse(source_ast)
-    expected_ast_out = ast.unparse(expected_ast)
+    source_ast = parse(rewritten)
+    expected_ast = parse(expected)
+    source_ast_out = unparse(source_ast)
+    expected_ast_out = unparse(expected_ast)
     assert source_ast_out == expected_ast_out

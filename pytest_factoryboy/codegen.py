@@ -10,12 +10,20 @@ import itertools
 import logging
 import pathlib
 import shutil
+import sys
 import tempfile
 from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import lru_cache
 from types import ModuleType
 from typing import TYPE_CHECKING, Container
+
+if sys.version_info < (3, 9):
+    from ast_compat import unparse
+else:
+    from ast import unparse
+
+from ast import parse
 
 import mako.template
 from appdirs import AppDirs
@@ -173,7 +181,7 @@ def rewrite_register_node(
     new_node_keywords = []
 
     # For debugging purposes
-    node_str = ast.unparse(node)  # noqa
+    node_str = unparse(node)  # noqa
 
     kwargs_names = {k.arg for k in node.keywords}
 
@@ -197,7 +205,7 @@ def rewrite_register_node(
             # Fix #2: foo=bar, **kwargs -> factory_kwargs={...}
             if key is not None:
                 # the argument is a "foo="bar" style keyword argument
-                key = ast.Str(s=key)
+                key = ast.Constant(s=key, kind=None)
             # otherwise it's a "**kwargs"
 
             factory_kwargs_keyword[key] = value
@@ -208,8 +216,7 @@ def rewrite_register_node(
             new_node_keywords.append(ast.keyword(new_factory_kwargs_param, factory_kwargs_node))
 
     node.keywords = new_node_keywords
-
-    source = ast.unparse(node)
+    source = unparse(node)
     return source
 
 
@@ -229,7 +236,7 @@ class DecoratorInfo:
 
 
 def upgrade_source(source: str, source_filename: str) -> str:
-    tree = ast.parse(source, filename=source_filename)
+    tree = parse(source, filename=source_filename)
     found: list[DecoratorInfo] = []
     from_imports: dict[str, set] = defaultdict(set)
     for node in ast.walk(tree):
@@ -244,7 +251,7 @@ def upgrade_source(source: str, source_filename: str) -> str:
                 ("pytest_factoryboy",),
                 ("register",),
             ):
-                print(f"Found register call at {node.lineno}:{node.col_offset}. {ast.unparse(node)}")
+                print(f"Found register call at {node.lineno}:{node.col_offset}. {unparse(node)}")
                 found.append(DecoratorInfo.from_node(node))
 
     found_by_start_offset: dict[Offset, DecoratorInfo] = {dec_info.offset_start: dec_info for dec_info in found}
