@@ -1,29 +1,28 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
-import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
+from typing import TYPE_CHECKING, overload
 
 import factory
 import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-
-from .codegen import make_fixture_model_module, FixtureDef
-from .compat import PostGenerationContext
 from factory.declarations import NotProvided
-from typing import TYPE_CHECKING, overload
 from typing_extensions import Protocol
+
+from .codegen import FixtureDef, make_fixture_model_module
+from .compat import PostGenerationContext
 
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
-    from _pytest.fixtures import FixtureRequest
+
+    from _pytest.fixtures import FixtureFunction, SubRequest
     from factory.builder import BuildStep
-    from factory.declarations import PostGeneration
-    from factory.declarations import PostGenerationContext
+    from factory.declarations import PostGeneration, PostGenerationContext
 
     FactoryType = type[factory.Factory]
     T = TypeVar("T")
@@ -38,47 +37,51 @@ class DeferredFunction:
     name: str
     factory: FactoryType
     is_related: bool
-    function: Callable[[FixtureRequest], Any]
+    function: Callable[[SubRequest], Any]
 
-    def __call__(self, request: FixtureRequest) -> Any:
+    def __call__(self, request: SubRequest) -> Any:
         return self.function(request)
 
 
-class RegisterProtocol(Protocol):
-    """Protocol for ``register`` function called with ``factory_class``."""
-
-    def __call__(self, factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
-        """``register`` fuction called with ``factory_class``."""
-
-
+# register(AuthorFactory, ...)
+#
+# @register
+# class AuthorFactory(factory.Factory): ...
 @overload
-def register(
-    factory_class: None = None,
-    _name: str | None = None,
-    **kwargs: Any,
-) -> RegisterProtocol:
+def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
     ...
 
 
+# @register(...)
+# class AuthorFactory(factory.Factory): ...
 @overload
-def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
+def register(*, _name: str | None = None, **kwargs: Any) -> Callable[[F], F]:
     ...
 
 
 def register(
     factory_class: F | None = None,
     _name: str | None = None,
+    *,
+    _caller_locals: dict[str, Any] | None = None,
     **kwargs: Any,
-) -> F | RegisterProtocol:
+) -> F | Callable[[F], F]:
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
-    :param _name: Name of the model fixture. By default is lowercase-underscored model name.
+    :param _name: Name of the model fixture. By default, is lowercase-underscored model name.
+    :param _caller_locals: Dictionary where to inject the generated fixtures. Defaults to the caller's locals().
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
+    if _caller_locals is None:
+        _caller_locals = get_caller_locals()
 
     if factory_class is None:
-        return functools.partial(register, _name=_name, **kwargs)
+
+        def register_(factory_class: F) -> F:
+            return register(factory_class, _name=_name, _caller_locals=_caller_locals, **kwargs)
+
+        return register_
 
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
@@ -161,9 +164,7 @@ def register(
                     )
                 )
 
-    caller_locals = get_caller_locals()
-
-    if factory_name not in caller_locals:
+    if factory_name not in _caller_locals:
         fixture_defs.append(
             FixtureDef(
                 name=factory_name,
@@ -187,12 +188,12 @@ def register(
     for fixture_def in fixture_defs:
         exported_name = fixture_def.name
         fixture_function = getattr(generated_module, exported_name)
-        inject_into_caller(exported_name, fixture_function, caller_locals)
+        inject_into_caller(exported_name, fixture_function, _caller_locals)
 
     return factory_class
 
 
-def inject_into_caller(name: str, function: Callable, locals_: dict[str, Any]) -> None:
+def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[str, Any]) -> None:
     """Inject a function into the caller's locals, making sure that the function will work also within classes."""
     # We need to check if the caller frame is a class, since in that case the first argument is the class itself.
     # In that case, we can apply the staticmethod() decorator to the injected function, so that the first param
@@ -253,23 +254,26 @@ def get_deps(
     ]
 
 
-def evaluate(request: FixtureRequest, value: LazyFixture | Any) -> Any:
+def evaluate(request: SubRequest, value: LazyFixture | Any) -> Any:
     """Evaluate the declaration (lazy fixtures, etc)."""
     return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
 
-def model_fixture(request: FixtureRequest, factory_name: str) -> Any:
+def model_fixture(request: SubRequest, factory_name: str) -> Any:
     """Model fixture implementation."""
     factoryboy_request = request.getfixturevalue("factoryboy_request")
 
     # Try to evaluate as much post-generation dependencies as possible
     factoryboy_request.evaluate(request)
 
-    factory_class: FactoryType = request.getfixturevalue(factory_name)
-    prefix = "".join((request.fixturename, SEPARATOR))
+    assert request.fixturename  # NOTE: satisfy mypy
+    fixture_name = request.fixturename
+    prefix = "".join((fixture_name, SEPARATOR))
+    # NOTE: following type hinting is required, because of `mypy` bug.
+    # Reference: https://github.com/python/mypy/issues/2477
+    factory_class: factory.base.FactoryMetaClass = request.getfixturevalue(factory_name)
 
     # Create model fixture instance
-
     class Factory(factory_class):
         pass
 
@@ -294,7 +298,7 @@ def model_fixture(request: FixtureRequest, factory_name: str) -> Any:
 
     # Cache the instance value on pytest level so that the fixture can be resolved before the return
     request._fixturedef.cached_result = (instance, 0, None)
-    request._fixture_defs[request.fixturename] = request._fixturedef
+    request._fixture_defs[fixture_name] = request._fixturedef
 
     # Defer post-generation declarations
     deferred: list[DeferredFunction] = []
@@ -304,7 +308,7 @@ def model_fixture(request: FixtureRequest, factory_name: str) -> Any:
         decl = factory_class._meta.post_declarations.declarations[attr]
 
         if isinstance(decl, factory.RelatedFactory):
-            deferred.append(make_deferred_related(factory_class, request.fixturename, attr))
+            deferred.append(make_deferred_related(factory_class, fixture_name, attr))
         else:
             argname = "".join((prefix, attr))
             extra = {}
@@ -327,7 +331,7 @@ def model_fixture(request: FixtureRequest, factory_name: str) -> Any:
                 extra=extra,
             )
             deferred.append(
-                make_deferred_postgen(step, factory_class, request.fixturename, instance, attr, decl, postgen_context)
+                make_deferred_postgen(step, factory_class, fixture_name, instance, attr, decl, postgen_context)
             )
     factoryboy_request.defer(deferred)
 
@@ -347,7 +351,7 @@ def make_deferred_related(factory: FactoryType, fixture: str, attr: str) -> Defe
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred_impl(request: FixtureRequest) -> Any:
+    def deferred_impl(request: SubRequest) -> Any:
         return request.getfixturevalue(name)
 
     return DeferredFunction(
@@ -380,7 +384,7 @@ def make_deferred_postgen(
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred_impl(request: FixtureRequest) -> Any:
+    def deferred_impl(request: SubRequest) -> Any:
         return declaration.call(instance, step, context)
 
     return DeferredFunction(
@@ -391,17 +395,17 @@ def make_deferred_postgen(
     )
 
 
-def factory_fixture(request: FixtureRequest, factory_class: F) -> F:
+def factory_fixture(request: SubRequest, factory_class: F) -> F:
     """Factory fixture implementation."""
     return factory_class
 
 
-def attr_fixture(request: FixtureRequest, value: T) -> T:
+def attr_fixture(request: SubRequest, value: T) -> T:
     """Attribute fixture implementation."""
     return value
 
 
-def subfactory_fixture(request: FixtureRequest, factory_class: FactoryType) -> Any:
+def subfactory_fixture(request: SubRequest, factory_class: FactoryType) -> Any:
     """SubFactory/RelatedFactory fixture implementation."""
     fixture = inflection.underscore(factory_class._meta.model.__name__)
     return request.getfixturevalue(fixture)
@@ -415,7 +419,7 @@ def get_caller_locals(depth: int = 2) -> dict[str, Any]:
 class LazyFixture:
     """Lazy fixture."""
 
-    def __init__(self, fixture: Callable | str) -> None:
+    def __init__(self, fixture: FixtureFunction | str) -> None:
         """Lazy pytest fixture wrapper.
 
         :param fixture: Fixture name or callable with dependencies.
@@ -427,7 +431,7 @@ class LazyFixture:
         else:
             self.args = [self.fixture]
 
-    def evaluate(self, request: FixtureRequest) -> Any:
+    def evaluate(self, request: SubRequest) -> Any:
         """Evaluate the lazy fixture.
 
         :param request: pytest request object.
