@@ -18,7 +18,7 @@ from .codegen import FixtureDef, make_fixture_model_module, upgrade_module
 from .compat import PostGenerationContext
 
 if TYPE_CHECKING:
-    from types import FrameType
+    from types import FrameType, ModuleType
     from typing import Any, Callable, Mapping, TypeVar
 
     from _pytest.fixtures import FixtureFunction, SubRequest
@@ -88,7 +88,8 @@ def register(
     factory_class: F,
     name: str | None = None,
     factory_kwargs: Mapping[str, Any] = None,
-    _caller_locals: dict[str, Any] = None,
+    _caller_module: ModuleType | None = None,
+    _caller_locals: dict[str, Any] | None = None,
 ) -> F:
     ...
 
@@ -100,22 +101,35 @@ def register(
     *,
     name: str | None = None,
     factory_kwargs: Mapping[str, Any] = None,
-    _caller_locals: dict[str, Any] = None,
+    _caller_module: ModuleType | None = None,
+    _caller_locals: dict[str, Any] | None = None,
 ) -> Callable[[F], F]:
     ...
 
 
-def register(factory_class: F | None = None, *args, **kwargs) -> F | Callable[[F], F]:
+def register(
+    factory_class: F | None = None,
+    *args,
+    _caller_module: ModuleType | None = None,
+    _caller_locals: dict[str, Any] | None = None,
+    **kwargs,
+) -> F | Callable[[F], F]:
+    if _caller_module is None:
+        _caller_module = inspect.getmodule(get_caller_frame())
+    if _caller_locals is None:
+        _caller_locals = get_caller_locals()
+
     if factory_class is None:
 
         def register_(factory_class: F) -> F:
-            return register(factory_class, *args, **kwargs)
+            return register(
+                factory_class, *args, **kwargs, _caller_module=_caller_module, _caller_locals=_caller_locals
+            )
 
         return register_
-    caller_locals = get_caller_locals()
 
     try:
-        match = new_register_signature.bind(factory_class, *args, **kwargs, _caller_locals=caller_locals)
+        match = new_register_signature.bind(factory_class, *args, **kwargs, _caller_locals=_caller_locals)
     except TypeError:
         pass
     else:
@@ -137,7 +151,7 @@ def register(factory_class: F | None = None, *args, **kwargs) -> F | Callable[[F
         factory_class=factory_class,
         name=name,
         factory_kwargs=old_match.kwargs,
-        _caller_locals=caller_locals,
+        _caller_locals=_caller_locals,
     )
 
 
