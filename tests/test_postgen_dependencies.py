@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import factory
 import pytest
+from factory.declarations import NotProvided
 
 from pytest_factoryboy import register
 
@@ -19,6 +20,14 @@ if TYPE_CHECKING:
 class Foo:
     value: int
     expected: int
+    secret: str = ""
+    number: int = 4
+
+    def set_secret(self, new_secret: str) -> None:
+        self.secret = new_secret
+
+    def set_number(self, new_number: int = 987) -> None:
+        self.number = new_number
 
     bar: Bar | None = None
 
@@ -47,22 +56,29 @@ class BazFactory(factory.Factory):
 
 @register
 class FooFactory(factory.Factory):
-
     """Foo factory."""
 
     class Meta:
         model = Foo
 
     value = 0
+    #: Value that is expected at the constructor
     expected = 0
-    """Value that is expected at the constructor."""
+
+    secret = factory.PostGenerationMethodCall("set_secret", "super secret")
+    number = factory.PostGenerationMethodCall("set_number")
 
     @factory.post_generation
     def set1(foo: Foo, create: bool, value: Any, **kwargs: Any) -> str:
         foo.value = 1
         return "set to 1"
 
-    baz = factory.RelatedFactory(BazFactory, "foo")
+    baz = factory.RelatedFactory(BazFactory, factory_related_name="foo")
+
+    @factory.post_generation
+    def set2(foo, create, value, **kwargs):
+        if create and value:
+            foo.value = value
 
     @classmethod
     def _after_postgeneration(cls, obj: Foo, create: bool, results: dict[str, Any] | None = None) -> None:
@@ -71,7 +87,6 @@ class FooFactory(factory.Factory):
 
 
 class BarFactory(factory.Factory):
-
     """Bar factory."""
 
     foo = factory.SubFactory(FooFactory)
@@ -107,15 +122,61 @@ def test_getfixturevalue(request, factoryboy_request: Request):
     foo = request.getfixturevalue("foo")
     assert not factoryboy_request.deferred
     assert foo.value == 1
+    assert foo.secret == "super secret"
+    assert foo.number == 987
+
+
+def test_postgenerationmethodcall_getfixturevalue(request, factoryboy_request):
+    """Test default fixture value generated for ``PostGenerationMethodCall``."""
+    secret = request.getfixturevalue("foo__secret")
+    number = request.getfixturevalue("foo__number")
+    assert not factoryboy_request.deferred
+    assert secret == "super secret"
+    assert number is NotProvided
+
+
+def test_postgeneration_getfixturevalue(request, factoryboy_request):
+    """Ensure default fixture value generated for ``PostGeneration`` is `None`."""
+    set1 = request.getfixturevalue("foo__set1")
+    set2 = request.getfixturevalue("foo__set2")
+    assert not factoryboy_request.deferred
+    assert set1 is None
+    assert set2 is None
 
 
 def test_after_postgeneration(foo: Foo):
     """Test _after_postgeneration is called."""
     assert foo._create is True
 
-    foo._postgeneration_results["set1"] == "set to 1"
-    foo._postgeneration_results["baz"].foo is foo
-    assert len(foo._postgeneration_results) == 2
+    assert foo._postgeneration_results["set1"] == "set to 1"
+    assert foo._postgeneration_results["set2"] is None
+    assert foo._postgeneration_results["secret"] is None
+    assert foo._postgeneration_results["number"] is None
+
+
+@pytest.mark.xfail(reason="This test has been broken for a long time, we only discovered it recently")
+def test_postgen_related(foo: Foo):
+    """Test that the initiating object `foo` is passed to the RelatedFactory `BazFactory`."""
+    baz = foo._postgeneration_results["baz"]
+    assert baz.foo is foo
+
+
+@pytest.mark.parametrize("foo__set2", [123])
+def test_postgeneration_fixture(foo: Foo):
+    """Test fixture for ``PostGeneration`` declaration."""
+    assert foo.value == 123
+
+
+@pytest.mark.parametrize(
+    ("foo__secret", "foo__number"),
+    [
+        ("test secret", 456),
+    ],
+)
+def test_postgenerationmethodcall_fixture(foo: Foo):
+    """Test fixture for ``PostGenerationMethodCall`` declaration."""
+    assert foo.secret == "test secret"
+    assert foo.number == 456
 
 
 @dataclass

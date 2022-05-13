@@ -3,6 +3,8 @@ Changelog
 
 Unreleased
 ----------
+- Add support for ``factory.PostGenerationMethodCall`` `#103 <https://github.com/pytest-dev/pytest-factoryboy/pull/103>`_ `#87 <https://github.com/pytest-dev/pytest-factoryboy/issues/87>`_.
+
 
 2.2.1
 ----------

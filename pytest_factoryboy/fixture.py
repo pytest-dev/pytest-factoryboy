@@ -11,6 +11,7 @@ import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
+from factory.declarations import NotProvided
 
 from .codegen import FixtureDef, make_fixture_model_module
 from .compat import PostGenerationContext
@@ -96,57 +97,52 @@ def register(
         args = []
         attr_name = SEPARATOR.join((model_name, attr))
 
-        if isinstance(value, factory.declarations.PostGeneration):
-            value = kwargs.get(attr, None)
-            if isinstance(value, LazyFixture):
-                args = value.args
+        if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
+            value = kwargs.get(attr, value)
+            subfactory_class = value.get_factory()
+            subfactory_deps = get_deps(subfactory_class, factory_class)
+
+            args = list(subfactory_deps)
+            if isinstance(value, factory.RelatedFactory):
+                related_model = get_model_name(subfactory_class)
+                args.append(related_model)
+                related.append(related_model)
+                related.append(attr_name)
+                related.extend(subfactory_deps)
+
+            if isinstance(value, factory.SubFactory):
+                args.append(inflection.underscore(subfactory_class._meta.model.__name__))
 
             fixture_defs.append(
                 FixtureDef(
                     name=attr_name,
-                    function_name="attr_fixture",
-                    function_kwargs={"value": value},
+                    function_name="subfactory_fixture",
+                    function_kwargs={"factory_class": subfactory_class},
                     deps=args,
                 )
             )
+            continue
+
+        if isinstance(value, factory.PostGeneration):
+            default_value = None
+        elif isinstance(value, factory.PostGenerationMethodCall):
+            default_value = value.method_arg
         else:
-            value = kwargs.get(attr, value)
+            default_value = value
 
-            if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
-                subfactory_class = value.get_factory()
-                subfactory_deps = get_deps(subfactory_class, factory_class)
+        value = kwargs.get(attr, default_value)
 
-                args = list(subfactory_deps)
-                if isinstance(value, factory.RelatedFactory):
-                    related_model = get_model_name(subfactory_class)
-                    args.append(related_model)
-                    related.append(related_model)
-                    related.append(attr_name)
-                    related.extend(subfactory_deps)
+        if isinstance(value, LazyFixture):
+            args = value.args
 
-                if isinstance(value, factory.SubFactory):
-                    args.append(inflection.underscore(subfactory_class._meta.model.__name__))
-
-                fixture_defs.append(
-                    FixtureDef(
-                        name=attr_name,
-                        function_name="subfactory_fixture",
-                        function_kwargs={"factory_class": subfactory_class},
-                        deps=args,
-                    )
-                )
-            else:
-                if isinstance(value, LazyFixture):
-                    args = value.args
-
-                fixture_defs.append(
-                    FixtureDef(
-                        name=attr_name,
-                        function_name="attr_fixture",
-                        function_kwargs={"value": value},
-                        deps=args,
-                    )
-                )
+        fixture_defs.append(
+            FixtureDef(
+                name=attr_name,
+                function_name="attr_fixture",
+                function_kwargs={"value": value},
+                deps=args,
+            )
+        )
 
     if factory_name not in _caller_locals:
         fixture_defs.append(
@@ -227,7 +223,7 @@ def get_deps(
             return False
         if isinstance(value, factory.SubFactory) and get_model_name(value.get_factory()) == parent_model_name:
             return False
-        if isinstance(value, factory.declarations.PostGeneration):
+        if isinstance(value, factory.declarations.PostGenerationDeclaration):
             # Dependency on extracted value
             return True
 
@@ -305,10 +301,13 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
                     extra[k] = evaluate(request, request.getfixturevalue(post_attr))
                 else:
                     extra[k] = v
-
+            # Handle special case for ``PostGenerationMethodCall`` where
+            # `attr_fixture` value is equal to ``NotProvided``, which mean
+            # that `value_provided` should be falsy
+            postgen_value = evaluate(request, request.getfixturevalue(argname))
             postgen_context = PostGenerationContext(
-                value_provided=True,
-                value=evaluate(request, request.getfixturevalue(argname)),
+                value_provided=(postgen_value is not NotProvided),
+                value=postgen_value,
                 extra=extra,
             )
             deferred.append(
