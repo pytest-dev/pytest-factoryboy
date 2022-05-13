@@ -147,8 +147,18 @@ def test_postgeneration_getfixturevalue(request, factoryboy_request):
 def test_after_postgeneration(foo: Foo):
     """Test _after_postgeneration is called."""
     assert foo._create is True
-    assert foo._postgeneration_results.pop("baz")
-    assert foo._postgeneration_results == {"set1": "set to 1", "set2": None, "secret": None, "number": None}
+
+    assert foo._postgeneration_results["set1"] == "set to 1"
+    assert foo._postgeneration_results["set2"] is None
+    assert foo._postgeneration_results["secret"] is None
+    assert foo._postgeneration_results["number"] is None
+
+
+@pytest.mark.xfail(reason="This test has been broken for a long time, we only discovered it recently")
+def test_postgen_related(foo: Foo):
+    """Test that the initiating object `foo` is passed to the RelatedFactory `BazFactory`."""
+    baz = foo._postgeneration_results["baz"]
+    assert baz.foo is foo
 
 
 @pytest.mark.parametrize("foo__set2", [123])
