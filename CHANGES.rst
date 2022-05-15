@@ -4,6 +4,12 @@ Changelog
 Unreleased
 ----------
 
+
+2.3.0
+----------
+- Add support for ``factory.PostGenerationMethodCall`` `#103 <https://github.com/pytest-dev/pytest-factoryboy/pull/103>`_ `#87 <https://github.com/pytest-dev/pytest-factoryboy/issues/87>`_.
+
+
 2.2.1
 ----------
 - ``@register()`` decorator now refuses kwargs after the initial specialization. This behaviour was mistakenly introduced in version 2.2.0, and it complicates the usage of the ``register`` function unnecessarily. For example, the following is not allowed anymore:
@@ -28,6 +34,7 @@ Unreleased
         register_user="cs_lewis",
         register_user__password="Aslan1",
     )
+
 
 2.2.0
 ----------
