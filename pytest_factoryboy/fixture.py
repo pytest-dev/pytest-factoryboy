@@ -96,9 +96,9 @@ def register(
     for attr, value in factory_class._meta.declarations.items():
         args = []
         attr_name = SEPARATOR.join((model_name, attr))
+        value = kwargs.get(attr, value)
 
         if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
-            value = kwargs.get(attr, value)
             subfactory_class = value.get_factory()
             subfactory_deps = get_deps(subfactory_class, factory_class)
 

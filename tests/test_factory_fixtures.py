@@ -179,6 +179,7 @@ class TestPartialSpecialization:
 
 class TestLazyFixture:
     register(AuthorFactory, "another_author", name=LazyFixture(lambda: "Another Author"))
+    register(BookFactory, "another_book", author=LazyFixture("another_author"))
 
     @pytest.mark.parametrize("book__author", [LazyFixture("another_author")])
     def test_lazy_fixture_name(self, book: Book, another_author: Author):
@@ -192,15 +193,22 @@ class TestLazyFixture:
         assert book.author == another_author
         assert book.author.name == "Another Author"
 
+    @pytest.mark.parametrize(
+        ("author__register_user", "author__register_user__password"),
+        [
+            (LazyFixture(lambda: "lazyfixture"), LazyFixture(lambda: "asdasd")),
+        ],
+    )
+    def test_lazy_fixture_post_generation(self, author: Author):
+        """Test that post-generation values are replaced with lazy fixtures."""
+        assert author.user
+        assert author.user.username == "lazyfixture"
+        assert author.user.password == "asdasd"
 
-@pytest.mark.parametrize(
-    ("author__register_user", "author__register_user__password"),
-    [
-        (LazyFixture(lambda: "lazyfixture"), LazyFixture(lambda: "asdasd")),
-    ],
-)
-def test_lazy_fixture_post_generation(author: Author):
-    """Test that post-generation values are replaced with lazy fixtures."""
-    # assert author.user.username == "lazyfixture"
-    assert author.user
-    assert author.user.password == "asdasd"
+    def test_override_subfactory_with_lazy_fixture(self, another_book: Book):
+        """Ensure subfactory fixture can be overriden with ``LazyFixture``.
+
+        Issue: https://github.com/pytest-dev/pytest-factoryboy/issues/158
+
+        """
+        assert another_book.author.name == "Another Author"
