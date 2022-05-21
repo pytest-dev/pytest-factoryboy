@@ -187,16 +187,15 @@ def make_attribute_fixturedef(
 
     if isinstance(factory_value, factory.PostGeneration):
         value = None
+        deps = []
     elif isinstance(factory_value, factory.PostGenerationMethodCall):
         value = factory_value.method_arg
-    else:
+        deps = []
+    elif isinstance(factory_value, LazyFixture):
         value = factory_value
-
-    # Do we want to allow to specify LazyFixture in the Factory class definition? Probably not
-    # TODO: if so, remove this
-    if isinstance(value, LazyFixture):
         deps = value.args
     else:
+        value = factory_value
         deps = []
 
     return FixtureDef(

@@ -53,3 +53,17 @@ def test_lazy_attribute(user: User):
 def test_lazy_attribute_partial(partial_user: User):
     """Test LazyFixture value is extracted before the LazyAttribute is called. Partial."""
     assert partial_user.is_active
+
+
+class TestLazyFixtureDeclaration:
+    @pytest.fixture
+    def name(self):
+        return "from fixture name"
+
+    @register(_name="test_user")
+    class UserFactory(UserFactory):
+        username = LazyFixture("name")
+
+    def test_lazy_fixture_declaration(self, test_user):
+        """Test that we can use the LazyFixture declaration in the factory itself."""
+        assert test_user.username == "from fixture name"
