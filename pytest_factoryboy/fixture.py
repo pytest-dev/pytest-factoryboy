@@ -94,53 +94,16 @@ def register(
     related: list[str] = []
 
     for attr, value in factory_class._meta.declarations.items():
-        args = []
         attr_name = SEPARATOR.join((model_name, attr))
-        value = kwargs.get(attr, value)
-
-        if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
-            subfactory_class = value.get_factory()
-            subfactory_deps = get_deps(subfactory_class, factory_class)
-
-            args = list(subfactory_deps)
-            if isinstance(value, factory.RelatedFactory):
-                related_model = get_model_name(subfactory_class)
-                args.append(related_model)
-                related.append(related_model)
-                related.append(attr_name)
-                related.extend(subfactory_deps)
-
-            if isinstance(value, factory.SubFactory):
-                args.append(inflection.underscore(subfactory_class._meta.model.__name__))
-
-            fixture_defs.append(
-                FixtureDef(
-                    name=attr_name,
-                    function_name="subfactory_fixture",
-                    function_kwargs={"factory_class": subfactory_class},
-                    deps=args,
-                )
-            )
-            continue
-
-        if isinstance(value, factory.PostGeneration):
-            default_value = None
-        elif isinstance(value, factory.PostGenerationMethodCall):
-            default_value = value.method_arg
-        else:
-            default_value = value
-
-        value = kwargs.get(attr, default_value)
-
-        if isinstance(value, LazyFixture):
-            args = value.args
 
         fixture_defs.append(
-            FixtureDef(
-                name=attr_name,
-                function_name="attr_fixture",
-                function_kwargs={"value": value},
-                deps=args,
+            make_fixturedef(
+                kwargs=kwargs,
+                attr=attr,
+                attr_name=attr_name,
+                factory_value=value,
+                factory_class=factory_class,
+                related=related,
             )
         )
 
@@ -171,6 +134,52 @@ def register(
         inject_into_caller(exported_name, fixture_function, _caller_locals)
 
     return factory_class
+
+
+def make_fixturedef(kwargs, attr, attr_name, factory_value, factory_class, related):
+    args = []
+    value = kwargs.get(attr, factory_value)
+    if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
+        subfactory_class = value.get_factory()
+        subfactory_deps = get_deps(subfactory_class, factory_class)
+
+        args = list(subfactory_deps)
+        if isinstance(value, factory.RelatedFactory):
+            related_model = get_model_name(subfactory_class)
+            args.append(related_model)
+            related.append(related_model)
+            related.append(attr_name)
+            related.extend(subfactory_deps)
+
+        if isinstance(value, factory.SubFactory):
+            args.append(inflection.underscore(subfactory_class._meta.model.__name__))
+
+        return FixtureDef(
+            name=attr_name,
+            function_name="subfactory_fixture",
+            function_kwargs={"factory_class": subfactory_class},
+            deps=args,
+        )
+
+    if isinstance(value, factory.PostGeneration):
+        default_value = None
+    elif isinstance(value, factory.PostGenerationMethodCall):
+        # TODO: Maybe this branch was wrong with skarzi's patch
+        default_value = factory_value.method_arg
+    else:
+        default_value = factory_value
+
+    value = kwargs.get(attr, default_value)
+
+    if isinstance(value, LazyFixture):
+        args = value.args
+
+    return FixtureDef(
+        name=attr_name,
+        function_name="attr_fixture",
+        function_kwargs={"value": value},
+        deps=args,
+    )
 
 
 def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[str, Any]) -> None:
