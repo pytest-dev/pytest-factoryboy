@@ -104,7 +104,7 @@ def register(
 
 
 def collect_fixturedefs(
-    factory_class: FactoryType, model_name: str, overrides: Mapping[str, Any], caller_locals: dict[str, Any]
+    factory_class: FactoryType, model_name: str, overrides: Mapping[str, Any], caller_locals: Mapping[str, Any]
 ) -> Iterable[FixtureDef]:
     factory_name = get_factory_name(factory_class)
 
