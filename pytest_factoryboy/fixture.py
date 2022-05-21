@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, Type, TypeAlias, cast, overload
 
 import factory
 import factory.builder
@@ -16,8 +16,10 @@ from factory.declarations import NotProvided
 from .codegen import FixtureDef, make_fixture_model_module
 from .compat import PostGenerationContext
 
+FactoryType: TypeAlias = Type[factory.Factory]
+
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterable, Mapping, TypeAlias, TypeVar
+    from typing import Any, Callable, Iterable, Mapping, TypeVar
 
     from _pytest.fixtures import FixtureFunction, SubRequest
     from factory.builder import BuildStep
@@ -25,7 +27,6 @@ if TYPE_CHECKING:
 
     from .plugin import Request as FactoryboyRequest
 
-    FactoryType: TypeAlias = type[factory.Factory]
     T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
 
