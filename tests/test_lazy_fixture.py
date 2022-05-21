@@ -60,10 +60,15 @@ class TestLazyFixtureDeclaration:
     def name(self):
         return "from fixture name"
 
-    @register(_name="test_user")
-    class UserFactory(UserFactory):
-        username = LazyFixture("name")
+    @register
+    class UserFactory(factory.Factory):
+        class Meta:
+            model = User
 
-    def test_lazy_fixture_declaration(self, test_user):
+        username = LazyFixture("name")
+        password = "foo"
+        is_active = False
+
+    def test_lazy_fixture_declaration(self, user):
         """Test that we can use the LazyFixture declaration in the factory itself."""
-        assert test_user.username == "from fixture name"
+        assert user.username == "from fixture name"

@@ -170,6 +170,7 @@ def make_attribute_fixturedef(
             deps=args,
         )
 
+    deps: list[str]  # makes mypy happy
     if isinstance(value, factory.PostGeneration):
         value = None
         deps = []
