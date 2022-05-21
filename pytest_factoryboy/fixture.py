@@ -97,7 +97,7 @@ def register(
         attr_name = SEPARATOR.join((model_name, attr))
 
         fixture_defs.append(
-            make_fixturedef(
+            make_attribute_fixturedef(
                 kwargs=kwargs,
                 attr=attr,
                 attr_name=attr_name,
@@ -136,22 +136,32 @@ def register(
     return factory_class
 
 
-def make_fixturedef(kwargs, attr, attr_name, factory_value, factory_class, related):
-    args = []
-    value = kwargs.get(attr, factory_value)
-    if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
-        subfactory_class = value.get_factory()
+def make_attribute_fixturedef(kwargs, attr, attr_name, factory_value, factory_class, related):
+    if attr in kwargs:
+        # Attribute is overridden in the register(...) call, let's just take the value and done.
+        value = kwargs[attr]
+
+        return FixtureDef(
+            name=attr_name,
+            function_name="attr_fixture",
+            function_kwargs={"value": value},
+            deps=value.args if isinstance(value, LazyFixture) else [],
+        )
+
+    # Attribute is not overridden, so we must check what the factory value is and handle each case
+    if isinstance(factory_value, (factory.SubFactory, factory.RelatedFactory)):
+        subfactory_class = factory_value.get_factory()
         subfactory_deps = get_deps(subfactory_class, factory_class)
 
         args = list(subfactory_deps)
-        if isinstance(value, factory.RelatedFactory):
+        if isinstance(factory_value, factory.RelatedFactory):
             related_model = get_model_name(subfactory_class)
             args.append(related_model)
             related.append(related_model)
             related.append(attr_name)
             related.extend(subfactory_deps)
 
-        if isinstance(value, factory.SubFactory):
+        if isinstance(factory_value, factory.SubFactory):
             args.append(inflection.underscore(subfactory_class._meta.model.__name__))
 
         return FixtureDef(
@@ -160,25 +170,25 @@ def make_fixturedef(kwargs, attr, attr_name, factory_value, factory_class, relat
             function_kwargs={"factory_class": subfactory_class},
             deps=args,
         )
-
-    if isinstance(value, factory.PostGeneration):
-        default_value = None
-    elif isinstance(value, factory.PostGenerationMethodCall):
-        # TODO: Maybe this branch was wrong with skarzi's patch
-        default_value = factory_value.method_arg
+    elif isinstance(factory_value, factory.PostGeneration):
+        value = None
+    elif isinstance(factory_value, factory.PostGenerationMethodCall):
+        value = factory_value.method_arg
     else:
-        default_value = factory_value
+        value = factory_value
 
-    value = kwargs.get(attr, default_value)
-
+    # Do we want to allow to specify LazyFixture in the Factory class definition? Probably not
+    # TODO: if so, remove this
     if isinstance(value, LazyFixture):
-        args = value.args
+        deps = value.args
+    else:
+        deps = []
 
     return FixtureDef(
         name=attr_name,
         function_name="attr_fixture",
         function_kwargs={"value": value},
-        deps=args,
+        deps=deps,
     )
 
 
