@@ -17,7 +17,7 @@ from .codegen import FixtureDef, make_fixture_model_module
 from .compat import PostGenerationContext
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, TypeVar
+    from typing import Any, Callable, Iterable, Mapping, TypeVar
 
     from _pytest.fixtures import FixtureFunction, SubRequest
     from factory.builder import BuildStep
@@ -85,44 +85,11 @@ def register(
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 
-    fixture_defs: list[FixtureDef] = []
-
     model_name = get_model_name(factory_class) if _name is None else _name
-    factory_name = get_factory_name(factory_class)
 
-    deps = get_deps(factory_class, model_name=model_name)
-    related: list[str] = []
-
-    for attr, value in factory_class._meta.declarations.items():
-        attr_name = SEPARATOR.join((model_name, attr))
-
-        fixture_defs.append(
-            make_attribute_fixturedef(
-                kwargs=kwargs,
-                attr=attr,
-                attr_name=attr_name,
-                factory_value=value,
-                factory_class=factory_class,
-                related=related,
-            )
-        )
-
-    if factory_name not in _caller_locals:
-        fixture_defs.append(
-            FixtureDef(
-                name=factory_name,
-                function_name="factory_fixture",
-                function_kwargs={"factory_class": factory_class},
-            )
-        )
-
-    fixture_defs.append(
-        FixtureDef(
-            name=model_name,
-            function_name="model_fixture",
-            function_kwargs={"factory_name": factory_name},
-            deps=deps,
-            related=related,
+    fixture_defs = list(
+        collect_fixturedefs(
+            factory_class=factory_class, model_name=model_name, overrides=kwargs, caller_locals=_caller_locals
         )
     )
 
@@ -136,10 +103,57 @@ def register(
     return factory_class
 
 
-def make_attribute_fixturedef(kwargs, attr, attr_name, factory_value, factory_class, related):
-    if attr in kwargs:
+def collect_fixturedefs(
+    factory_class: FactoryType, model_name: str, overrides: Mapping[str, Any], caller_locals: dict[str, Any]
+) -> Iterable[FixtureDef]:
+    factory_name = get_factory_name(factory_class)
+
+    related: list[str] = []
+    for attr, value in factory_class._meta.declarations.items():
+        yield (
+            make_attribute_fixturedef(
+                overrides=overrides,
+                attr=attr,
+                model_name=model_name,
+                factory_value=value,
+                factory_class=factory_class,
+                related=related,
+            )
+        )
+
+    if factory_name not in caller_locals:
+        yield (
+            FixtureDef(
+                name=factory_name,
+                function_name="factory_fixture",
+                function_kwargs={"factory_class": factory_class},
+            )
+        )
+
+    deps = get_deps(factory_class, model_name=model_name)
+    yield (
+        FixtureDef(
+            name=model_name,
+            function_name="model_fixture",
+            function_kwargs={"factory_name": factory_name},
+            deps=deps,
+            related=related,
+        )
+    )
+
+
+def make_attribute_fixturedef(
+    overrides: Mapping[str, Any],
+    attr: str,
+    model_name: str,
+    factory_value: Any,
+    factory_class: FactoryType,
+    related: list[str],
+) -> FixtureDef:
+    attr_name = SEPARATOR.join((model_name, attr))
+    if attr in overrides:
         # Attribute is overridden in the register(...) call, let's just take the value and done.
-        value = kwargs[attr]
+        value = overrides[attr]
 
         return FixtureDef(
             name=attr_name,
@@ -170,7 +184,8 @@ def make_attribute_fixturedef(kwargs, attr, attr_name, factory_value, factory_cl
             function_kwargs={"factory_class": subfactory_class},
             deps=args,
         )
-    elif isinstance(factory_value, factory.PostGeneration):
+
+    if isinstance(factory_value, factory.PostGeneration):
         value = None
     elif isinstance(factory_value, factory.PostGenerationMethodCall):
         value = factory_value.method_arg
