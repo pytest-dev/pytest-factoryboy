@@ -110,12 +110,12 @@ def collect_fixturedefs(
 
     related: list[str] = []
     for attr, value in factory_class._meta.declarations.items():
+        value = overrides.get(attr, value)
+        attr_name = SEPARATOR.join((model_name, attr))
         yield (
             make_attribute_fixturedef(
-                overrides=overrides,
-                attr=attr,
-                model_name=model_name,
-                factory_value=value,
+                attr_name=attr_name,
+                value=value,
                 factory_class=factory_class,
                 related=related,
             )
@@ -143,39 +143,24 @@ def collect_fixturedefs(
 
 
 def make_attribute_fixturedef(
-    overrides: Mapping[str, Any],
-    attr: str,
-    model_name: str,
-    factory_value: Any,
+    attr_name: str,
+    value: Any,
     factory_class: FactoryType,
     related: list[str],
 ) -> FixtureDef:
-    attr_name = SEPARATOR.join((model_name, attr))
-    if attr in overrides:
-        # Attribute is overridden in the register(...) call, let's just take the value and done.
-        value = overrides[attr]
-
-        return FixtureDef(
-            name=attr_name,
-            function_name="attr_fixture",
-            function_kwargs={"value": value},
-            deps=value.args if isinstance(value, LazyFixture) else [],
-        )
-
-    # Attribute is not overridden, so we must check what the factory value is and handle each case
-    if isinstance(factory_value, (factory.SubFactory, factory.RelatedFactory)):
-        subfactory_class = factory_value.get_factory()
+    if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
+        subfactory_class = value.get_factory()
         subfactory_deps = get_deps(subfactory_class, factory_class)
 
         args = list(subfactory_deps)
-        if isinstance(factory_value, factory.RelatedFactory):
+        if isinstance(value, factory.RelatedFactory):
             related_model = get_model_name(subfactory_class)
             args.append(related_model)
             related.append(related_model)
             related.append(attr_name)
             related.extend(subfactory_deps)
 
-        if isinstance(factory_value, factory.SubFactory):
+        if isinstance(value, factory.SubFactory):
             args.append(inflection.underscore(subfactory_class._meta.model.__name__))
 
         return FixtureDef(
@@ -185,17 +170,17 @@ def make_attribute_fixturedef(
             deps=args,
         )
 
-    if isinstance(factory_value, factory.PostGeneration):
+    if isinstance(value, factory.PostGeneration):
         value = None
         deps = []
-    elif isinstance(factory_value, factory.PostGenerationMethodCall):
-        value = factory_value.method_arg
+    elif isinstance(value, factory.PostGenerationMethodCall):
+        value = value.method_arg
         deps = []
-    elif isinstance(factory_value, LazyFixture):
-        value = factory_value
+    elif isinstance(value, LazyFixture):
+        value = value
         deps = value.args
     else:
-        value = factory_value
+        value = value
         deps = []
 
     return FixtureDef(
