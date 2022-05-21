@@ -56,7 +56,11 @@ def _fixture(related):
 % for fixture_def in fixture_defs:
 
 
-${ fixture_def.kwargs_var_name } = {}
+${ fixture_def.kwargs_var_name } = {
+% for key in fixture_def.function_kwargs:
+    ${ repr(key) }: ...,
+% endfor
+}
 
 
 @_fixture(related=${ repr(fixture_def.related) })
