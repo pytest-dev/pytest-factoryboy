@@ -32,7 +32,7 @@ class FixtureDef:
     related: list[str] = field(default_factory=list)
 
     @property
-    def kwargs_var_name(self):
+    def kwargs_var_name(self) -> str:
         return f"_{self.name}__kwargs"
 
 
@@ -92,7 +92,7 @@ def make_temp_folder(package_name: str) -> pathlib.Path:
 
 
 @lru_cache()  # This way we reuse the same folder for the whole execution of the program
-def create_package(package_name: str, init_py_content=init_py_content) -> pathlib.Path:
+def create_package(package_name: str, init_py_content: str = init_py_content) -> pathlib.Path:
     path = cache_dir / package_name
     try:
         if path.exists():
@@ -130,7 +130,7 @@ def make_module(code: str, module_name: str, package_name: str) -> ModuleType:
     return mod
 
 
-def make_fixture_model_module(model_name, fixture_defs: list[FixtureDef]):
+def make_fixture_model_module(model_name: str, fixture_defs: list[FixtureDef]) -> ModuleType:
     code = module_template.render(fixture_defs=fixture_defs)
     generated_module = make_module(code, module_name=model_name, package_name="_pytest_factoryboy_generated_fixtures")
     for fixture_def in fixture_defs:
