@@ -88,7 +88,7 @@ def register(
     model_name = get_model_name(factory_class) if _name is None else _name
 
     fixture_defs = list(
-        collect_fixturedefs(
+        generate_fixturedefs(
             factory_class=factory_class, model_name=model_name, overrides=kwargs, caller_locals=_caller_locals
         )
     )
@@ -103,9 +103,10 @@ def register(
     return factory_class
 
 
-def collect_fixturedefs(
+def generate_fixturedefs(
     factory_class: FactoryType, model_name: str, overrides: Mapping[str, Any], caller_locals: Mapping[str, Any]
 ) -> Iterable[FixtureDef]:
+    """Generate all the FixtureDefs for the given factory class."""
     factory_name = get_factory_name(factory_class)
 
     related: list[str] = []
@@ -113,7 +114,7 @@ def collect_fixturedefs(
         value = overrides.get(attr, value)
         attr_name = SEPARATOR.join((model_name, attr))
         yield (
-            make_attribute_fixturedef(
+            make_declaration_fixturedef(
                 attr_name=attr_name,
                 value=value,
                 factory_class=factory_class,
@@ -142,12 +143,13 @@ def collect_fixturedefs(
     )
 
 
-def make_attribute_fixturedef(
+def make_declaration_fixturedef(
     attr_name: str,
     value: Any,
     factory_class: FactoryType,
     related: list[str],
 ) -> FixtureDef:
+    """Create the FixtureDef for a factory declaration."""
     if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
         subfactory_class = value.get_factory()
         subfactory_deps = get_deps(subfactory_class, factory_class)
