@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, cast, overload
 
 import factory
 import factory.builder
@@ -17,13 +17,15 @@ from .codegen import FixtureDef, make_fixture_model_module
 from .compat import PostGenerationContext
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterable, Mapping, TypeVar
+    from typing import Any, Callable, Iterable, Mapping, TypeAlias, TypeVar
 
     from _pytest.fixtures import FixtureFunction, SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
-    FactoryType = type[factory.Factory]
+    from .plugin import Request as FactoryboyRequest
+
+    FactoryType: TypeAlias = type[factory.Factory]
     T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
 
@@ -262,7 +264,7 @@ def evaluate(request: SubRequest, value: LazyFixture | Any) -> Any:
 
 def model_fixture(request: SubRequest, factory_name: str) -> Any:
     """Model fixture implementation."""
-    factoryboy_request = request.getfixturevalue("factoryboy_request")
+    factoryboy_request: FactoryboyRequest = request.getfixturevalue("factoryboy_request")
 
     # Try to evaluate as much post-generation dependencies as possible
     factoryboy_request.evaluate(request)
@@ -270,13 +272,15 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     assert request.fixturename  # NOTE: satisfy mypy
     fixture_name = request.fixturename
     prefix = "".join((fixture_name, SEPARATOR))
-    # NOTE: following type hinting is required, because of `mypy` bug.
-    # Reference: https://github.com/python/mypy/issues/2477
-    factory_class: factory.base.FactoryMetaClass = request.getfixturevalue(factory_name)
+
+    factory_class: FactoryType = request.getfixturevalue(factory_name)
 
     # Create model fixture instance
-    class Factory(factory_class):
-        pass
+    Factory: FactoryType = cast(FactoryType, type("Factory", (factory_class,), {}))
+    # equivalent to:
+    # class Factory(factory_class):
+    #     pass
+    # it just makes mypy understand it.
 
     Factory._meta.base_declarations = {
         k: v
