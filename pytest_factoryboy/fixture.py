@@ -104,7 +104,7 @@ def register(
 
 def generate_fixtures(
     factory_class: FactoryType, model_name: str, overrides: Mapping[str, Any], caller_locals: Mapping[str, Any]
-) -> Iterable[tuple[str, Callable]]:  # TODO: Fix type
+) -> Iterable[tuple[str, Callable[..., Any]]]:
     """Generate all the FixtureDefs for the given factory class."""
     factory_name = get_factory_name(factory_class)
 
@@ -150,7 +150,7 @@ def make_declaration_fixturedef(
     value: Any,
     factory_class: FactoryType,
     related: list[str],
-) -> Callable:  # TODO: Fix type
+) -> Callable[..., Any]:
     """Create the FixtureDef for a factory declaration."""
     if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
         subfactory_class = value.get_factory()
@@ -210,7 +210,7 @@ def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[st
     # Therefore, we can just check for __qualname__ to figure out if we are in a class, and apply the @staticmethod.
     is_class_or_function = "__qualname__" in locals_
     if is_class_or_function:
-        function = staticmethod(function)
+        function = staticmethod(function)  # type: ignore[assignment]
 
     locals_[name] = function
 
