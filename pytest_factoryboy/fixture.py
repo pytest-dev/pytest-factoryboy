@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, Type, TypeAlias, cast, overload
+from typing import TYPE_CHECKING, Type, cast, overload
 
 import factory
 import factory.builder
@@ -12,6 +12,7 @@ import factory.declarations
 import factory.enums
 import inflection
 from factory.declarations import NotProvided
+from typing_extensions import TypeAlias
 
 from .codegen import FixtureDef, make_fixture_model_module
 from .compat import PostGenerationContext
