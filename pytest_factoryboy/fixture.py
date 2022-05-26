@@ -23,7 +23,7 @@ FactoryType: TypeAlias = Type[factory.Factory]
 if TYPE_CHECKING:
     from typing import Any, Callable, Iterable, Mapping, TypeVar
 
-    from _pytest.fixtures import FixtureFunction, FixtureRequest, SubRequest
+    from _pytest.fixtures import FixtureFunction, SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
@@ -448,7 +448,7 @@ class LazyFixture:
 
 def create_fixture(
     name: str,
-    function: Callable[[FixtureRequest], T],  # TODO: Try to use ParamSpec instead of Callable
+    function: Callable[[SubRequest], T],  # TODO: Try to use ParamSpec instead of Callable
     deps: list[str] | None = None,
     related: list[str] | None = None,
 ) -> Callable[..., T]:
@@ -457,7 +457,7 @@ def create_fixture(
     if deps is None:
         deps = []
 
-    def fn(request: FixtureRequest, **kwargs: Any) -> T:
+    def fn(request: SubRequest, **kwargs: Any) -> T:
         return function(request)
 
     sig = inspect.signature(fn)
