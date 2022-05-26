@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Type, cast, overload
 
 import factory
 import factory.builder
@@ -12,18 +12,22 @@ import factory.declarations
 import factory.enums
 import inflection
 from factory.declarations import NotProvided
+from typing_extensions import TypeAlias
 
 from .codegen import FixtureDef, make_fixture_model_module
 from .compat import PostGenerationContext
 
+FactoryType: TypeAlias = Type[factory.Factory]
+
 if TYPE_CHECKING:
-    from typing import Any, Callable, TypeVar
+    from typing import Any, Callable, Iterable, Mapping, TypeVar
 
     from _pytest.fixtures import FixtureFunction, SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
-    FactoryType = type[factory.Factory]
+    from .plugin import Request as FactoryboyRequest
+
     T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
 
@@ -85,81 +89,11 @@ def register(
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 
-    fixture_defs: list[FixtureDef] = []
-
     model_name = get_model_name(factory_class) if _name is None else _name
-    factory_name = get_factory_name(factory_class)
 
-    deps = get_deps(factory_class, model_name=model_name)
-    related: list[str] = []
-
-    for attr, value in factory_class._meta.declarations.items():
-        args = []
-        attr_name = SEPARATOR.join((model_name, attr))
-        value = kwargs.get(attr, value)
-
-        if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
-            subfactory_class = value.get_factory()
-            subfactory_deps = get_deps(subfactory_class, factory_class)
-
-            args = list(subfactory_deps)
-            if isinstance(value, factory.RelatedFactory):
-                related_model = get_model_name(subfactory_class)
-                args.append(related_model)
-                related.append(related_model)
-                related.append(attr_name)
-                related.extend(subfactory_deps)
-
-            if isinstance(value, factory.SubFactory):
-                args.append(inflection.underscore(subfactory_class._meta.model.__name__))
-
-            fixture_defs.append(
-                FixtureDef(
-                    name=attr_name,
-                    function_name="subfactory_fixture",
-                    function_kwargs={"factory_class": subfactory_class},
-                    deps=args,
-                )
-            )
-            continue
-
-        if isinstance(value, factory.PostGeneration):
-            default_value = None
-        elif isinstance(value, factory.PostGenerationMethodCall):
-            default_value = value.method_arg
-        else:
-            default_value = value
-
-        value = kwargs.get(attr, default_value)
-
-        if isinstance(value, LazyFixture):
-            args = value.args
-
-        fixture_defs.append(
-            FixtureDef(
-                name=attr_name,
-                function_name="attr_fixture",
-                function_kwargs={"value": value},
-                deps=args,
-            )
-        )
-
-    if factory_name not in _caller_locals:
-        fixture_defs.append(
-            FixtureDef(
-                name=factory_name,
-                function_name="factory_fixture",
-                function_kwargs={"factory_class": factory_class},
-            )
-        )
-
-    fixture_defs.append(
-        FixtureDef(
-            name=model_name,
-            function_name="model_fixture",
-            function_kwargs={"factory_name": factory_name},
-            deps=deps,
-            related=related,
+    fixture_defs = list(
+        generate_fixturedefs(
+            factory_class=factory_class, model_name=model_name, overrides=kwargs, caller_locals=_caller_locals
         )
     )
 
@@ -171,6 +105,97 @@ def register(
         inject_into_caller(exported_name, fixture_function, _caller_locals)
 
     return factory_class
+
+
+def generate_fixturedefs(
+    factory_class: FactoryType, model_name: str, overrides: Mapping[str, Any], caller_locals: Mapping[str, Any]
+) -> Iterable[FixtureDef]:
+    """Generate all the FixtureDefs for the given factory class."""
+    factory_name = get_factory_name(factory_class)
+
+    related: list[str] = []
+    for attr, value in factory_class._meta.declarations.items():
+        value = overrides.get(attr, value)
+        attr_name = SEPARATOR.join((model_name, attr))
+        yield (
+            make_declaration_fixturedef(
+                attr_name=attr_name,
+                value=value,
+                factory_class=factory_class,
+                related=related,
+            )
+        )
+
+    if factory_name not in caller_locals:
+        yield (
+            FixtureDef(
+                name=factory_name,
+                function_name="factory_fixture",
+                function_kwargs={"factory_class": factory_class},
+            )
+        )
+
+    deps = get_deps(factory_class, model_name=model_name)
+    yield (
+        FixtureDef(
+            name=model_name,
+            function_name="model_fixture",
+            function_kwargs={"factory_name": factory_name},
+            deps=deps,
+            related=related,
+        )
+    )
+
+
+def make_declaration_fixturedef(
+    attr_name: str,
+    value: Any,
+    factory_class: FactoryType,
+    related: list[str],
+) -> FixtureDef:
+    """Create the FixtureDef for a factory declaration."""
+    if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
+        subfactory_class = value.get_factory()
+        subfactory_deps = get_deps(subfactory_class, factory_class)
+
+        args = list(subfactory_deps)
+        if isinstance(value, factory.RelatedFactory):
+            related_model = get_model_name(subfactory_class)
+            args.append(related_model)
+            related.append(related_model)
+            related.append(attr_name)
+            related.extend(subfactory_deps)
+
+        if isinstance(value, factory.SubFactory):
+            args.append(inflection.underscore(subfactory_class._meta.model.__name__))
+
+        return FixtureDef(
+            name=attr_name,
+            function_name="subfactory_fixture",
+            function_kwargs={"factory_class": subfactory_class},
+            deps=args,
+        )
+
+    deps: list[str]  # makes mypy happy
+    if isinstance(value, factory.PostGeneration):
+        value = None
+        deps = []
+    elif isinstance(value, factory.PostGenerationMethodCall):
+        value = value.method_arg
+        deps = []
+    elif isinstance(value, LazyFixture):
+        value = value
+        deps = value.args
+    else:
+        value = value
+        deps = []
+
+    return FixtureDef(
+        name=attr_name,
+        function_name="attr_fixture",
+        function_kwargs={"value": value},
+        deps=deps,
+    )
 
 
 def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[str, Any]) -> None:
@@ -241,7 +266,7 @@ def evaluate(request: SubRequest, value: LazyFixture | Any) -> Any:
 
 def model_fixture(request: SubRequest, factory_name: str) -> Any:
     """Model fixture implementation."""
-    factoryboy_request = request.getfixturevalue("factoryboy_request")
+    factoryboy_request: FactoryboyRequest = request.getfixturevalue("factoryboy_request")
 
     # Try to evaluate as much post-generation dependencies as possible
     factoryboy_request.evaluate(request)
@@ -249,13 +274,15 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     assert request.fixturename  # NOTE: satisfy mypy
     fixture_name = request.fixturename
     prefix = "".join((fixture_name, SEPARATOR))
-    # NOTE: following type hinting is required, because of `mypy` bug.
-    # Reference: https://github.com/python/mypy/issues/2477
-    factory_class: factory.base.FactoryMetaClass = request.getfixturevalue(factory_name)
+
+    factory_class: FactoryType = request.getfixturevalue(factory_name)
 
     # Create model fixture instance
-    class Factory(factory_class):
-        pass
+    Factory: FactoryType = cast(FactoryType, type("Factory", (factory_class,), {}))
+    # equivalent to:
+    # class Factory(factory_class):
+    #     pass
+    # it just makes mypy understand it.
 
     Factory._meta.base_declarations = {
         k: v

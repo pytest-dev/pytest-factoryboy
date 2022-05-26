@@ -94,7 +94,7 @@ class BarFactory(factory.Factory):
     @classmethod
     def _create(cls, model_class: type[Bar], foo: Foo) -> Bar:
         assert foo.value == foo.expected
-        bar = super()._create(model_class, foo=foo)
+        bar: Bar = super()._create(model_class, foo=foo)
         foo.bar = bar
         return bar
 
