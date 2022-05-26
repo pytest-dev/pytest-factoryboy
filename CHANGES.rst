@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ----------
 
+2.3.1
+----------
+- Fix AttributeError when using LazyFixture in register(...) `#159 <https://github.com/pytest-dev/pytest-factoryboy/issues/159>`_ `#158 <https://github.com/pytest-dev/pytest-factoryboy/issues/158>`_
+
 
 2.3.0
 ----------
