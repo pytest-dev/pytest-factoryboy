@@ -128,8 +128,7 @@ def generate_fixtures(
             factory_name,
             create_fixture(
                 name=factory_name,
-                function=factory_fixture,
-                function_kwargs={"factory_class": factory_class},
+                function=lambda request: factory_fixture(request, factory_class),
             ),
         )
 
@@ -138,8 +137,7 @@ def generate_fixtures(
         model_name,
         create_fixture(
             name=model_name,
-            function=model_fixture,
-            function_kwargs={"factory_name": factory_name},
+            function=lambda request: model_fixture(request, factory_name),
             deps=deps,
             related=related,
         ),
@@ -170,8 +168,7 @@ def make_declaration_fixturedef(
 
         return create_fixture(
             name=attr_name,
-            function=subfactory_fixture,
-            function_kwargs={"factory_class": subfactory_class},
+            function=lambda request: subfactory_fixture(request, subfactory_class),
             deps=args,
         )
 
@@ -191,8 +188,7 @@ def make_declaration_fixturedef(
 
     return create_fixture(
         name=attr_name,
-        function=attr_fixture,
-        function_kwargs={"value": value},
+        function=lambda request: attr_fixture(request, value),
         deps=deps,
     )
 
@@ -452,8 +448,7 @@ class LazyFixture:
 
 def create_fixture(
     name: str,
-    function: Callable[..., T],  # TODO: Try to use ParamSpec instead of Callable
-    function_kwargs: dict[str, Any],
+    function: Callable[[FixtureRequest], T],  # TODO: Try to use ParamSpec instead of Callable
     deps: list[str] | None = None,
     related: list[str] | None = None,
 ) -> Callable[..., T]:
@@ -463,7 +458,7 @@ def create_fixture(
         deps = []
 
     def fn(request: FixtureRequest, **kwargs: Any) -> T:
-        return function(request, **function_kwargs)
+        return function(request)
 
     sig = inspect.signature(fn)
     params = [sig.parameters["request"]] + [
