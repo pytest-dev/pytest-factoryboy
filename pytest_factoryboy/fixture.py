@@ -1,20 +1,21 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
+import inspect
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, Type, cast, overload
+from typing import TYPE_CHECKING, Any, Callable, Type, cast, overload
 
 import factory
 import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
+import pytest
 from factory.declarations import NotProvided
 from typing_extensions import TypeAlias
 
-from .codegen import generate_fixture
 from .compat import PostGenerationContext
 
 FactoryType: TypeAlias = Type[factory.Factory]
@@ -22,7 +23,7 @@ FactoryType: TypeAlias = Type[factory.Factory]
 if TYPE_CHECKING:
     from typing import Any, Callable, Iterable, Mapping, TypeVar
 
-    from _pytest.fixtures import FixtureFunction, SubRequest
+    from _pytest.fixtures import FixtureFunction, FixtureRequest, SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
@@ -125,7 +126,7 @@ def generate_fixtures(
     if factory_name not in caller_locals:
         yield (
             factory_name,
-            generate_fixture(
+            create_fixture(
                 name=factory_name,
                 function=factory_fixture,
                 function_kwargs={"factory_class": factory_class},
@@ -135,7 +136,7 @@ def generate_fixtures(
     deps = get_deps(factory_class, model_name=model_name)
     yield (
         model_name,
-        generate_fixture(
+        create_fixture(
             name=model_name,
             function=model_fixture,
             function_kwargs={"factory_name": factory_name},
@@ -167,7 +168,7 @@ def make_declaration_fixturedef(
         if isinstance(value, factory.SubFactory):
             args.append(inflection.underscore(subfactory_class._meta.model.__name__))
 
-        return generate_fixture(
+        return create_fixture(
             name=attr_name,
             function=subfactory_fixture,
             function_kwargs={"factory_class": subfactory_class},
@@ -188,7 +189,7 @@ def make_declaration_fixturedef(
         value = value
         deps = []
 
-    return generate_fixture(
+    return create_fixture(
         name=attr_name,
         function=attr_fixture,
         function_kwargs={"value": value},
@@ -447,3 +448,37 @@ class LazyFixture:
             return self.fixture(**kwargs)
         else:
             return request.getfixturevalue(self.fixture)
+
+
+def _fixture(name: str, related: list[str]) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    def fixture_maker(fn: Callable[..., T]) -> Callable[..., T]:
+        fn._factoryboy_related = related  # type: ignore[attr-defined]
+        return pytest.fixture(fn, name=name)
+
+    return fixture_maker
+
+
+def create_fixture(
+    name: str,
+    function: Callable[..., T],  # TODO: Try to use ParamSpec instead of Callable
+    function_kwargs: dict[str, Any],
+    deps: list[str] | None = None,
+    related: list[str] | None = None,
+) -> Callable[..., T]:
+    if related is None:
+        related = []
+    if deps is None:
+        deps = []
+
+    def fn(request: FixtureRequest, **kwargs: Any) -> T:
+        return function(request, **function_kwargs)
+
+    sig = inspect.signature(fn)
+    params = [sig.parameters["request"]] + [
+        inspect.Parameter(name=name, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD) for name in deps
+    ]
+    sig = sig.replace(parameters=tuple(params))
+    fn.__signature__ = sig  # type: ignore[attr-defined]
+
+    fix = _fixture(name=name, related=related)(fn)
+    return fix
