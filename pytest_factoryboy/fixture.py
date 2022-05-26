@@ -5,7 +5,7 @@ import inspect
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Callable, Type, cast, overload
+from typing import TYPE_CHECKING, Any, Callable, Generic, Type, TypeVar, cast, overload
 
 import factory
 import factory.builder
@@ -21,16 +21,17 @@ from .compat import PostGenerationContext
 FactoryType: TypeAlias = Type[factory.Factory]
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterable, Mapping, TypeVar
+    from typing import Any, Callable, Iterable, Mapping
 
-    from _pytest.fixtures import FixtureFunction, SubRequest
+    from _pytest.fixtures import SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
     from .plugin import Request as FactoryboyRequest
 
-    T = TypeVar("T")
     F = TypeVar("F", bound=FactoryType)
+
+T = TypeVar("T")
 
 
 SEPARATOR = "__"
@@ -254,7 +255,7 @@ def get_deps(
     ]
 
 
-def evaluate(request: SubRequest, value: LazyFixture | Any) -> Any:
+def evaluate(request: SubRequest, value: LazyFixture[T] | T) -> T:
     """Evaluate the declaration (lazy fixtures, etc)."""
     return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
@@ -418,10 +419,10 @@ def get_caller_locals(depth: int = 2) -> dict[str, Any]:
     return sys._getframe(depth).f_locals
 
 
-class LazyFixture:
+class LazyFixture(Generic[T]):
     """Lazy fixture."""
 
-    def __init__(self, fixture: FixtureFunction | str) -> None:
+    def __init__(self, fixture: Callable[..., T] | str) -> None:
         """Lazy pytest fixture wrapper.
 
         :param fixture: Fixture name or callable with dependencies.
@@ -433,7 +434,7 @@ class LazyFixture:
         else:
             self.args = [self.fixture]
 
-    def evaluate(self, request: SubRequest) -> Any:
+    def evaluate(self, request: SubRequest) -> T:
         """Evaluate the lazy fixture.
 
         :param request: pytest request object.
@@ -443,7 +444,7 @@ class LazyFixture:
             kwargs = {arg: request.getfixturevalue(arg) for arg in self.args}
             return self.fixture(**kwargs)
         else:
-            return request.getfixturevalue(self.fixture)
+            return cast(T, request.getfixturevalue(self.fixture))
 
 
 def create_fixture(
