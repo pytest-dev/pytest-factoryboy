@@ -14,7 +14,7 @@ import inflection
 from factory.declarations import NotProvided
 from typing_extensions import TypeAlias
 
-from .codegen import FixtureDef, make_fixture_model_module
+from .codegen import generate_fixture
 from .compat import PostGenerationContext
 
 FactoryType: TypeAlias = Type[factory.Factory]
@@ -91,25 +91,20 @@ def register(
 
     model_name = get_model_name(factory_class) if _name is None else _name
 
-    fixture_defs = list(
-        generate_fixturedefs(
+    fixture_defs = dict(
+        generate_fixtures(
             factory_class=factory_class, model_name=model_name, overrides=kwargs, caller_locals=_caller_locals
         )
     )
-
-    generated_module = make_fixture_model_module(model_name, fixture_defs)
-
-    for fixture_def in fixture_defs:
-        exported_name = fixture_def.name
-        fixture_function = getattr(generated_module, exported_name)
-        inject_into_caller(exported_name, fixture_function, _caller_locals)
+    for name, fixture in fixture_defs.items():
+        inject_into_caller(name, fixture, _caller_locals)
 
     return factory_class
 
 
-def generate_fixturedefs(
+def generate_fixtures(
     factory_class: FactoryType, model_name: str, overrides: Mapping[str, Any], caller_locals: Mapping[str, Any]
-) -> Iterable[FixtureDef]:
+) -> Iterable[tuple[str, Callable]]:  # TODO: Fix type
     """Generate all the FixtureDefs for the given factory class."""
     factory_name = get_factory_name(factory_class)
 
@@ -118,32 +113,35 @@ def generate_fixturedefs(
         value = overrides.get(attr, value)
         attr_name = SEPARATOR.join((model_name, attr))
         yield (
+            attr_name,
             make_declaration_fixturedef(
                 attr_name=attr_name,
                 value=value,
                 factory_class=factory_class,
                 related=related,
-            )
+            ),
         )
 
     if factory_name not in caller_locals:
         yield (
-            FixtureDef(
+            factory_name,
+            generate_fixture(
                 name=factory_name,
-                function_name="factory_fixture",
+                function=factory_fixture,
                 function_kwargs={"factory_class": factory_class},
-            )
+            ),
         )
 
     deps = get_deps(factory_class, model_name=model_name)
     yield (
-        FixtureDef(
+        model_name,
+        generate_fixture(
             name=model_name,
-            function_name="model_fixture",
+            function=model_fixture,
             function_kwargs={"factory_name": factory_name},
             deps=deps,
             related=related,
-        )
+        ),
     )
 
 
@@ -152,7 +150,7 @@ def make_declaration_fixturedef(
     value: Any,
     factory_class: FactoryType,
     related: list[str],
-) -> FixtureDef:
+) -> Callable:  # TODO: Fix type
     """Create the FixtureDef for a factory declaration."""
     if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
         subfactory_class = value.get_factory()
@@ -169,9 +167,9 @@ def make_declaration_fixturedef(
         if isinstance(value, factory.SubFactory):
             args.append(inflection.underscore(subfactory_class._meta.model.__name__))
 
-        return FixtureDef(
+        return generate_fixture(
             name=attr_name,
-            function_name="subfactory_fixture",
+            function=subfactory_fixture,
             function_kwargs={"factory_class": subfactory_class},
             deps=args,
         )
@@ -190,9 +188,9 @@ def make_declaration_fixturedef(
         value = value
         deps = []
 
-    return FixtureDef(
+    return generate_fixture(
         name=attr_name,
-        function_name="attr_fixture",
+        function=attr_fixture,
         function_kwargs={"value": value},
         deps=deps,
     )
