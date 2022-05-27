@@ -224,7 +224,7 @@ def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[st
     # Therefore, we can just check for __qualname__ to figure out if we are in a class, and apply the @staticmethod.
     is_class_or_function = "__qualname__" in locals_
     if is_class_or_function:
-        function = staticmethod(function)  # type: ignore[assignment]
+        function = staticmethod(function)
 
     locals_[name] = function
 
