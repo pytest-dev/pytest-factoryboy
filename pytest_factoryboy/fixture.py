@@ -1,6 +1,7 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
+import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
@@ -128,7 +129,7 @@ def generate_fixtures(
             factory_name,
             create_fixture_with_related(
                 name=factory_name,
-                function=lambda request: factory_fixture(request, factory_class),
+                function=functools.partial(factory_fixture, factory_class=factory_class),
             ),
         )
 
@@ -137,7 +138,7 @@ def generate_fixtures(
         model_name,
         create_fixture_with_related(
             name=model_name,
-            function=lambda request: model_fixture(request, factory_name),
+            function=functools.partial(model_fixture, factory_name=factory_name),
             usefixtures=deps,
             related=related,
         ),
@@ -184,7 +185,7 @@ def make_declaration_fixturedef(
 
         return create_fixture_with_related(
             name=attr_name,
-            function=lambda request: subfactory_fixture(request, subfactory_class),
+            function=functools.partial(subfactory_fixture, factory_class=subfactory_class),
             usefixtures=args,
         )
 
@@ -204,7 +205,7 @@ def make_declaration_fixturedef(
 
     return create_fixture_with_related(
         name=attr_name,
-        function=lambda request: attr_fixture(request, value),
+        function=functools.partial(attr_fixture, value=value),
         usefixtures=deps,
     )
 

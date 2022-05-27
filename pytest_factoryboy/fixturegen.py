@@ -41,7 +41,8 @@ def create_fixture(
     function_params = list(inspect.signature(function).parameters.values())
     allowed_param_kinds = {inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY}
 
-    # This is exactly what pytest does (at the moment) to discover which args to inject as fixtures
+    # This is exactly what pytest does (at the moment) to discover which args to inject as fixtures.
+    # Ignoring parameters with a default allows us to use ``functools.partial``s.
     function_args = [
         param.name
         for param in function_params
