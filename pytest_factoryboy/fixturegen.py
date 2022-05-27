@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Callable, Collection, TypeVar, cast
 
 import pytest
 from typing_extensions import ParamSpec
@@ -13,7 +13,7 @@ P = ParamSpec("P")
 def create_fixture(
     name: str,
     function: Callable[P, T],
-    usefixtures: list[str] | None = None,
+    usefixtures: Collection[str] | None = None,
 ) -> Callable[P, T]:
     """Dynamically create a pytest fixture.
 

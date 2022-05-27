@@ -5,7 +5,17 @@ import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Callable, Generic, Type, TypeVar, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Generic,
+    Type,
+    TypeVar,
+    cast,
+    overload,
+)
 
 import factory
 import factory.builder
@@ -148,8 +158,8 @@ def generate_fixtures(
 def create_fixture_with_related(
     name: str,
     function: Callable[P, T],
-    usefixtures: list[str] | None = None,
-    related: list[str] | None = None,
+    usefixtures: Collection[str] | None = None,
+    related: Collection[str] | None = None,
 ) -> Callable[P, T]:
     if related is None:
         related = []
