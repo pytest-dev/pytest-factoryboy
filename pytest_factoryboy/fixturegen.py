@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, cast
 
 import pytest
+from typing_extensions import ParamSpec
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 
 def create_fixture(
     name: str,
-    function: Callable[..., T],  # TODO: Try to use ParamSpec instead of Callable
+    function: Callable[P, T],
     usefixtures: list[str] | None = None,
-) -> Callable[..., T]:
+) -> Callable[P, T]:
     """Dynamically create a pytest fixture.
 
     :param name: Name of the fixture.
@@ -52,6 +54,8 @@ def create_fixture(
     def fn(**kwargs: Any) -> T:
         function_kwargs = {k: kwargs[k] for k in function_args}
         return function(**function_kwargs)
+
+    fn = cast(Callable[P, T], fn)
 
     if usefixtures:
         use_fixtures_params = [

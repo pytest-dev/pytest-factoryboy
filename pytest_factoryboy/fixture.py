@@ -13,7 +13,7 @@ import factory.declarations
 import factory.enums
 import inflection
 from factory.declarations import NotProvided
-from typing_extensions import TypeAlias
+from typing_extensions import ParamSpec, TypeAlias
 
 from .compat import PostGenerationContext
 from .fixturegen import create_fixture
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     F = TypeVar("F", bound=FactoryType)
 
 T = TypeVar("T")
-
+P = ParamSpec("P")
 
 SEPARATOR = "__"
 
@@ -147,10 +147,10 @@ def generate_fixtures(
 
 def create_fixture_with_related(
     name: str,
-    function: Callable[..., T],  # TODO: Try to use ParamSpec instead of Callable
+    function: Callable[P, T],
     usefixtures: list[str] | None = None,
     related: list[str] | None = None,
-) -> Callable[..., T]:
+) -> Callable[P, T]:
     if related is None:
         related = []
     f = create_fixture(name=name, function=function, usefixtures=usefixtures)
