@@ -150,7 +150,7 @@ def create_fixture_with_related(
     function: Callable[..., T],  # TODO: Try to use ParamSpec instead of Callable
     usefixtures: list[str] | None = None,
     related: list[str] | None = None,
-):
+) -> Callable[..., T]:
     if related is None:
         related = []
     f = create_fixture(name=name, function=function, usefixtures=usefixtures)
