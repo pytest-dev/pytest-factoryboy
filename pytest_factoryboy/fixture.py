@@ -1,7 +1,6 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
-import inspect
 import sys
 from dataclasses import dataclass
 from inspect import signature
@@ -12,11 +11,11 @@ import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-import pytest
 from factory.declarations import NotProvided
 from typing_extensions import TypeAlias
 
 from .compat import PostGenerationContext
+from .fixturegen import create_fixture
 
 FactoryType: TypeAlias = Type[factory.Factory]
 
@@ -127,7 +126,7 @@ def generate_fixtures(
     if factory_name not in caller_locals:
         yield (
             factory_name,
-            create_fixture(
+            create_fixture_with_related(
                 name=factory_name,
                 function=lambda request: factory_fixture(request, factory_class),
             ),
@@ -136,13 +135,29 @@ def generate_fixtures(
     deps = get_deps(factory_class, model_name=model_name)
     yield (
         model_name,
-        create_fixture(
+        create_fixture_with_related(
             name=model_name,
             function=lambda request: model_fixture(request, factory_name),
-            deps=deps,
+            usefixtures=deps,
             related=related,
         ),
     )
+
+
+def create_fixture_with_related(
+    name: str,
+    function: Callable[..., T],  # TODO: Try to use ParamSpec instead of Callable
+    usefixtures: list[str] | None = None,
+    related: list[str] | None = None,
+):
+    if related is None:
+        related = []
+    f = create_fixture(name=name, function=function, usefixtures=usefixtures)
+
+    # We have to set the `_factoryboy_related` attribute to the original function, since
+    # FixtureDef.func will provide that one later when we discover the related fixtures.
+    f.__pytest_wrapped__.obj._factoryboy_related = related  # type: ignore[attr-defined]
+    return f
 
 
 def make_declaration_fixturedef(
@@ -167,10 +182,10 @@ def make_declaration_fixturedef(
         if isinstance(value, factory.SubFactory):
             args.append(inflection.underscore(subfactory_class._meta.model.__name__))
 
-        return create_fixture(
+        return create_fixture_with_related(
             name=attr_name,
             function=lambda request: subfactory_fixture(request, subfactory_class),
-            deps=args,
+            usefixtures=args,
         )
 
     deps: list[str]  # makes mypy happy
@@ -187,10 +202,10 @@ def make_declaration_fixturedef(
         value = value
         deps = []
 
-    return create_fixture(
+    return create_fixture_with_related(
         name=attr_name,
         function=lambda request: attr_fixture(request, value),
-        deps=deps,
+        usefixtures=deps,
     )
 
 
@@ -445,29 +460,3 @@ class LazyFixture(Generic[T]):
             return self.fixture(**kwargs)
         else:
             return cast(T, request.getfixturevalue(self.fixture))
-
-
-def create_fixture(
-    name: str,
-    function: Callable[[SubRequest], T],  # TODO: Try to use ParamSpec instead of Callable
-    deps: list[str] | None = None,
-    related: list[str] | None = None,
-) -> Callable[..., T]:
-    if related is None:
-        related = []
-    if deps is None:
-        deps = []
-
-    def fn(request: SubRequest, **kwargs: Any) -> T:
-        return function(request)
-
-    sig = inspect.signature(fn)
-    params = [sig.parameters["request"]] + [
-        inspect.Parameter(name=name, kind=inspect.Parameter.KEYWORD_ONLY) for name in deps
-    ]
-    sig = sig.replace(parameters=tuple(params))
-
-    fn.__signature__ = sig  # type: ignore[attr-defined]
-    fn._factoryboy_related = related  # type: ignore[attr-defined]
-
-    return pytest.fixture(fn, name=name)
