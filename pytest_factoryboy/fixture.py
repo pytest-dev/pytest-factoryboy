@@ -11,6 +11,8 @@ from typing import (
     Callable,
     Collection,
     Generic,
+    Iterable,
+    Mapping,
     Type,
     TypeVar,
     cast,
@@ -28,19 +30,15 @@ from typing_extensions import ParamSpec, TypeAlias
 from .compat import PostGenerationContext
 from .fixturegen import create_fixture
 
-FactoryType: TypeAlias = Type[factory.Factory]
-
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterable, Mapping
-
     from _pytest.fixtures import SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
     from .plugin import Request as FactoryboyRequest
 
-    F = TypeVar("F", bound=FactoryType)
-
+FactoryType: TypeAlias = Type[factory.Factory]
+F = TypeVar("F", bound=FactoryType)
 T = TypeVar("T")
 P = ParamSpec("P")
 
