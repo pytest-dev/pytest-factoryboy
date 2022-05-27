@@ -65,7 +65,7 @@ class TestLazyFixtureDeclaration:
         class Meta:
             model = User
 
-        username = LazyFixture("name")
+        username: LazyFixture[str] = LazyFixture("name")
         password = "foo"
         is_active = False
 
