@@ -187,7 +187,7 @@ class TestLazyFixture:
         assert book.author == another_author
         assert book.author.name == "Another Author"
 
-    @pytest.mark.parametrize("book__author", [LazyFixture(lambda another_author: another_author)])  # type: ignore[no-any-return]
+    @pytest.mark.parametrize("book__author", [LazyFixture(lambda another_author: another_author)])
     def test_lazy_fixture_callable(self, book: Book, another_author: Author) -> None:
         """Test that book author is replaced with another author by callable."""
         assert book.author == another_author
