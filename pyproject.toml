@@ -1,6 +1,49 @@
+[tool.poetry]
+name = "pytest-factoryboy"
+version = "2.3.1"
+description = "Factory Boy support for pytest."
+authors = ["Oleg Pidsadnyi <oleg.pidsadnyi@gmail.com>"]
+maintainers = ["Alessio Bogon <youtux@gmail.com>"]
+license = "MIT"
+readme = "README.rst"
+homepage = "https://pytest-factoryboy.readthedocs.io/"
+documentation = "https://pytest-factoryboy.readthedocs.io/"
+repository = "https://github.com/pytest-dev/pytest-factoryboy"
+classifiers = [
+    "Development Status :: 6 - Mature",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS :: MacOS X",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Utilities",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+[tool.poetry.plugins."pytest11"]
+"pytest-factoryboy" = "pytest_factoryboy.plugin"
+
+[tool.poetry.dependencies]
+python = ">=3.7"
+inflection = "*"
+factory_boy = ">=2.10.0"
+pytest = ">=5.0.0"
+typing_extensions = "*"
+
+[tool.poetry.dev-dependencies]
+mypy = "^0.960"
+tox = "^3.25.0"
+
 [build-system]
-requires = ["setuptools>=58", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 120
