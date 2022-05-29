@@ -1,10 +1,23 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
+import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, Type, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Generic,
+    Iterable,
+    Mapping,
+    Type,
+    TypeVar,
+    cast,
+    overload,
+)
 
 import factory
 import factory.builder
@@ -12,25 +25,22 @@ import factory.declarations
 import factory.enums
 import inflection
 from factory.declarations import NotProvided
-from typing_extensions import TypeAlias
+from typing_extensions import ParamSpec, TypeAlias
 
-from .codegen import FixtureDef, make_fixture_model_module
 from .compat import PostGenerationContext
-
-FactoryType: TypeAlias = Type[factory.Factory]
+from .fixturegen import create_fixture
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterable, Mapping, TypeVar
-
-    from _pytest.fixtures import FixtureFunction, SubRequest
+    from _pytest.fixtures import SubRequest
     from factory.builder import BuildStep
     from factory.declarations import PostGeneration, PostGenerationContext
 
     from .plugin import Request as FactoryboyRequest
 
-    T = TypeVar("T")
-    F = TypeVar("F", bound=FactoryType)
-
+FactoryType: TypeAlias = Type[factory.Factory]
+F = TypeVar("F", bound=FactoryType)
+T = TypeVar("T")
+P = ParamSpec("P")
 
 SEPARATOR = "__"
 
@@ -91,25 +101,20 @@ def register(
 
     model_name = get_model_name(factory_class) if _name is None else _name
 
-    fixture_defs = list(
-        generate_fixturedefs(
+    fixture_defs = dict(
+        generate_fixtures(
             factory_class=factory_class, model_name=model_name, overrides=kwargs, caller_locals=_caller_locals
         )
     )
-
-    generated_module = make_fixture_model_module(model_name, fixture_defs)
-
-    for fixture_def in fixture_defs:
-        exported_name = fixture_def.name
-        fixture_function = getattr(generated_module, exported_name)
-        inject_into_caller(exported_name, fixture_function, _caller_locals)
+    for name, fixture in fixture_defs.items():
+        inject_into_caller(name, fixture, _caller_locals)
 
     return factory_class
 
 
-def generate_fixturedefs(
+def generate_fixtures(
     factory_class: FactoryType, model_name: str, overrides: Mapping[str, Any], caller_locals: Mapping[str, Any]
-) -> Iterable[FixtureDef]:
+) -> Iterable[tuple[str, Callable[..., Any]]]:
     """Generate all the FixtureDefs for the given factory class."""
     factory_name = get_factory_name(factory_class)
 
@@ -118,33 +123,50 @@ def generate_fixturedefs(
         value = overrides.get(attr, value)
         attr_name = SEPARATOR.join((model_name, attr))
         yield (
+            attr_name,
             make_declaration_fixturedef(
                 attr_name=attr_name,
                 value=value,
                 factory_class=factory_class,
                 related=related,
-            )
+            ),
         )
 
     if factory_name not in caller_locals:
         yield (
-            FixtureDef(
+            factory_name,
+            create_fixture_with_related(
                 name=factory_name,
-                function_name="factory_fixture",
-                function_kwargs={"factory_class": factory_class},
-            )
+                function=functools.partial(factory_fixture, factory_class=factory_class),
+            ),
         )
 
     deps = get_deps(factory_class, model_name=model_name)
     yield (
-        FixtureDef(
+        model_name,
+        create_fixture_with_related(
             name=model_name,
-            function_name="model_fixture",
-            function_kwargs={"factory_name": factory_name},
-            deps=deps,
+            function=functools.partial(model_fixture, factory_name=factory_name),
+            fixtures=deps,
             related=related,
-        )
+        ),
     )
+
+
+def create_fixture_with_related(
+    name: str,
+    function: Callable[P, T],
+    fixtures: Collection[str] | None = None,
+    related: Collection[str] | None = None,
+) -> Callable[P, T]:
+    if related is None:
+        related = []
+    f = create_fixture(name=name, function=function, fixtures=fixtures)
+
+    # We have to set the `_factoryboy_related` attribute to the original function, since
+    # FixtureDef.func will provide that one later when we discover the related fixtures.
+    f.__pytest_wrapped__.obj._factoryboy_related = related  # type: ignore[attr-defined]
+    return f
 
 
 def make_declaration_fixturedef(
@@ -152,7 +174,7 @@ def make_declaration_fixturedef(
     value: Any,
     factory_class: FactoryType,
     related: list[str],
-) -> FixtureDef:
+) -> Callable[..., Any]:
     """Create the FixtureDef for a factory declaration."""
     if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
         subfactory_class = value.get_factory()
@@ -169,11 +191,10 @@ def make_declaration_fixturedef(
         if isinstance(value, factory.SubFactory):
             args.append(inflection.underscore(subfactory_class._meta.model.__name__))
 
-        return FixtureDef(
+        return create_fixture_with_related(
             name=attr_name,
-            function_name="subfactory_fixture",
-            function_kwargs={"factory_class": subfactory_class},
-            deps=args,
+            function=functools.partial(subfactory_fixture, factory_class=subfactory_class),
+            fixtures=args,
         )
 
     deps: list[str]  # makes mypy happy
@@ -190,11 +211,10 @@ def make_declaration_fixturedef(
         value = value
         deps = []
 
-    return FixtureDef(
+    return create_fixture_with_related(
         name=attr_name,
-        function_name="attr_fixture",
-        function_kwargs={"value": value},
-        deps=deps,
+        function=functools.partial(attr_fixture, value=value),
+        fixtures=deps,
     )
 
 
@@ -259,7 +279,7 @@ def get_deps(
     ]
 
 
-def evaluate(request: SubRequest, value: LazyFixture | Any) -> Any:
+def evaluate(request: SubRequest, value: LazyFixture[T] | T) -> T:
     """Evaluate the declaration (lazy fixtures, etc)."""
     return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
@@ -423,10 +443,10 @@ def get_caller_locals(depth: int = 2) -> dict[str, Any]:
     return sys._getframe(depth).f_locals
 
 
-class LazyFixture:
+class LazyFixture(Generic[T]):
     """Lazy fixture."""
 
-    def __init__(self, fixture: FixtureFunction | str) -> None:
+    def __init__(self, fixture: Callable[..., T] | str) -> None:
         """Lazy pytest fixture wrapper.
 
         :param fixture: Fixture name or callable with dependencies.
@@ -438,7 +458,7 @@ class LazyFixture:
         else:
             self.args = [self.fixture]
 
-    def evaluate(self, request: SubRequest) -> Any:
+    def evaluate(self, request: SubRequest) -> T:
         """Evaluate the lazy fixture.
 
         :param request: pytest request object.
@@ -448,4 +468,4 @@ class LazyFixture:
             kwargs = {arg: request.getfixturevalue(arg) for arg in self.args}
             return self.fixture(**kwargs)
         else:
-            return request.getfixturevalue(self.fixture)
+            return cast(T, request.getfixturevalue(self.fixture))

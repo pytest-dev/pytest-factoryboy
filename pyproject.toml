@@ -36,3 +36,4 @@ show_error_codes = true
 module = ["tests.*"]
 disallow_untyped_decorators = false
 disallow_untyped_defs = false
+warn_return_any = false
