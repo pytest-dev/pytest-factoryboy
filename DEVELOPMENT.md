@@ -10,19 +10,21 @@ curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poet
 (Invoke-WebRequest -Uri https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py -UseBasicParsing).Content | python -
 ```
 
-2. Install dependencies:
+2. Install dependencies & pre-commit hooks:
+
 ```shell
 poetry install
+
+pre-commit install
 ```
+
 3. (Optional) Activate the poetry virtual environment:
+
 ```shell
 poetry shell
 ```
-4. Run tests:
+
+4. Run tests & mypy using tox:
 ```shell
-pytest
-```
-4. Run mypy type checker:
-```shell
-mypy .
+tox
 ```
