@@ -1,15 +1,12 @@
 # How to make a release
 
+1. Bump the version:
 ```shell
-python -m pip install --upgrade build twine
+poetry version <newversion>
+```
+2. Update the [CHANGES.rst](CHANGES.rst) file with the release notes and the new version.
+3. Build and publish the package:
 
-# cleanup the ./dist folder
-rm -rf ./dist
-
-# Build the distributions
-python -m build
-
-# Upload them
-
-twine check dist/* && twine upload dist/*
+```shell
+poetry publish --build
 ```
