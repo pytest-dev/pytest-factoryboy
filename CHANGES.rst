@@ -3,6 +3,7 @@ Changelog
 
 Unreleased
 ----------
+- The fixture name for registered factories is now determined by the factory name (rather than the model name). This makes factories for builtin types (like ``dict``) easier to use.
 
 2.4.0
 ----------
