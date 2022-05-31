@@ -22,12 +22,16 @@ def test_fixture_name_cant_be_determined(pytester):
     """Test that an error is raised if the fixture name can't be determined."""
     pytester.makepyfile(
         """
-        from tests.test_model_name import JSONPayloadFactory
+        import factory
         from pytest_factoryboy import register
 
         @register
-        class JSONPayloadF(JSONPayloadFactory):
-            pass
+        class JSONPayloadF(factory.Factory):
+            class Meta:
+                model = dict
+
+            name = "John Doe"
+
         """
     )
     res = pytester.runpytest()
@@ -39,12 +43,16 @@ def test_invalid_factory_name_override(pytester):
     """Test that, although the factory name doesn't follow the naming convention, it can still be overridden."""
     pytester.makepyfile(
         """
-        from tests.test_model_name import JSONPayloadFactory
+        import factory
         from pytest_factoryboy import register
 
         @register(_name="payload")
-        class JSONPayloadF(JSONPayloadFactory):
-            pass
+        class JSONPayloadF(factory.Factory):
+            class Meta:
+                model = dict
+
+            name = "John Doe"
+
 
         def test_payload(payload):
             assert payload["name"] == "John Doe"
