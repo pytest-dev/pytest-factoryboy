@@ -3,8 +3,12 @@ Changelog
 
 Unreleased
 ----------
-- Simplify fixture generation (internal change).
+
+2.4.0
+----------
 - ``LazyFixture`` is now a Generic[T] type.
+- Simplify fixture generation (internal change).
+- Use poetry (internal change).
 
 2.3.1
 ----------
