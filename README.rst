@@ -70,7 +70,6 @@ You may want to use this if your factory name does not follow the naming convent
 
     @register  # book
     @register(_name="second_book")  # second_book
-    @register(_name="other_book")  # other_book, book of another author
     class BookFactory(factory.Factory):
         class Meta:
             model = Book
