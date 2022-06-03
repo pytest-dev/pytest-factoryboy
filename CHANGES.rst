@@ -3,6 +3,17 @@ Changelog
 
 Unreleased
 ----------
+- The fixture name for registered factories is now determined by the factory name (rather than the model name). This makes factories for builtin types (like ``dict``) easier to use.
+
+2.4.0
+----------
+- ``LazyFixture`` is now a Generic[T] type.
+- Simplify fixture generation (internal change).
+- Use poetry (internal change).
+
+2.3.1
+----------
+- Fix AttributeError when using LazyFixture in register(...) `#159 <https://github.com/pytest-dev/pytest-factoryboy/issues/159>`_ `#158 <https://github.com/pytest-dev/pytest-factoryboy/issues/158>`_
 
 
 2.3.0
