@@ -3,6 +3,7 @@ from __future__ import annotations
 import factory
 
 from pytest_factoryboy import register
+from tests.compat import assert_outcomes
 
 
 @register
@@ -35,7 +36,7 @@ def test_fixture_name_cant_be_determined(pytester):
         """
     )
     res = pytester.runpytest()
-    res.assert_outcomes(errors=1)
+    assert_outcomes(res, errors=1)
     res.stdout.fnmatch_lines("*JSONPayloadF *does not follow*naming convention*")
 
 
@@ -59,4 +60,4 @@ def test_invalid_factory_name_override(pytester):
         """
     )
     res = pytester.runpytest()
-    res.assert_outcomes(passed=1)
+    assert_outcomes(res, passed=1)
