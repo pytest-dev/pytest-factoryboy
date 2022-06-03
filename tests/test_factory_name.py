@@ -19,9 +19,9 @@ def test_fixture_name_as_expected(json_payload):
     assert json_payload["name"] == "John Doe"
 
 
-def test_fixture_name_cant_be_determined(pytester):
+def test_fixture_name_cant_be_determined(testdir):
     """Test that an error is raised if the fixture name can't be determined."""
-    pytester.makepyfile(
+    testdir.makepyfile(
         """
         import factory
         from pytest_factoryboy import register
@@ -35,14 +35,14 @@ def test_fixture_name_cant_be_determined(pytester):
 
         """
     )
-    res = pytester.runpytest()
+    res = testdir.runpytest()
     assert_outcomes(res, errors=1)
     res.stdout.fnmatch_lines("*JSONPayloadF *does not follow*naming convention*")
 
 
-def test_invalid_factory_name_override(pytester):
+def test_invalid_factory_name_override(testdir):
     """Test that, although the factory name doesn't follow the naming convention, it can still be overridden."""
-    pytester.makepyfile(
+    testdir.makepyfile(
         """
         import factory
         from pytest_factoryboy import register
@@ -59,5 +59,5 @@ def test_invalid_factory_name_override(pytester):
             assert payload["name"] == "John Doe"
         """
     )
-    res = pytester.runpytest()
+    res = testdir.runpytest()
     assert_outcomes(res, passed=1)
