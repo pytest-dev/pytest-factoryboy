@@ -305,11 +305,17 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     factory_class: FactoryType = request.getfixturevalue(factory_name)
 
     # Create model fixture instance
-    Factory: FactoryType = cast(FactoryType, type("Factory", (factory_class,), {}))
-    # equivalent to:
-    # class Factory(factory_class):
-    #     pass
-    # it just makes mypy understand it.
+    fake_after_postgeneration_call = True
+
+    class Factory(factory_class):  # type: ignore[valid-type, misc]
+        @classmethod
+        def _after_postgeneration(cls, instance: object, create: bool, results: dict[str, Any] | None = None) -> Any:
+            # TODO: Explain this
+            if fake_after_postgeneration_call:
+                assert not results
+                return None
+            else:
+                return super()._after_postgeneration(instance, create=create, results=results)
 
     Factory._meta.base_declarations = {
         k: v
@@ -369,6 +375,7 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
             )
     factoryboy_request.defer(deferred)
 
+    fake_after_postgeneration_call = False
     # Try to evaluate as much post-generation dependencies as possible
     factoryboy_request.evaluate(request)
     return instance

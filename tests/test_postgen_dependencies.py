@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+from unittest import mock
 
 import factory
 import pytest
@@ -177,6 +178,24 @@ def test_postgenerationmethodcall_fixture(foo: Foo):
     """Test fixture for ``PostGenerationMethodCall`` declaration."""
     assert foo.secret == "test secret"
     assert foo.number == 456
+
+
+def test_postgeneration_called_once(request):
+    """Test that ``_after_postgeneration`` is called only once."""
+    with mock.patch.object(
+        FooFactory, "_after_postgeneration", autospec=True, return_value=None
+    ) as mock_after_postgeneration:
+        foo = request.getfixturevalue("foo")
+
+    assert mock_after_postgeneration.call_count == 1
+    [call] = mock_after_postgeneration.mock_calls
+    [obj] = call.args
+    create = call.kwargs["create"]
+    results = call.kwargs["results"]
+
+    assert obj is foo
+    assert create is True
+    assert results["set1"] == "set to 1"
 
 
 @dataclass
