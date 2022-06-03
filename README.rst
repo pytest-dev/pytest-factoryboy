@@ -16,9 +16,9 @@ pytest-factoryboy makes it easy to combine ``factory`` approach to the test setu
 heart of the `pytest fixtures`_.
 
 .. _factory_boy: https://factoryboy.readthedocs.io
-.. _pytest: http://pytest.org
+.. _pytest: https://pytest.org
 .. _pytest fixtures: https://pytest.org/latest/fixture.html
-.. _overridden: http://pytest.org/latest/fixture.html#override-a-fixture-with-direct-test-parametrization
+.. _overridden: https://docs.pytest.org/en/latest/how-to/fixtures.html#overriding-fixtures-on-various-levels
 
 
 Install pytest-factoryboy
