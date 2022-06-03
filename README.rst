@@ -16,9 +16,9 @@ pytest-factoryboy makes it easy to combine ``factory`` approach to the test setu
 heart of the `pytest fixtures`_.
 
 .. _factory_boy: https://factoryboy.readthedocs.io
-.. _pytest: http://pytest.org
+.. _pytest: https://pytest.org
 .. _pytest fixtures: https://pytest.org/latest/fixture.html
-.. _overridden: http://pytest.org/latest/fixture.html#override-a-fixture-with-direct-test-parametrization
+.. _overridden: https://docs.pytest.org/en/latest/how-to/fixtures.html#overriding-fixtures-on-various-levels
 
 
 Install pytest-factoryboy
@@ -35,35 +35,11 @@ Concept
 Library exports a function to register factories as fixtures. Fixtures are contributed
 to the same module where register function is called.
 
-Factory Fixture
----------------
-
-Factory fixtures allow using factories without importing them. Name convention is lowercase-underscore
-class name.
-
-.. code-block:: python
-
-    import factory
-    from pytest_factoryboy import register
-
-    class AuthorFactory(factory.Factory):
-        class Meta:
-            model = Author
-
-
-    register(AuthorFactory)
-
-
-    def test_factory_fixture(author_factory):
-        author = author_factory(name="Charles Dickens")
-        assert author.name == "Charles Dickens"
-
-
 Model Fixture
 -------------
 
-Model fixture implements an instance of a model created by the factory. Name convention is model's lowercase-underscore
-class name.
+Model fixture implements an instance of a model created by the factory. The fixture name is determined by the factory name.
+For example, if the factory name is ``MyAuthorFactory``, the fixture name is ``my_author``.
 
 
 .. code-block:: python
@@ -83,8 +59,8 @@ class name.
         assert author.name == "Charles Dickens"
 
 
-Model fixtures can be registered with specific names. For example, if you address instances of some collection
-by the name like "first", "second" or of another parent as "other":
+Model fixtures can be registered with specific names.
+You may want to use this if your factory name does not follow the naming convention, or if you need multiple model fixtures for the same factory:
 
 
 .. code-block:: python
@@ -92,20 +68,26 @@ by the name like "first", "second" or of another parent as "other":
     register(AuthorFactory)  # author
     register(AuthorFactory, "second_author")  # second_author
 
-    # `register(...)` can be used as a decorator too
     @register  # book
     @register(_name="second_book")  # second_book
-    @register(_name="other_book")  # other_book, book of another author
     class BookFactory(factory.Factory):
         class Meta:
             model = Book
 
 
-    @pytest.fixture
-    def other_book__author(second_author):
-        """Make the relation of the second_book to another (second) author."""
-        return second_author
+The ``register`` function can be used both as a decorator and as a function. It will register the fixtures in the module/class where it's invoked.
 
+.. code-block:: python
+
+    # register used as a function:
+    register(AuthorFactory)  # `author` is now a fixture of this module
+    register(AuthorFactory, "second_author")  # `second_author` too
+
+    # register used as a decorator:
+    @register  # `book` is now a fixture of this module.
+    class BookFactory(factory.Factory):
+        class Meta:
+            model = Book
 
 
 Attributes are Fixtures
