@@ -52,4 +52,4 @@ else:
             failed=failed,
             xpassed=xpassed,
             xfailed=xfailed,
-        )
+        )  # type: ignore[call-arg]
