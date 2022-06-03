@@ -229,11 +229,11 @@ def _register_new(
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 
-    model_name = get_model_name(factory_class) if _name is None else _name
+    model_name = get_model_name(factory_class) if name is None else name
 
     fixture_defs = dict(
         generate_fixtures(
-            factory_class=factory_class, model_name=model_name, overrides=kwargs, caller_locals=_caller_locals
+            factory_class=factory_class, model_name=model_name, overrides=factory_kwargs, caller_locals=_caller_locals
         )
     )
     for name, fixture in fixture_defs.items():
