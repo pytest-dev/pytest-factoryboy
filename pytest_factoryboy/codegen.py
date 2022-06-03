@@ -127,7 +127,8 @@ def upgrade_source(source: str, source_filename: str) -> str:
     found_by_start_offset: dict[Offset, DecoratorInfo] = {dec_info.offset_start: dec_info for dec_info in found}
     tokens = src_to_tokens(source)
     for i, token in reversed_enumerate(tokens):
-        if (dec_info := found_by_start_offset.get(token.offset)) is None:
+        dec_info = found_by_start_offset.get(token.offset)
+        if dec_info is None:
             continue
 
         if not token.src:
