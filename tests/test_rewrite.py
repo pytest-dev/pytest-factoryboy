@@ -15,6 +15,7 @@ from pytest_factoryboy.codegen import upgrade_source
 PREFIX = "from pytest_factoryboy import register\n"
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason="This feature is not available in the current python version")
 @pytest.mark.parametrize(
     ["src", "expected"],
     [
@@ -44,3 +45,11 @@ def test_upgrade_source(src, expected):
     source_ast_out = unparse(source_ast)
     expected_ast_out = unparse(expected_ast)
     assert source_ast_out == expected_ast_out
+
+
+@pytest.mark.skipif(sys.version_info >= (3, 8), reason="This message is only shown for python 3.7")
+def test_upgrade_source_raises_on_37():
+    with pytest.raises(RuntimeError) as e:
+        upgrade_source("a = 42", "<file>")
+
+    assert e.match("This feature is only available with python >= 3.8")

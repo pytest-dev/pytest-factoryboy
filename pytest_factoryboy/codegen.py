@@ -10,7 +10,7 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from types import ModuleType
-from typing import TYPE_CHECKING, Container
+from typing import TYPE_CHECKING, Callable, Container, TypeVar
 
 if sys.version_info < (3, 9):
     from ast_compat import unparse
@@ -23,6 +23,8 @@ from tokenize_rt import Offset, reversed_enumerate, src_to_tokens, tokens_to_src
 
 if TYPE_CHECKING:
     from typing_extensions import Literal, Self
+
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +107,20 @@ class DecoratorInfo:
         )
 
 
+def available_since(version: tuple[int, int]) -> Callable[[T], T]:
+    def wrapper(fn: T) -> T:
+        @functools.wraps(fn)
+        def wrapped(*args, **kwargs):
+            if sys.version_info < version:
+                raise RuntimeError(f"This feature is only available with python >= {version[0]}.{version[1]}")
+            return fn(*args, **kwargs)
+
+        return wrapped
+
+    return wrapper
+
+
+@available_since(version=(3, 8))
 def upgrade_source(source: str, source_filename: str) -> str:
     tree = parse(source, filename=source_filename)
     found: list[DecoratorInfo] = []
@@ -143,6 +159,7 @@ def upgrade_source(source: str, source_filename: str) -> str:
     return new_source
 
 
+@available_since(version=(3, 8))
 @functools.lru_cache()  # So that we rewrite each file only once
 def upgrade_module(module: ModuleType) -> None:
     # TODO: Double check that module.__file__ is always accessible. Maybe it wasn't always an absolute path
