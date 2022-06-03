@@ -38,6 +38,7 @@ pytest = ">=5.0.0"
 typing_extensions = "*"
 tokenize-rt = "^4.2.1"
 astunparse = {version = "^1.6.3", python = "<3.9"}
+ast-compat = {version = "^0.10.1", python = "<3.9"}
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.960"

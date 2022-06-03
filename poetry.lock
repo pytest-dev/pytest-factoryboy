@@ -1,4 +1,12 @@
 [[package]]
+name = "ast-compat"
+version = "0.10.1"
+description = "cross-version compatible ast library"
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[[package]]
 name = "astunparse"
 version = "1.6.3"
 description = "An AST unparser for Python"
@@ -341,9 +349,12 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7"
-content-hash = "7d6d4cceab595e814582b2c1b143404bb3cba1ea17fc5464851a3cec1b7f3222"
+content-hash = "91029d7a09f7a5db28a7ad2dea2b0e6ead2c72a11283a8f3959d3767131e75ed"
 
 [metadata.files]
+ast-compat = [
+    {file = "ast_compat-0.10.1-py3-none-any.whl", hash = "sha256:0770804d250845edf50138be873553f6313c558bef4bf6066f600b779b27240c"},
+]
 astunparse = [
     {file = "astunparse-1.6.3-py2.py3-none-any.whl", hash = "sha256:c2652417f2c8b5bb325c885ae329bdf3f86424075c4fd1a128674bc6fba4b8e8"},
     {file = "astunparse-1.6.3.tar.gz", hash = "sha256:5ad93a8456f0d084c3456d059fd9a92cce667963232cbf763eac3bc5b7940872"},
