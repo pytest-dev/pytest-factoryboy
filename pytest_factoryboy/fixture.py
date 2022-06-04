@@ -268,7 +268,6 @@ def get_deps(
     :return: List of the fixture argument names for dependency injection.
     """
     model_name = get_model_name(factory_class) if model_name is None else model_name
-    # TODO: This does not take into account the custom _name. Fix it.
     parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
 
     def is_dep(value: Any) -> bool:
