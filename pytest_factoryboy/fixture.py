@@ -1,10 +1,12 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
+import contextlib
 import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
+from types import MethodType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,6 +14,7 @@ from typing import (
     Collection,
     Generic,
     Iterable,
+    Iterator,
     Mapping,
     Type,
     TypeVar,
@@ -265,6 +268,7 @@ def get_deps(
     :return: List of the fixture argument names for dependency injection.
     """
     model_name = get_model_name(factory_class) if model_name is None else model_name
+    # TODO: This does not take into account the custom _name. Fix it.
     parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
 
     def is_dep(value: Any) -> bool:
@@ -288,6 +292,24 @@ def evaluate(request: SubRequest, value: LazyFixture[T] | T) -> T:
     return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
 
+def noop(*args: Any, **kwargs: Any) -> None:
+    """No-op function."""
+    pass
+
+
+@contextlib.contextmanager
+def disable_method(method: MethodType) -> Iterator[None]:
+    """Disable a method."""
+    klass = method.__self__
+    method_name = method.__name__
+    old_method = getattr(klass, method_name)
+    setattr(klass, method_name, noop)
+    try:
+        yield
+    finally:
+        setattr(klass, method.__name__, old_method)
+
+
 def model_fixture(request: SubRequest, factory_name: str) -> Any:
     """Model fixture implementation."""
     factoryboy_request: FactoryboyRequest = request.getfixturevalue("factoryboy_request")
@@ -302,17 +324,11 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     factory_class: FactoryType = request.getfixturevalue(factory_name)
 
     # Create model fixture instance
-    fake_after_postgeneration_call = True
-
-    class Factory(factory_class):  # type: ignore[valid-type, misc]
-        @classmethod
-        def _after_postgeneration(cls, instance: object, create: bool, results: dict[str, Any] | None = None) -> Any:
-            # TODO: Explain this
-            if fake_after_postgeneration_call:
-                assert not results
-                return None
-            else:
-                return super()._after_postgeneration(instance, create=create, results=results)
+    Factory: FactoryType = cast(FactoryType, type("Factory", (factory_class,), {}))
+    # equivalent to:
+    # class Factory(factory_class):
+    #     pass
+    # it just makes mypy understand it.
 
     Factory._meta.base_declarations = {
         k: v
@@ -331,7 +347,10 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     builder = factory.builder.StepBuilder(Factory._meta, kwargs, strategy)
     step = factory.builder.BuildStep(builder=builder, sequence=Factory._meta.next_sequence())
 
-    instance = Factory(**kwargs)
+    # FactoryBoy invokes the `_after_postgeneration` method, but we will instead call it manually later,
+    # once we are able to evaluate all the related fixtures.
+    with disable_method(Factory._after_postgeneration):
+        instance = Factory(**kwargs)
 
     # Cache the instance value on pytest level so that the fixture can be resolved before the return
     request._fixturedef.cached_result = (instance, 0, None)
@@ -372,8 +391,8 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
             )
     factoryboy_request.defer(deferred)
 
-    fake_after_postgeneration_call = False
-    # Try to evaluate as much post-generation dependencies as possible
+    # Try to evaluate as much post-generation dependencies as possible.
+    # This will finally invoke Factory._after_postgeneration, which was previously disabled
     factoryboy_request.evaluate(request)
     return instance
 

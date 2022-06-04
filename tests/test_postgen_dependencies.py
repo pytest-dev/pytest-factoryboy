@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
-from unittest import mock
 
 import factory
 import pytest
@@ -180,22 +179,30 @@ def test_postgenerationmethodcall_fixture(foo: Foo):
     assert foo.number == 456
 
 
-def test_postgeneration_called_once(request):
-    """Test that ``_after_postgeneration`` is called only once."""
-    with mock.patch.object(
-        FooFactory, "_after_postgeneration", autospec=True, return_value=None
-    ) as mock_after_postgeneration:
+class TestPostgenerationCalledOnce:
+    calls: list[tuple[Foo, bool, dict[str, Any] | None]] = []
+
+    @register(_name="foo")
+    class CollectingFooFactory(FooFactory):
+        class Meta:
+            model = Foo
+
+        @classmethod
+        def _after_postgeneration(cls, obj: Foo, create: bool, results: dict[str, Any] | None = None) -> None:
+            TestPostgenerationCalledOnce.calls.append((obj, create, results))
+
+    def test_postgeneration_called_once(self, request):
+        """Test that ``_after_postgeneration`` is called only once."""
         foo = request.getfixturevalue("foo")
 
-    assert mock_after_postgeneration.call_count == 1
-    [call] = mock_after_postgeneration.mock_calls
-    [obj] = call.args
-    create = call.kwargs["create"]
-    results = call.kwargs["results"]
+        assert len(self.calls) == 1
+        [call] = self.calls
+        [obj, create, results] = call
 
-    assert obj is foo
-    assert create is True
-    assert results["set1"] == "set to 1"
+        assert obj is foo
+        assert create is True
+        assert isinstance(results, dict)
+        assert results["set1"] == "set to 1"
 
 
 @dataclass
