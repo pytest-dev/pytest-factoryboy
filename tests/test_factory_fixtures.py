@@ -212,3 +212,14 @@ class TestLazyFixture:
 
         """
         assert another_book.author.name == "Another Author"
+
+
+class TestParentNameOverride:
+    """Test that the parent factory name takes into account possible overrides"""
+
+    @register(_name="edition")
+    class _(EditionFactory):
+        pass
+
+    def test_edition(self, edition: Edition):
+        assert edition.book.name == "Alice in Wonderland"

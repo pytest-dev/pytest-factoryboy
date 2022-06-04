@@ -1,6 +1,7 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
+import collections
 import contextlib
 import functools
 import sys
@@ -30,7 +31,7 @@ import inflection
 from typing_extensions import ParamSpec, TypeAlias
 
 from .compat import PostGenerationContext
-from .fixturegen import create_fixture
+from .fixturegen import create_fixture, usefixtures
 
 if TYPE_CHECKING:
     from _pytest.fixtures import SubRequest
@@ -43,6 +44,34 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 SEPARATOR = "__"
+
+module_load_callbacks = collections.deque()
+
+
+class NotReady(Exception):
+    pass
+
+
+# TODO: Remove this class, or make it proper
+class Related(list):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._counter = 0
+
+    def inc(self):
+        self._counter += 1
+
+    def done(self):
+        if self._counter <= 0:
+            raise ValueError("Related is already done")
+        self._counter -= 1
+
+    def is_done(self):
+        return self._counter == 0
+
+    def __str__(self):
+        res = super().__str__()
+        return f"Related {self._counter} id={id(self)} {res}"
 
 
 @dataclass(eq=False)
@@ -118,16 +147,17 @@ def generate_fixtures(
     """Generate all the FixtureDefs for the given factory class."""
     factory_name = get_factory_name(factory_class)
 
-    related: list[str] = []
+    related: Related[str] = Related()
     for attr, value in factory_class._meta.declarations.items():
         value = overrides.get(attr, value)
         attr_name = SEPARATOR.join((model_name, attr))
+        related.inc()
         yield (
             attr_name,
             make_declaration_fixturedef(
                 attr_name=attr_name,
                 value=value,
-                factory_class=factory_class,
+                model_name=model_name,
                 related=related,
             ),
         )
@@ -135,67 +165,91 @@ def generate_fixtures(
     if factory_name not in caller_locals:
         yield (
             factory_name,
-            create_fixture_with_related(
+            create_fixture(
                 name=factory_name,
                 function=functools.partial(factory_fixture, factory_class=factory_class),
             ),
         )
 
-    deps = get_deps(factory_class, model_name=model_name)
-    yield (
-        model_name,
-        create_fixture_with_related(
-            name=model_name,
-            function=functools.partial(model_fixture, factory_name=factory_name),
-            fixtures=deps,
-            related=related,
-        ),
+    fixture_marker = create_fixture(
+        name=model_name,
+        function=functools.partial(model_fixture, factory_class=factory_class),
     )
 
+    def update_usefixtures():
+        if not related.is_done():
+            raise NotReady("Related definitions not done")
+        deps = get_deps(factory_class, model_name=model_name)
+        fixture_marker.__pytest_wrapped__.obj = usefixtures(*deps)(fixture_marker.__pytest_wrapped__.obj)
+        if not hasattr(fixture_marker.__pytest_wrapped__.obj, "_factoryboy_related"):  # TODO: Can this ever happen?
+            fixture_marker.__pytest_wrapped__.obj._factoryboy_related = []
+        fixture_marker.__pytest_wrapped__.obj._factoryboy_related.extend(related)
 
-def create_fixture_with_related(
-    name: str,
-    function: Callable[P, T],
-    fixtures: Collection[str] | None = None,
-    related: Collection[str] | None = None,
-) -> Callable[P, T]:
-    if related is None:
-        related = []
-    f = create_fixture(name=name, function=function, fixtures=fixtures)
+    update_usefixtures.__qualname__ = f"update_usefixtures: {model_name} = model_fixture({factory_class})"
 
-    # We have to set the `_factoryboy_related` attribute to the original function, since
-    # FixtureDef.func will provide that one later when we discover the related fixtures.
-    f.__pytest_wrapped__.obj._factoryboy_related = related  # type: ignore[attr-defined]
-    return f
+    module_load_callbacks.append(update_usefixtures)
+    yield model_name, fixture_marker
+
+
+def execute_module_load_callbacks() -> None:
+    local_defs = module_load_callbacks
+    if not local_defs:
+        return
+    attempts = 0
+    while module_load_callbacks:
+        if len(module_load_callbacks) == attempts:
+            raise RuntimeError(f"Cannot execute load callbacks definitions: {module_load_callbacks}")
+        fn = module_load_callbacks.popleft()
+        try:
+            fn()
+        except NotReady:
+            attempts += 1
+            module_load_callbacks.append(fn)
+        else:
+            attempts = 0
 
 
 def make_declaration_fixturedef(
     attr_name: str,
     value: Any,
-    factory_class: FactoryType,
-    related: list[str],
+    model_name: str,
+    related: Related[str],
 ) -> Callable[..., Any]:
     """Create the FixtureDef for a factory declaration."""
     if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
         subfactory_class = value.get_factory()
-        subfactory_deps = get_deps(subfactory_class, factory_class)
-
-        args = list(subfactory_deps)
-        if isinstance(value, factory.RelatedFactory):
-            related_model = get_model_name(subfactory_class)
-            args.append(related_model)
-            related.append(related_model)
-            related.append(attr_name)
-            related.extend(subfactory_deps)
-
-        if isinstance(value, factory.SubFactory):
-            args.append(inflection.underscore(subfactory_class._meta.model.__name__))
-
-        return create_fixture_with_related(
+        try:
+            subfactory_model_name = get_model_name(subfactory_class)
+        except CannotDetermineFixtureName as e:
+            raise CannotDetermineFixtureName(
+                f"Pytest-factoryboy was not able to detect the fixture name for the subfactory {subfactory_class}. "
+                f"You can either use a factory name that follows the <model>Factory convention, or override the "
+                f"{attr_name} declaration with a LazyFixture(...)."
+            ) from e
+        fixture_marker = create_fixture(
             name=attr_name,
             function=functools.partial(subfactory_fixture, factory_class=subfactory_class),
-            fixtures=args,
         )
+
+        def update_usefixtures():
+            subfactory_deps = get_deps(subfactory_class, model_name=subfactory_model_name, parent_model_name=model_name)
+            args = list(subfactory_deps)
+            if isinstance(value, factory.RelatedFactory):
+                related_model = get_model_name(subfactory_class)
+                args.append(related_model)
+                related.append(related_model)
+                related.append(attr_name)
+                related.extend(subfactory_deps)
+            if isinstance(value, factory.SubFactory):
+                args.append(inflection.underscore(subfactory_class._meta.model.__name__))
+            fixture_marker.__pytest_wrapped__.obj = usefixtures(*args)(fixture_marker.__pytest_wrapped__.obj)
+            related.done()
+
+        update_usefixtures.__qualname__ = f"update_usefixtures: {attr_name} = subfactory_fixture({subfactory_class})"
+        module_load_callbacks.append(update_usefixtures)
+        return fixture_marker
+    else:
+        related.done()
 
     deps: list[str]  # makes mypy happy
     if isinstance(value, factory.PostGeneration):
@@ -211,7 +265,7 @@ def make_declaration_fixturedef(
         value = value
         deps = []
 
-    return create_fixture_with_related(
+    return create_fixture(
         name=attr_name,
         function=functools.partial(attr_fixture, value=value),
         fixtures=deps,
@@ -237,6 +291,10 @@ def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[st
     locals_[name] = function
 
 
+class CannotDetermineFixtureName(ValueError):
+    pass
+
+
 def get_model_name(factory_class: FactoryType) -> str:
     """Get model fixture name by factory."""
     # "class AuthorFactory(...):" -> "author"
@@ -245,7 +303,7 @@ def get_model_name(factory_class: FactoryType) -> str:
         factory_name = factory_class.__name__[: -len(suffix)]
         return inflection.underscore(factory_name)
     else:
-        raise ValueError(
+        raise CannotDetermineFixtureName(
             f"Factory {factory_class} does not follow the '<model_name>Factory' naming convention and "
             "pytest-factoryboy cannot automatically determine the fixture name.\n"
             f"Please use the naming convention '<model_name>Factory' or explicitly set the fixture name "
@@ -260,21 +318,21 @@ def get_factory_name(factory_class: FactoryType) -> str:
 
 def get_deps(
     factory_class: FactoryType,
-    parent_factory_class: FactoryType | None = None,
-    model_name: str | None = None,
+    model_name: str,
+    parent_model_name: str | None = None,
 ) -> list[str]:
     """Get factory dependencies.
 
     :return: List of the fixture argument names for dependency injection.
     """
-    model_name = get_model_name(factory_class) if model_name is None else model_name
-    parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
 
     def is_dep(value: Any) -> bool:
         if isinstance(value, factory.RelatedFactory):
             return False
-        if isinstance(value, factory.SubFactory) and get_model_name(value.get_factory()) == parent_model_name:
-            return False
+        if isinstance(value, factory.SubFactory):
+            subfactory_fixture_name = get_model_name(value.get_factory())
+            if subfactory_fixture_name == parent_model_name:
+                return False
         if isinstance(value, factory.declarations.PostGenerationDeclaration):
             # Dependency on extracted value
             return True
@@ -309,7 +367,7 @@ def disable_method(method: MethodType) -> Iterator[None]:
         setattr(klass, method.__name__, old_method)
 
 
-def model_fixture(request: SubRequest, factory_name: str) -> Any:
+def model_fixture(request: SubRequest, factory_class: FactoryType) -> Any:
     """Model fixture implementation."""
     factoryboy_request: FactoryboyRequest = request.getfixturevalue("factoryboy_request")
 
@@ -319,8 +377,6 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     assert request.fixturename  # NOTE: satisfy mypy
     fixture_name = request.fixturename
     prefix = "".join((fixture_name, SEPARATOR))
-
-    factory_class: FactoryType = request.getfixturevalue(factory_name)
 
     # Create model fixture instance
     Factory: FactoryType = cast(FactoryType, type("Factory", (factory_class,), {}))

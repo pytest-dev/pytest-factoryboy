@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from _pytest.python import Metafunc
     from factory import Factory
 
-    from .fixture import DeferredFunction
+from .fixture import DeferredFunction, execute_module_load_callbacks
 
 
 class CycleDetected(Exception):
@@ -140,3 +140,12 @@ def pytest_generate_tests(metafunc: Metafunc) -> None:
         related.extend(related_fixtures)
 
     metafunc.fixturenames.extend(related)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_pycollect_makemodule(module_path, path, parent):
+    outcome = yield
+    res = outcome.get_result()  # will raise if outcome was exception
+    # Maybe instead patch type(res).obj so that we run `execute_module_load_callbacks()` when it's invoked
+    res.obj  # Makes sure the module is executed
+    execute_module_load_callbacks()
