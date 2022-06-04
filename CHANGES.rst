@@ -3,7 +3,8 @@ Changelog
 
 Unreleased
 ----------
-- The fixture name for registered factories is now determined by the factory name (rather than the model name). This makes factories for builtin types (like ``dict``) easier to use.
+- The fixture name for registered factories is now determined by the factory name (rather than the model name). This makes factories for builtin types (like ``dict``) easier to use. `#163 <https://github.com/pytest-dev/pytest-factoryboy/pull/163>`_
+- Fix ``Factory._after_postgeneration`` being invoked twice. `#164 <https://github.com/pytest-dev/pytest-factoryboy/pull/164>`_ `#156 <https://github.com/pytest-dev/pytest-factoryboy/issues/156>`_
 
 2.4.0
 ----------
