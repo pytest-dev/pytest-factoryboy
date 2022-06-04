@@ -452,9 +452,9 @@ def subfactory_fixture(request: SubRequest, factory_class: FactoryType) -> Any:
     return request.getfixturevalue(fixture)
 
 
-def get_caller_locals(depth: int = 2) -> dict[str, Any]:
+def get_caller_locals(depth: int = 0) -> dict[str, Any]:
     """Get the local namespace of the caller frame."""
-    return sys._getframe(depth).f_locals
+    return sys._getframe(depth + 2).f_locals
 
 
 class LazyFixture(Generic[T]):
