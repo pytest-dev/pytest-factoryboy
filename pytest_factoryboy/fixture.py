@@ -24,7 +24,6 @@ import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-from factory.declarations import NotProvided
 from typing_extensions import ParamSpec, TypeAlias
 
 from .compat import PostGenerationContext
@@ -32,8 +31,6 @@ from .fixturegen import create_fixture
 
 if TYPE_CHECKING:
     from _pytest.fixtures import SubRequest
-    from factory.builder import BuildStep
-    from factory.declarations import PostGeneration, PostGenerationContext
 
     from .plugin import Request as FactoryboyRequest
 
@@ -366,7 +363,7 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
             # that `value_provided` should be falsy
             postgen_value = evaluate(request, request.getfixturevalue(argname))
             postgen_context = PostGenerationContext(
-                value_provided=(postgen_value is not NotProvided),
+                value_provided=(postgen_value is not factory.declarations.NotProvided),
                 value=postgen_value,
                 extra=extra,
             )
@@ -404,12 +401,12 @@ def make_deferred_related(factory: FactoryType, fixture: str, attr: str) -> Defe
 
 
 def make_deferred_postgen(
-    step: BuildStep,
+    step: factory.builder.BuildStep,
     factory_class: FactoryType,
     fixture: str,
     instance: Any,
     attr: str,
-    declaration: PostGeneration,
+    declaration: factory.declarations.PostGenerationDeclaration,
     context: PostGenerationContext,
 ) -> DeferredFunction:
     """Make deferred function for the post-generation declaration.
@@ -419,6 +416,7 @@ def make_deferred_postgen(
     :param fixture: Object fixture name e.g. "author".
     :param instance: Parent object instance.
     :param attr: Declaration attribute name e.g. "register_user".
+    :param declaration: Post-generation declaration.
     :param context: Post-generation declaration context.
 
     :note: Deferred function name results in "author__register_user".
