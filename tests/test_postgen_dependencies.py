@@ -180,29 +180,30 @@ def test_postgenerationmethodcall_fixture(foo: Foo):
 
 
 class TestPostgenerationCalledOnce:
-    calls: list[tuple[Foo, bool, dict[str, Any] | None]] = []
-
-    @register(_name="foo")
-    class CollectingFooFactory(FooFactory):
+    @register(_name="collector")
+    class CollectorFactory(factory.Factory):
         class Meta:
-            model = Foo
+            model = dict
+
+        foo = factory.PostGeneration(lambda *args, **kwargs: 42)
 
         @classmethod
-        def _after_postgeneration(cls, obj: Foo, create: bool, results: dict[str, Any] | None = None) -> None:
-            TestPostgenerationCalledOnce.calls.append((obj, create, results))
+        def _after_postgeneration(
+            cls, obj: dict[str, Any], create: bool, results: dict[str, Any] | None = None
+        ) -> None:
+            obj.setdefault("_after_postgeneration_calls", []).append((obj, create, results))
 
     def test_postgeneration_called_once(self, request):
         """Test that ``_after_postgeneration`` is called only once."""
-        foo = request.getfixturevalue("foo")
-
-        assert len(self.calls) == 1
-        [call] = self.calls
-        [obj, create, results] = call
+        foo = request.getfixturevalue("collector")
+        calls = foo["_after_postgeneration_calls"]
+        assert len(calls) == 1
+        [[obj, create, results]] = calls
 
         assert obj is foo
         assert create is True
         assert isinstance(results, dict)
-        assert results["set1"] == "set to 1"
+        assert results["foo"] == 42
 
 
 @dataclass
