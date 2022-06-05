@@ -1,10 +1,12 @@
 """Factory boy fixture integration."""
 from __future__ import annotations
 
+import contextlib
 import functools
 import sys
 from dataclasses import dataclass
 from inspect import signature
+from types import MethodType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,6 +14,7 @@ from typing import (
     Collection,
     Generic,
     Iterable,
+    Iterator,
     Mapping,
     Type,
     TypeVar,
@@ -24,7 +27,6 @@ import factory.builder
 import factory.declarations
 import factory.enums
 import inflection
-from factory.declarations import NotProvided
 from typing_extensions import ParamSpec, TypeAlias
 
 from .compat import PostGenerationContext
@@ -32,8 +34,6 @@ from .fixturegen import create_fixture
 
 if TYPE_CHECKING:
     from _pytest.fixtures import SubRequest
-    from factory.builder import BuildStep
-    from factory.declarations import PostGeneration, PostGenerationContext
 
     from .plugin import Request as FactoryboyRequest
 
@@ -291,6 +291,24 @@ def evaluate(request: SubRequest, value: LazyFixture[T] | T) -> T:
     return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
 
+def noop(*args: Any, **kwargs: Any) -> None:
+    """No-op function."""
+    pass
+
+
+@contextlib.contextmanager
+def disable_method(method: MethodType) -> Iterator[None]:
+    """Disable a method."""
+    klass = method.__self__
+    method_name = method.__name__
+    old_method = getattr(klass, method_name)
+    setattr(klass, method_name, noop)
+    try:
+        yield
+    finally:
+        setattr(klass, method.__name__, old_method)
+
+
 def model_fixture(request: SubRequest, factory_name: str) -> Any:
     """Model fixture implementation."""
     factoryboy_request: FactoryboyRequest = request.getfixturevalue("factoryboy_request")
@@ -328,7 +346,10 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     builder = factory.builder.StepBuilder(Factory._meta, kwargs, strategy)
     step = factory.builder.BuildStep(builder=builder, sequence=Factory._meta.next_sequence())
 
-    instance = Factory(**kwargs)
+    # FactoryBoy invokes the `_after_postgeneration` method, but we will instead call it manually later,
+    # once we are able to evaluate all the related fixtures.
+    with disable_method(Factory._after_postgeneration):
+        instance = Factory(**kwargs)
 
     # Cache the instance value on pytest level so that the fixture can be resolved before the return
     request._fixturedef.cached_result = (instance, 0, None)
@@ -360,7 +381,7 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
             # that `value_provided` should be falsy
             postgen_value = evaluate(request, request.getfixturevalue(argname))
             postgen_context = PostGenerationContext(
-                value_provided=(postgen_value is not NotProvided),
+                value_provided=(postgen_value is not factory.declarations.NotProvided),
                 value=postgen_value,
                 extra=extra,
             )
@@ -369,7 +390,8 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
             )
     factoryboy_request.defer(deferred)
 
-    # Try to evaluate as much post-generation dependencies as possible
+    # Try to evaluate as much post-generation dependencies as possible.
+    # This will finally invoke Factory._after_postgeneration, which was previously disabled
     factoryboy_request.evaluate(request)
     return instance
 
@@ -397,12 +419,12 @@ def make_deferred_related(factory: FactoryType, fixture: str, attr: str) -> Defe
 
 
 def make_deferred_postgen(
-    step: BuildStep,
+    step: factory.builder.BuildStep,
     factory_class: FactoryType,
     fixture: str,
     instance: Any,
     attr: str,
-    declaration: PostGeneration,
+    declaration: factory.declarations.PostGenerationDeclaration,
     context: PostGenerationContext,
 ) -> DeferredFunction:
     """Make deferred function for the post-generation declaration.
@@ -412,6 +434,7 @@ def make_deferred_postgen(
     :param fixture: Object fixture name e.g. "author".
     :param instance: Parent object instance.
     :param attr: Declaration attribute name e.g. "register_user".
+    :param declaration: Post-generation declaration.
     :param context: Post-generation declaration context.
 
     :note: Deferred function name results in "author__register_user".
@@ -445,9 +468,9 @@ def subfactory_fixture(request: SubRequest, factory_class: FactoryType) -> Any:
     return request.getfixturevalue(fixture)
 
 
-def get_caller_locals(depth: int = 2) -> dict[str, Any]:
+def get_caller_locals(depth: int = 0) -> dict[str, Any]:
     """Get the local namespace of the caller frame."""
-    return sys._getframe(depth).f_locals
+    return sys._getframe(depth + 2).f_locals
 
 
 class LazyFixture(Generic[T]):

@@ -3,7 +3,23 @@ Changelog
 
 Unreleased
 ----------
-- The fixture name for registered factories is now determined by the factory name (rather than the model name). This makes factories for builtin types (like ``dict``) easier to use.
+- The generated fixture name is now determined by the factory (rather than the model). This makes factories for builtin types (like ``dict``) easier to use. You may need to change your factories to use the ``<model>Factory`` naming convention, or use the ``register(_name=...)`` override. `#163 <https://github.com/pytest-dev/pytest-factoryboy/pull/163>`_
+
+.. code-block:: python
+
+    # example
+    @register
+    class HTTPHeadersFactory(factory.Factory):
+        class Meta:
+            model = dict  # no need to use a special dict subclass anymore
+
+        Authorization = "Basic Zm9vOmJhcg=="
+
+
+    def test_headers(headers):
+        assert headers["Authorization"] == "Basic Zm9vOmJhcg=="
+
+- Fix ``Factory._after_postgeneration`` being invoked twice. `#164 <https://github.com/pytest-dev/pytest-factoryboy/pull/164>`_ `#156 <https://github.com/pytest-dev/pytest-factoryboy/issues/156>`_
 
 2.4.0
 ----------

@@ -179,6 +179,33 @@ def test_postgenerationmethodcall_fixture(foo: Foo):
     assert foo.number == 456
 
 
+class TestPostgenerationCalledOnce:
+    @register(_name="collector")
+    class CollectorFactory(factory.Factory):
+        class Meta:
+            model = dict
+
+        foo = factory.PostGeneration(lambda *args, **kwargs: 42)
+
+        @classmethod
+        def _after_postgeneration(
+            cls, obj: dict[str, Any], create: bool, results: dict[str, Any] | None = None
+        ) -> None:
+            obj.setdefault("_after_postgeneration_calls", []).append((obj, create, results))
+
+    def test_postgeneration_called_once(self, request):
+        """Test that ``_after_postgeneration`` is called only once."""
+        foo = request.getfixturevalue("collector")
+        calls = foo["_after_postgeneration_calls"]
+        assert len(calls) == 1
+        [[obj, create, results]] = calls
+
+        assert obj is foo
+        assert create is True
+        assert isinstance(results, dict)
+        assert results["foo"] == 42
+
+
 @dataclass
 class Ordered:
     value: str | None = None
