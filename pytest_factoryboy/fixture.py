@@ -239,18 +239,11 @@ def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[st
 
 def get_model_name(factory_class: FactoryType) -> str:
     """Get model fixture name by factory."""
-    # "class AuthorFactory(...):" -> "author"
-    suffix = "Factory"
-    if factory_class.__name__.endswith(suffix):
-        factory_name = factory_class.__name__[: -len(suffix)]
-        return inflection.underscore(factory_name)
-    else:
-        raise ValueError(
-            f"Factory {factory_class} does not follow the '<model_name>Factory' naming convention and "
-            "pytest-factoryboy cannot automatically determine the fixture name.\n"
-            f"Please use the naming convention '<model_name>Factory' or explicitly set the fixture name "
-            "using `@register(_name=...)`."
-        )
+    return (
+        inflection.underscore(factory_class._meta.model.__name__)
+        if not isinstance(factory_class._meta.model, str)
+        else factory_class._meta.model
+    )
 
 
 def get_factory_name(factory_class: FactoryType) -> str:
