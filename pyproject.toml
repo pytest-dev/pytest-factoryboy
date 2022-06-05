@@ -40,8 +40,6 @@ typing_extensions = "*"
 [tool.poetry.dev-dependencies]
 mypy = "^0.960"
 tox = "^3.25.0"
-packaging = "^21.3"
-importlib-metadata = { version = "^4.11.4", python = "<3.8" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
