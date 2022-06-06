@@ -1,4 +1,4 @@
 """pytest-factoryboy public API."""
-from .fixture import LazyFixture, register
+from .fixture import LazyFixture, named_model, register
 
-__all__ = ("register", "LazyFixture")
+__all__ = ("register", "named_model", "LazyFixture")

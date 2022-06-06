@@ -3,6 +3,7 @@ Changelog
 
 Unreleased
 ----------
+- TODO: Add changelog entry for named_model and warnings.
 - Fix ``Factory._after_postgeneration`` being invoked twice. `#164 <https://github.com/pytest-dev/pytest-factoryboy/pull/164>`_ `#156 <https://github.com/pytest-dev/pytest-factoryboy/issues/156>`_
 
 2.4.0
