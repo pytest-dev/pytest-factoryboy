@@ -257,9 +257,7 @@ def get_model_name(factory_class: FactoryType) -> str:
             f"Using a {model_cls} as model type for {factory_class} is discouraged by pytest-factoryboy, "
             f"as it assumes that the model name is {model_name!r} when using it as SubFactory or RelatedFactory, "
             f"which is too generic and probably not what you want.\n"
-            f"You can suppress this error by using:\n"
-            f'model = named_model({model_cls.__name__}, "{model_name}")\n'
-            f"or you can consider giving an explicit name to the model by using:\n"
+            f"You can giving an explicit name to the model by using:\n"
             f'model = named_model({model_cls.__name__}, "Foo")',
         )
 
