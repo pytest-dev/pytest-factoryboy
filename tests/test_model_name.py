@@ -1,4 +1,5 @@
 # TODO: Unit test get_model_name
+from tests.compat import assert_outcomes
 
 
 def test_generic_model_with_custom_name_no_warning(testdir):
@@ -21,7 +22,7 @@ def test_generic_model_with_custom_name_no_warning(testdir):
     """
     )
     result = testdir.runpytest("-Werror")  # Warnings become errors
-    result.assert_outcomes(passed=1)
+    assert_outcomes(result, passed=1)
 
 
 def test_generic_model_name_raises_warning(testdir):
@@ -44,7 +45,7 @@ def test_generic_model_name_raises_warning(testdir):
     """
     )
     result = testdir.runpytest()
-    result.assert_outcomes(passed=1)
+    assert_outcomes(result, passed=1)
     result.stdout.fnmatch_lines(
         "*UserWarning: Using a *class*dict* as model type for *JSONPayloadFactory* is discouraged*"
     )
@@ -70,7 +71,7 @@ def test_generic_model_with_register_override_no_warning(testdir):
         """
     )
     result = testdir.runpytest("-Werror")  # Warnings become errors
-    result.assert_outcomes(passed=1)
+    assert_outcomes(result, passed=1)
 
 
 def test_using_generic_model_name_for_subfactory_raises_warning(testdir):
@@ -103,7 +104,7 @@ def test_using_generic_model_name_for_subfactory_raises_warning(testdir):
     )
 
     result = testdir.runpytest()
-    result.assert_outcomes(errors=1)
+    assert_outcomes(result, errors=1)
     result.stdout.fnmatch_lines(
         "*UserWarning: Using *class*dict* as model type for *JSONPayloadFactory* is discouraged*"
     )
