@@ -5,20 +5,19 @@ from tests.compat import assert_outcomes
 def test_generic_model_with_custom_name_no_warning(testdir):
     testdir.makepyfile(
         """
-    from factory import Factory
-    from pytest_factoryboy import named_model, register
+        from factory import Factory
+        from pytest_factoryboy import named_model, register
 
-    @register
-    class JSONPayloadFactory(Factory):
-        class Meta:
-            model = named_model(dict, "JSONPayload")
-        foo = "bar"
+        @register
+        class JSONPayloadFactory(Factory):
+            class Meta:
+                model = named_model(dict, "JSONPayload")
+            foo = "bar"
 
 
-    def test_payload(json_payload: dict):
-        assert isinstance(json_payload, dict)
-        assert json_payload["foo"] == "bar"
-
+        def test_payload(json_payload: dict):
+            assert isinstance(json_payload, dict)
+            assert json_payload["foo"] == "bar"
     """
     )
     result = testdir.runpytest("-Werror")  # Warnings become errors
@@ -28,20 +27,20 @@ def test_generic_model_with_custom_name_no_warning(testdir):
 def test_generic_model_name_raises_warning(testdir):
     testdir.makepyfile(
         """
-    import builtins
-    from factory import Factory
-    from pytest_factoryboy import register
+        import builtins
+        from factory import Factory
+        from pytest_factoryboy import register
 
-    @register
-    class JSONPayloadFactory(Factory):
-        class Meta:
-            model = dict
-        foo = "bar"
+        @register
+        class JSONPayloadFactory(Factory):
+            class Meta:
+                model = dict
+            foo = "bar"
 
 
-    def test_payload(dict):
-        assert isinstance(dict, builtins.dict)
-        assert dict["foo"] == "bar"
+        def test_payload(dict):
+            assert isinstance(dict, builtins.dict)
+            assert dict["foo"] == "bar"
     """
     )
     result = testdir.runpytest()
