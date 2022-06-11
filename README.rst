@@ -281,6 +281,29 @@ LazyFixture constructor accepts either existing fixture name or callable with de
     register(BookFactory, "another_book", author=LazyFixture("another_author"))
 
 
+Generic container classes as models
+-----------------------------------
+It's often useful to create factories for ``dict``s or other common generic container classes.
+In that case, you should wrap the container class around ``named_model(...)``, so that pytest-factoryboy can correctly determine the model name when using it in a SubFactory or RelatedFactory.
+Pytest-factoryboy will otherwise raise a warning.
+
+For example:
+
+.. code-block:: python
+
+    import factory
+    from pytest_factoryboy import named_model, register
+
+    @register
+    class JSONPayload(factory.Factory):
+        class Meta:
+            model = named_model("JSONPayload", dict)
+            # instead of
+            # model = dict
+
+        ...
+
+
 Post-generation dependencies
 ============================
 
