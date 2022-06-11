@@ -18,7 +18,7 @@ def test_generic_model_with_custom_name_no_warning(testdir):
         def test_payload(json_payload: dict):
             assert isinstance(json_payload, dict)
             assert json_payload["foo"] == "bar"
-    """
+        """
     )
     result = testdir.runpytest("-Werror")  # Warnings become errors
     assert_outcomes(result, passed=1)
