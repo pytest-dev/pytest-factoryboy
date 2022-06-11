@@ -4,6 +4,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import sys
+import warnings
 from dataclasses import dataclass
 from inspect import signature
 from types import MethodType
@@ -43,6 +44,7 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 SEPARATOR = "__"
+WARN_FOR_MODEL_TYPES = frozenset({dict, list, set, tuple, frozenset})
 
 
 @dataclass(eq=False)
@@ -54,6 +56,11 @@ class DeferredFunction:
 
     def __call__(self, request: SubRequest) -> Any:
         return self.function(request)
+
+
+def named_model(model_cls: type[T], name: str) -> type[T]:
+    """Return a model class with a given name."""
+    return type(name, (model_cls,), {})
 
 
 # register(AuthorFactory, ...)
@@ -239,11 +246,22 @@ def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[st
 
 def get_model_name(factory_class: FactoryType) -> str:
     """Get model fixture name by factory."""
-    return (
-        inflection.underscore(factory_class._meta.model.__name__)
-        if not isinstance(factory_class._meta.model, str)
-        else factory_class._meta.model
-    )
+    model_cls = factory_class._meta.model
+
+    if isinstance(model_cls, str):
+        return model_cls
+
+    model_name = inflection.underscore(model_cls.__name__)
+    if model_cls in WARN_FOR_MODEL_TYPES:
+        warnings.warn(
+            f"Using a {model_cls} as model type for {factory_class} is discouraged by pytest-factoryboy, "
+            f"as it assumes that the model name is {model_name!r} when using it as SubFactory or RelatedFactory, "
+            "which is too generic and probably not what you want.\n"
+            "You can giving an explicit name to the model by using:\n"
+            f'model = named_model({model_cls.__name__}, "Foo")',
+        )
+
+    return model_name
 
 
 def get_factory_name(factory_class: FactoryType) -> str:
