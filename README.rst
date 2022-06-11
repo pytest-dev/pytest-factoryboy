@@ -38,8 +38,8 @@ to the same module where register function is called.
 Factory Fixture
 ---------------
 
-Factory fixtures allow using factories without importing them. Name convention is lowercase-underscore
-class name.
+Factory fixtures allow using factories without importing them. The fixture name convention is to use the lowercase-underscore
+form of the class name.
 
 .. code-block:: python
 
@@ -51,7 +51,7 @@ class name.
             model = Author
 
 
-    register(AuthorFactory)
+    register(AuthorFactory)  # => author_factory
 
 
     def test_factory_fixture(author_factory):
