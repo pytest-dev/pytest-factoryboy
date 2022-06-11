@@ -66,9 +66,7 @@ class Box(Generic[T_co]):
     For example, the "caller_locals" dict holding a lot of items.
     """
 
-    value: T_co
-
-    def __init__(self, value: T_co):
+    def __init__(self, value: T_co) -> None:
         self.value = value
 
 
