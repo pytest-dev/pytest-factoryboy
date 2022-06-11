@@ -120,11 +120,23 @@ def register(
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
 
+    factory_name = get_factory_name(factory_class)
     model_name = get_model_name(factory_class) if _name is None else _name
+
+    assert model_name != factory_name, (
+        f"Naming collision for {factory_class}:\n"
+        f" * factory fixture name: {factory_name}\n"
+        f" * model fixture name: {model_name}\n"
+        f"Please provide different name for model fixture."
+    )
 
     fixture_defs = dict(
         generate_fixtures(
-            factory_class=factory_class, model_name=model_name, overrides=kwargs, caller_locals=_caller_locals
+            factory_class=factory_class,
+            model_name=model_name,
+            factory_name=factory_name,
+            overrides=kwargs,
+            caller_locals=_caller_locals,
         )
     )
     for name, fixture in fixture_defs.items():
@@ -134,10 +146,13 @@ def register(
 
 
 def generate_fixtures(
-    factory_class: FactoryType, model_name: str, overrides: Mapping[str, Any], caller_locals: Box[Mapping[str, Any]]
+    factory_class: FactoryType,
+    model_name: str,
+    factory_name: str,
+    overrides: Mapping[str, Any],
+    caller_locals: Box[Mapping[str, Any]],
 ) -> Iterable[tuple[str, Callable[..., Any]]]:
     """Generate all the FixtureDefs for the given factory class."""
-    factory_name = get_factory_name(factory_class)
 
     related: list[str] = []
     for attr, value in factory_class._meta.declarations.items():
