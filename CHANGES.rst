@@ -3,7 +3,7 @@ Changelog
 
 Unreleased
 ----------
-- Using a generic class container like ``dict``, ``list``, ``set``, etc. will raise a warning suggesting you to wrap your model using ``named_model(...)``. Doing this will make sure that the fixture name is correctly chosen, otherwise SubFactory and RelatedFactory aren't able to determine the name of the model. See TODO
+- Using a generic class container like ``dict``, ``list``, ``set``, etc. will raise a warning suggesting you to wrap your model using ``named_model(...)``. Doing this will make sure that the fixture name is correctly chosen, otherwise SubFactory and RelatedFactory aren't able to determine the name of the model. See `Generic Container Classes as models <https://pytest-factoryboy.readthedocs.io/en/latest/#generic-container-classes-as-models>`_ `#167 <https://github.com/pytest-dev/pytest-factoryboy/pull/167>`_
 - Fix ``Factory._after_postgeneration`` being invoked twice. `#164 <https://github.com/pytest-dev/pytest-factoryboy/pull/164>`_ `#156 <https://github.com/pytest-dev/pytest-factoryboy/issues/156>`_
 
 2.4.0

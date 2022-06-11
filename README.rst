@@ -280,7 +280,6 @@ LazyFixture constructor accepts either existing fixture name or callable with de
     # Can also be used in the partial specialization during the registration.
     register(BookFactory, "another_book", author=LazyFixture("another_author"))
 
-.. _Generic container classes:
 
 Generic container classes as models
 -----------------------------------
