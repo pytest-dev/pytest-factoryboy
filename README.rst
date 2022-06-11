@@ -283,7 +283,7 @@ LazyFixture constructor accepts either existing fixture name or callable with de
 
 Generic container classes as models
 -----------------------------------
-It's often useful to create factories for ``dict``s or other common generic container classes.
+It's often useful to create factories for ``dict`` or other common generic container classes.
 In that case, you should wrap the container class around ``named_model(...)``, so that pytest-factoryboy can correctly determine the model name when using it in a SubFactory or RelatedFactory.
 Pytest-factoryboy will otherwise raise a warning.
 
