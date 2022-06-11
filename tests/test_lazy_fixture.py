@@ -1,18 +1,21 @@
 """Test LazyFixture related features."""
+from __future__ import annotations
+
+from dataclasses import dataclass
 
 import factory
 import pytest
 
-from pytest_factoryboy import register, LazyFixture
+from pytest_factoryboy import LazyFixture, register
 
 
-class User(object):
+@dataclass
+class User:
     """User account."""
 
-    def __init__(self, username, password, is_active):
-        self.username = username
-        self.password = password
-        self.is_active = is_active
+    username: str
+    password: str
+    is_active: bool
 
 
 class UserFactory(factory.Factory):
@@ -37,16 +40,35 @@ register(
 
 
 @pytest.fixture
-def ok_password():
+def ok_password() -> str:
     return "ok"
 
 
 @pytest.mark.parametrize("user__password", [LazyFixture("ok_password")])
-def test_lazy_attribute(user):
+def test_lazy_attribute(user: User):
     """Test LazyFixture value is extracted before the LazyAttribute is called."""
     assert user.is_active
 
 
-def test_lazy_attribute_partial(partial_user):
+def test_lazy_attribute_partial(partial_user: User):
     """Test LazyFixture value is extracted before the LazyAttribute is called. Partial."""
     assert partial_user.is_active
+
+
+class TestLazyFixtureDeclaration:
+    @pytest.fixture
+    def name(self):
+        return "from fixture name"
+
+    @register
+    class UserFactory(factory.Factory):
+        class Meta:
+            model = User
+
+        username = LazyFixture[str]("name")
+        password = "foo"
+        is_active = False
+
+    def test_lazy_fixture_declaration(self, user):
+        """Test that we can use the LazyFixture declaration in the factory itself."""
+        assert user.username == "from fixture name"

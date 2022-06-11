@@ -1,6 +1,79 @@
 Changelog
 =========
 
+Unreleased
+----------
+- Using a generic class container like ``dict``, ``list``, ``set``, etc. will raise a warning suggesting you to wrap your model using ``named_model(...)``. Doing this will make sure that the fixture name is correctly chosen, otherwise SubFactory and RelatedFactory aren't able to determine the name of the model. See `Generic Container Classes as models <https://pytest-factoryboy.readthedocs.io/en/latest/#generic-container-classes-as-models>`_ `#167 <https://github.com/pytest-dev/pytest-factoryboy/pull/167>`_
+- Fix ``Factory._after_postgeneration`` being invoked twice. `#164 <https://github.com/pytest-dev/pytest-factoryboy/pull/164>`_ `#156 <https://github.com/pytest-dev/pytest-factoryboy/issues/156>`_
+
+2.4.0
+----------
+- ``LazyFixture`` is now a Generic[T] type.
+- Simplify fixture generation (internal change).
+- Use poetry (internal change).
+
+2.3.1
+----------
+- Fix AttributeError when using LazyFixture in register(...) `#159 <https://github.com/pytest-dev/pytest-factoryboy/issues/159>`_ `#158 <https://github.com/pytest-dev/pytest-factoryboy/issues/158>`_
+
+
+2.3.0
+----------
+- Add support for ``factory.PostGenerationMethodCall`` `#103 <https://github.com/pytest-dev/pytest-factoryboy/pull/103>`_ `#87 <https://github.com/pytest-dev/pytest-factoryboy/issues/87>`_.
+
+
+2.2.1
+----------
+- ``@register()`` decorator now refuses kwargs after the initial specialization. This behaviour was mistakenly introduced in version 2.2.0, and it complicates the usage of the ``register`` function unnecessarily. For example, the following is not allowed anymore:
+
+.. code-block:: python
+
+    # INVALID
+    register(
+        _name="second_author",
+        name="C.S. Lewis",
+    )(
+        AuthorFactory,
+        register_user="cs_lewis",
+        register_user__password="Aslan1",
+    )
+
+    # VALID
+    register(
+        AuthorFactory,
+        _name="second_author",
+        name="C.S. Lewis",
+        register_user="cs_lewis",
+        register_user__password="Aslan1",
+    )
+
+
+2.2.0
+----------
+- Drop support for Python 3.6. We now support only python >= 3.7.
+- Improve "debuggability". Internal pytest-factoryboy calls are now visible when using a debugger like PDB or PyCharm.
+- Add type annotations. Now ``register`` and ``LazyFixture`` are type annotated.
+- Fix `Factory._after_postgeneration <https://factoryboy.readthedocs.io/en/stable/reference.html#factory.Factory._after_postgeneration>`_ method not getting the evaluated ``post_generations`` and ``RelatedFactory`` results correctly in the ``result`` param.
+- Factories can now be registered inside classes (even nested classes) and they won't pollute the module namespace.
+- Allow the ``@register`` decorator to be called with parameters:
+
+.. code-block:: python
+
+    @register
+    @register("other_author")
+    class AuthorFactory(Factory):
+        ...
+
+
+2.1.0
+-----
+
+- Add support for factory_boy >= 3.2.0
+- Drop support for Python 2.7, 3.4, 3.5. We now support only python >= 3.6.
+- Drop support for pytest < 4.6. We now support only pytest >= 4.6.
+- Add missing versions of python (3.9 and 3.10) and pytest (6.x.x) to the CI test matrix.
+
+
 2.0.3
 -----
 
@@ -51,7 +124,7 @@ Breaking change due to the heavy refactor of both pytest and factory_boy.
 1.2.1
 -----
 
-- automatical resolution of the post-generation dependencies (olegpidsadnyi, kvas-it)
+- automatic resolution of the post-generation dependencies (olegpidsadnyi, kvas-it)
 
 
 1.1.6

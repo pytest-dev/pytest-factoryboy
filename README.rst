@@ -5,8 +5,8 @@ factory_boy_ integration with the pytest_ runner
    :target: https://pypi.python.org/pypi/pytest-factoryboy
 .. image:: https://img.shields.io/pypi/pyversions/pytest-factoryboy.svg
   :target: https://pypi.python.org/pypi/pytest-factoryboy
-.. image:: https://travis-ci.org/pytest-dev/pytest-factoryboy.svg?branch=master
-    :target: https://travis-ci.org/pytest-dev/pytest-factoryboy
+.. image:: https://github.com/pytest-dev/pytest-factoryboy/actions/workflows/main.yml/badge.svg
+    :target: https://github.com/pytest-dev/pytest-factoryboy/actions?query=workflow%3Amain
 .. image:: https://readthedocs.org/projects/pytest-factoryboy/badge/?version=latest
     :target: https://readthedocs.org/projects/pytest-factoryboy/?badge=latest
     :alt: Documentation Status
@@ -16,9 +16,9 @@ pytest-factoryboy makes it easy to combine ``factory`` approach to the test setu
 heart of the `pytest fixtures`_.
 
 .. _factory_boy: https://factoryboy.readthedocs.io
-.. _pytest: http://pytest.org
+.. _pytest: https://pytest.org
 .. _pytest fixtures: https://pytest.org/latest/fixture.html
-.. _overridden: http://pytest.org/latest/fixture.html#override-a-fixture-with-direct-test-parametrization
+.. _overridden: https://docs.pytest.org/en/latest/how-to/fixtures.html#overriding-fixtures-on-various-levels
 
 
 Install pytest-factoryboy
@@ -38,8 +38,8 @@ to the same module where register function is called.
 Factory Fixture
 ---------------
 
-Factory fixtures allow using factories without importing them. Name convention is lowercase-underscore
-class name.
+Factory fixtures allow using factories without importing them. The fixture name convention is to use the lowercase-underscore
+form of the class name.
 
 .. code-block:: python
 
@@ -47,12 +47,11 @@ class name.
     from pytest_factoryboy import register
 
     class AuthorFactory(factory.Factory):
-
         class Meta:
             model = Author
 
 
-    register(AuthorFactory)
+    register(AuthorFactory)  # => author_factory
 
 
     def test_factory_fixture(author_factory):
@@ -63,7 +62,7 @@ class name.
 Model Fixture
 -------------
 
-Model fixture implements an instance of a model created by the factory. Name convention is lowercase-underscore
+Model fixture implements an instance of a model created by the factory. Name convention is model's lowercase-underscore
 class name.
 
 
@@ -74,7 +73,6 @@ class name.
 
     @register
     class AuthorFactory(factory.Factory):
-
         class Meta:
             model = Author
 
@@ -85,19 +83,23 @@ class name.
         assert author.name == "Charles Dickens"
 
 
-Model fixtures can be registered with specific names. For example if you address instances of some collection
+Model fixtures can be registered with specific names. For example, if you address instances of some collection
 by the name like "first", "second" or of another parent as "other":
 
 
 .. code-block:: python
 
-    register(BookFactory)  # book
-    register(BookFactory, "second_book")  # second_book
+    register(AuthorFactory)  # author
+    register(AuthorFactory, "second_author")  # second_author
 
-    register(AuthorFactory) # author
-    register(AuthorFactory, "second_author") # second_author
+    # `register(...)` can be used as a decorator too
+    @register  # book
+    @register(_name="second_book")  # second_book
+    @register(_name="other_book")  # other_book, book of another author
+    class BookFactory(factory.Factory):
+        class Meta:
+            model = Book
 
-    register(BookFactory, "other_book")  # other_book, book of another author
 
     @pytest.fixture
     def other_book__author(second_author):
@@ -145,9 +147,9 @@ Integration
 
 An example of factory_boy_ and pytest_ integration.
 
-factories/__init__.py:
-
 .. code-block:: python
+
+    # factories/__init__.py
 
     import factory
     from faker import Factory as FakerFactory
@@ -156,7 +158,6 @@ factories/__init__.py:
 
 
     class AuthorFactory(factory.django.DjangoModelFactory):
-
         """Author factory."""
 
         name = factory.LazyAttribute(lambda x: faker.name())
@@ -166,7 +167,6 @@ factories/__init__.py:
 
 
     class BookFactory(factory.django.DjangoModelFactory):
-
         """Book factory."""
 
         title = factory.LazyAttribute(lambda x: faker.sentence(nb_words=4))
@@ -176,9 +176,10 @@ factories/__init__.py:
 
         author = factory.SubFactory(AuthorFactory)
 
-tests/conftest.py:
 
 .. code-block:: python
+
+    # tests/conftest.py
 
     from pytest_factoryboy import register
 
@@ -187,20 +188,24 @@ tests/conftest.py:
     register(AuthorFactory)
     register(BookFactory)
 
-tests/test_models.py:
 
 .. code-block:: python
+
+    # tests/test_models.py
 
     from app.models import Book
     from factories import BookFactory
 
+
     def test_book_factory(book_factory):
         """Factories become fixtures automatically."""
-        assert isinstance(book_factory, BookFactory)
+        assert book_factory is BookFactory
+
 
     def test_book(book):
         """Instances become fixtures automatically."""
         assert isinstance(book, Book)
+
 
     @pytest.mark.parametrize("book__title", ["PyTest for Dummies"])
     @pytest.mark.parametrize("author__name", ["Bill Gates"])
@@ -216,7 +221,7 @@ Fixture partial specialization
 There is a possibility to pass keyword parameters in order to override factory attribute values during fixture
 registration. This comes in handy when your test case is requesting a lot of fixture flavors. Too much for the
 regular pytest parametrization.
-In this case you can register fixture flavors in the local test module and specify value deviations inside ``register``
+In this case, you can register fixture flavors in the local test module and specify value deviations inside ``register``
 function calls.
 
 
@@ -276,6 +281,33 @@ LazyFixture constructor accepts either existing fixture name or callable with de
     register(BookFactory, "another_book", author=LazyFixture("another_author"))
 
 
+Generic container classes as models
+-----------------------------------
+It's often useful to create factories for ``dict`` or other common generic container classes.
+In that case, you should wrap the container class around ``named_model(...)``, so that pytest-factoryboy can correctly determine the model name when using it in a SubFactory or RelatedFactory.
+
+Pytest-factoryboy will otherwise raise a warning.
+
+For example:
+
+.. code-block:: python
+
+    import factory
+    from pytest_factoryboy import named_model, register
+
+    @register
+    class JSONPayload(factory.Factory):
+        class Meta:
+            model = named_model("JSONPayload", dict)
+
+        name = "foo"
+
+
+    def test_foo(json_payload):
+        assert json_payload.name == "foo"
+
+As a bonus, factory is automatically registering the ``json_payload`` fixture (rather than ``dict``), so there is no need to override ``@register(_name="json_payload"))``.
+
 Post-generation dependencies
 ============================
 
@@ -287,8 +319,8 @@ passing the SelfAttribute, but in the case of PyTest request fixture functions h
 in the request and to become available to other fixtures.
 
 That's why evaluation of the post-generation declaration in pytest-factoryboy is deferred until calling
-the test funciton.
-This solves circular dependecy resolution for situations like:
+the test function.
+This solves circular dependency resolution for situations like:
 
 ::
 
@@ -297,8 +329,8 @@ This solves circular dependecy resolution for situations like:
     o----(C depends on A)----o
 
 
-On the other hand deferring the evaluation of post-generation declarations evaluation makes their result unavailable during the generation
-of objects that are not in the circular dependecy, but they rely on the post-generation action.
+On the other hand, deferring the evaluation of post-generation declarations evaluation makes their result unavailable during the generation
+of objects that are not in the circular dependency, but they rely on the post-generation action.
 
 pytest-factoryboy is trying to detect cycles and resolve post-generation dependencies automatically.
 
@@ -309,20 +341,17 @@ pytest-factoryboy is trying to detect cycles and resolve post-generation depende
 
 
     class Foo(object):
-
         def __init__(self, value):
             self.value = value
 
 
     class Bar(object):
-
         def __init__(self, foo):
             self.foo = foo
 
 
     @register
     class FooFactory(factory.Factory):
-
         """Foo factory."""
 
         class Meta:
@@ -336,7 +365,6 @@ pytest-factoryboy is trying to detect cycles and resolve post-generation depende
 
 
     class BarFactory(factory.Factory):
-
         """Bar factory."""
 
         foo = factory.SubFactory(FooFactory)
@@ -350,10 +378,7 @@ pytest-factoryboy is trying to detect cycles and resolve post-generation depende
             model = Bar
 
 
-    register(
-        BarFactory,
-        'bar',
-    )
+    register(BarFactory, "bar")
     """Forces 'set1' to be evaluated first."""
 
 
@@ -368,7 +393,7 @@ Hooks
 pytest-factoryboy exposes several `pytest hooks <http://pytest.org/latest/plugins.html#well-specified-hooks>`_
 which might be helpful for e.g. controlling database transaction, for reporting etc:
 
-* pytest_factoryboy_done(request) - Called after all factory based fixtures and their post-generation actions have been evaluated.
+* pytest_factoryboy_done(request) - Called after all factory-based fixtures and their post-generation actions have been evaluated.
 
 
 License

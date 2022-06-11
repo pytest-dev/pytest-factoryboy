@@ -2,6 +2,7 @@
 *.rej
 *.py[cod]
 /.env
+/.env3
 *.orig
 
 # C extensions
