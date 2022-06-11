@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 FactoryType: TypeAlias = Type[factory.Factory]
 F = TypeVar("F", bound=FactoryType)
 T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
 P = ParamSpec("P")
 
 SEPARATOR = "__"
@@ -58,16 +59,16 @@ class DeferredFunction:
         return self.function(request)
 
 
-class Box(Generic[T]):
+class Box(Generic[T_co]):
     """Simple box class, used to hold a value.
 
     The main purpose of this is to hold objects that we don't want to appear in stack traces.
     For example, the "caller_locals" dict holding a lot of items.
     """
 
-    value: T
+    value: T_co
 
-    def __init__(self, value: T):
+    def __init__(self, value: T_co):
         self.value = value
 
 
