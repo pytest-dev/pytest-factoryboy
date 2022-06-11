@@ -285,6 +285,7 @@ Generic container classes as models
 -----------------------------------
 It's often useful to create factories for ``dict`` or other common generic container classes.
 In that case, you should wrap the container class around ``named_model(...)``, so that pytest-factoryboy can correctly determine the model name when using it in a SubFactory or RelatedFactory.
+
 Pytest-factoryboy will otherwise raise a warning.
 
 For example:
@@ -298,11 +299,10 @@ For example:
     class JSONPayload(factory.Factory):
         class Meta:
             model = named_model("JSONPayload", dict)
-            # instead of
-            # model = dict
 
         ...
 
+As a bonus, factory is automatically registering the ``"json_payload"`` fixture (rather than ``"dict"``), so there is no need to override ``@register(_name="json_payload")).
 
 Post-generation dependencies
 ============================
