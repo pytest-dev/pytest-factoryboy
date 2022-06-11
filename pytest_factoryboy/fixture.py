@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 FactoryType: TypeAlias = Type[factory.Factory]
 F = TypeVar("F", bound=FactoryType)
 T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
 P = ParamSpec("P")
 
 SEPARATOR = "__"
@@ -56,6 +57,19 @@ class DeferredFunction:
 
     def __call__(self, request: SubRequest) -> Any:
         return self.function(request)
+
+
+class Box(Generic[T_co]):
+    """Simple box class, used to hold a value.
+
+    The main purpose of this is to hold objects that we don't want to appear in stack traces.
+    For example, the "caller_locals" dict holding a lot of items.
+    """
+
+    value: T_co
+
+    def __init__(self, value: T_co):
+        self.value = value
 
 
 def named_model(model_cls: type[T], name: str) -> type[T]:
@@ -83,7 +97,7 @@ def register(
     factory_class: F | None = None,
     _name: str | None = None,
     *,
-    _caller_locals: dict[str, Any] | None = None,
+    _caller_locals: Box[dict[str, Any]] | None = None,
     **kwargs: Any,
 ) -> F | Callable[[F], F]:
     r"""Register fixtures for the factory class.
@@ -94,7 +108,7 @@ def register(
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
     if _caller_locals is None:
-        _caller_locals = get_caller_locals()
+        _caller_locals = Box(get_caller_locals())
 
     if factory_class is None:
 
@@ -136,7 +150,7 @@ def generate_fixtures(
     model_name: str,
     factory_name: str,
     overrides: Mapping[str, Any],
-    caller_locals: Mapping[str, Any],
+    caller_locals: Box[Mapping[str, Any]],
 ) -> Iterable[tuple[str, Callable[..., Any]]]:
     """Generate all the FixtureDefs for the given factory class."""
 
@@ -154,7 +168,7 @@ def generate_fixtures(
             ),
         )
 
-    if factory_name not in caller_locals:
+    if factory_name not in caller_locals.value:
         yield (
             factory_name,
             create_fixture_with_related(
@@ -240,7 +254,7 @@ def make_declaration_fixturedef(
     )
 
 
-def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[str, Any]) -> None:
+def inject_into_caller(name: str, function: Callable[..., Any], locals_: Box[dict[str, Any]]) -> None:
     """Inject a function into the caller's locals, making sure that the function will work also within classes."""
     # We need to check if the caller frame is a class, since in that case the first argument is the class itself.
     # In that case, we can apply the staticmethod() decorator to the injected function, so that the first param
@@ -252,11 +266,11 @@ def inject_into_caller(name: str, function: Callable[..., Any], locals_: dict[st
     # This could change in the future, but it shouldn't be too much of a problem since registering a factory
     # in a function namespace would not make it usable anyway.
     # Therefore, we can just check for __qualname__ to figure out if we are in a class, and apply the @staticmethod.
-    is_class_or_function = "__qualname__" in locals_
+    is_class_or_function = "__qualname__" in locals_.value
     if is_class_or_function:
         function = staticmethod(function)
 
-    locals_[name] = function
+    locals_.value[name] = function
 
 
 def get_model_name(factory_class: FactoryType) -> str:
