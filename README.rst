@@ -300,9 +300,13 @@ For example:
         class Meta:
             model = named_model("JSONPayload", dict)
 
-        ...
+        name = "foo"
 
-As a bonus, factory is automatically registering the ``"json_payload"`` fixture (rather than ``"dict"``), so there is no need to override ``@register(_name="json_payload")).
+
+    def test_foo(json_payload):
+        assert json_payload.name == "foo"
+
+As a bonus, factory is automatically registering the ``json_payload`` fixture (rather than ``dict``), so there is no need to override ``@register(_name="json_payload"))``.
 
 Post-generation dependencies
 ============================
