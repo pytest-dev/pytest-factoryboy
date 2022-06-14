@@ -38,7 +38,7 @@ pytest = ">=5.0.0"
 typing_extensions = "*"
 
 [tool.poetry.dev-dependencies]
-mypy = "^0.960"
+mypy = "^0.961"
 tox = "^3.25.0"
 packaging = "^21.3"
 importlib-metadata = "^4.11.4"
