@@ -87,3 +87,8 @@ def usefixtures(*fixtures: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
         return wrapper
 
     return inner
+
+
+def foo() -> None:
+    a = [1, 2, 3]
+    return 33
