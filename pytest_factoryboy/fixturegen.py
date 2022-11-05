@@ -91,4 +91,5 @@ def usefixtures(*fixtures: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
 
 def untested_function() -> None:
     asd = 3
+    foo = 4
     return None
