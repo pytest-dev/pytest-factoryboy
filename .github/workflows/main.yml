@@ -23,6 +23,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -U setuptools
         pip install tox tox-gh-actions coverage[toml]
+    - name: Type checking
+      # Ignore errors for older pythons
+      continue-on-error: ${{ contains(fromJSON('["3.7", "3.8", "3.9"]'), matrix.python-version)}}
+      run: |
+        tox -e py{37,38,39,310,311}-mypy
     - name: Test with tox
       env:
         TOX_PARALLEL_NO_SPINNER: 1
