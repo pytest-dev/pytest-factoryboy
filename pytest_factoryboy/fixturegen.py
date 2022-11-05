@@ -51,7 +51,6 @@ def create_fixture(
 
 def usefixtures(*fixtures: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Like ``@pytest.mark.usefixtures(...)``, but for fixture functions."""
-    1 / 0
 
     def inner(fixture_function: Callable[P, T]) -> Callable[P, T]:
         function_params = list(inspect.signature(fixture_function).parameters.values())
@@ -88,3 +87,8 @@ def usefixtures(*fixtures: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
         return wrapper
 
     return inner
+
+
+def untested_function() -> None:
+    asd = 3
+    return None
