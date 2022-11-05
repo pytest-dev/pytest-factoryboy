@@ -27,7 +27,7 @@ jobs:
       # Ignore errors for older pythons
       continue-on-error: ${{ contains(fromJSON('["3.7", "3.8", "3.9"]'), matrix.python-version)}}
       run: |
-        tox -e py{37,38,39,310,311}-mypy
+        tox -e mypy
     - name: Test with tox
       env:
         TOX_PARALLEL_NO_SPINNER: 1
