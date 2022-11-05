@@ -37,11 +37,12 @@ factory_boy = ">=2.10.0"
 pytest = ">=5.0.0"
 typing_extensions = "*"
 
-[tool.poetry.dev-dependencies]
-mypy = "^0.961"
-tox = "^3.25.0"
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.982"
+tox = "^3.27.0"
 packaging = "^21.3"
-importlib-metadata = "^4.11.4"
+importlib-metadata = { version = "^5.0.0", python = "<3.8" }
+coverage = {extras = ["toml"], version = "^6.5.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -49,10 +50,34 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 120
-target-version = ['py37', 'py38', 'py39', 'py310']
+target-version = ['py37', 'py38', 'py39', 'py310', 'py311']
 
 [tool.isort]
 profile = 'black'
+
+[tool.coverage.report]
+exclude_lines = [
+    "if TYPE_CHECKING:",
+    "if typing\\.TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+show_contexts = true
+
+[tool.coverage.run]
+branch = true
+# `parallel` will cause each tox env to put data into a different file, so that we can combine them later
+parallel = true
+source = ["pytest_factoryboy", "tests"]
+dynamic_context = "test_function"
+
+[tool.coverage.paths]
+# treat these directories as the same when combining
+# the first item is going to be the canonical dir
+source = [
+    "pytest_factoryboy",
+    ".tox/*/lib/python*/site-packages/pytest_factoryboy",
+]
 
 [tool.mypy]
 exclude = ['docs/']
