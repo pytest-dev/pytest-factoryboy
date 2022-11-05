@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11-dev" ]
-        pytest-version: [ "62", "70", "71", "latest", "main" ]
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11" ]
+        pytest-version: [ "62", "70", "71", "72", "latest", "main" ]
 
         include:
           # Convert python-version to a string that tox understands
@@ -24,7 +24,7 @@ jobs:
             tox-py-version: "39"
           - python-version: "3.10"
             tox-py-version: "310"
-          - python-version: "3.11-dev"
+          - python-version: "3.11"
             tox-py-version: "311"
 
           # Include older pytest versions `5.0 < pytest < 6.2` for python 3.7, 3.8, 3.9
