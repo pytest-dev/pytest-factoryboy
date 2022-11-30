@@ -110,7 +110,7 @@ def factoryboy_request() -> Request:
     return Request()
 
 
-@pytest.mark.tryfirst
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_call(item: Item) -> None:
     """Before the test item is called."""
     # TODO: We should instead do an `if isinstance(item, Function)`.
