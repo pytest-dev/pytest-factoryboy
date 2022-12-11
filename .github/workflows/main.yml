@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        experimental: [false]
+        ignore-type-errors : [false]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12.0-alpha.3"]
         include:
           - python-version: "3.7"
             toxfactor: py37
