@@ -10,22 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        py: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.py }}
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.py }}
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -U setuptools
-        pip install "tox~=4.0" tox-gh coverage[toml]
+        pip install "tox~=4.0" coverage[toml]
     - name: Type checking
       # Ignore errors for older pythons
-      continue-on-error: ${{ contains(fromJSON('["3.7", "3.8", "3.9"]'), matrix.python-version)}}
+      continue-on-error: ${{ contains(fromJSON('["3.7", "3.8", "3.9"]'), matrix.py)}}
       run: |
         tox -e mypy
     - name: Test with tox
@@ -33,7 +33,7 @@ jobs:
         TOX_PARALLEL_NO_SPINNER: 1
       run: |
         coverage erase
-        tox run-parallel
+        tox run-parallel --factor py${{ matrix.py }}
         coverage combine
         coverage xml
     - uses: codecov/codecov-action@v3
