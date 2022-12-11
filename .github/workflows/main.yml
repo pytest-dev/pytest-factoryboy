@@ -43,7 +43,7 @@ jobs:
       # Ignore errors for older pythons
       continue-on-error: ${{ matrix.ignore-type-errors }}
       run: |
-        tox -e py${{ matrix.toxfactor }}-mypy
+        tox -e ${{ matrix.toxfactor }}-mypy
     - name: Test with tox
       continue-on-error: ${{ matrix.experimental }}
       run: |
