@@ -40,8 +40,6 @@ jobs:
       run: |
         tox -e mypy
     - name: Test with tox
-      env:
-        TOX_PARALLEL_NO_SPINNER: 1
       run: |
         coverage erase
         tox run-parallel -f ${{ matrix.toxfactor }}
