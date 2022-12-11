@@ -10,8 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        py: ["3.7", "3.8", "3.9", "3.10", "3.11"]
-
+        include:
+          - py: "3.7"
+            toxfactor: py37
+          - py: "3.8"
+            toxfactor: py38
+          - py: "3.9"
+            toxfactor: py39
+          - py: "3.10"
+            toxfactor: py310
+          - py: "3.11"
+            toxfactor: py311
+          - py: "3.12"
+            toxfactor: py312
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.py }}
@@ -33,7 +44,7 @@ jobs:
         TOX_PARALLEL_NO_SPINNER: 1
       run: |
         coverage erase
-        tox run-parallel --factor py${{ matrix.py }}
+        tox run-parallel -f ${{ matrix.toxfactor }}
         coverage combine
         coverage xml
     - uses: codecov/codecov-action@v3
