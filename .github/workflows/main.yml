@@ -50,7 +50,7 @@ jobs:
       # Ignore errors for older pythons
       continue-on-error: ${{ matrix.ignore-typecheck-outcome }}
       run: |
-        tox -e ${{ matrix.toxfactor }}-mypy
+        tox -e mypy
     - name: Test with tox
       continue-on-error: ${{ matrix.ignore-test-outcome }}
       run: |
