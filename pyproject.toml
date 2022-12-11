@@ -31,7 +31,7 @@ classifiers = [
 "pytest-factoryboy" = "pytest_factoryboy.plugin"
 
 [tool.poetry.dependencies]
-python = ">=3.7"
+python = "~=3.7"
 inflection = "*"
 factory_boy = ">=2.10.0"
 pytest = ">=5.0.0"
@@ -39,8 +39,8 @@ typing_extensions = "*"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^0.991"
-tox = "^3.27.0"
-packaging = "^21.3"
+tox = "^4.0.8"
+packaging = "^22.0"
 importlib-metadata = { version = "^5.0.0", python = "<3.8" }
 coverage = {extras = ["toml"], version = "^6.5.0"}
 
