@@ -13,16 +13,21 @@ jobs:
         include:
           - python-version: "3.7"
             toxfactor: py37
+            ignore-type-errors: true
           - python-version: "3.8"
             toxfactor: py38
+            ignore-type-errors: true
           - python-version: "3.9"
             toxfactor: py39
+            ignore-type-errors: true
           - python-version: "3.10"
             toxfactor: py310
           - python-version: "3.11"
             toxfactor: py311
           - python-version: "3.12.0-alpha.3"
             toxfactor: py312
+            ignore-type-errors: true
+            experimental: true
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -36,10 +41,11 @@ jobs:
         pip install "tox~=4.0" coverage[toml]
     - name: Type checking
       # Ignore errors for older pythons
-      continue-on-error: ${{ contains(fromJSON('["3.7", "3.8", "3.9"]'), matrix.python-version)}}
+      continue-on-error: ${{ matrix.ignore-type-errors }}
       run: |
-        tox -e mypy
+        tox -e py${{ matrix.toxfactor }}-mypy
     - name: Test with tox
+      continue-on-error: ${{ matrix.experimental }}
       run: |
         coverage erase
         tox run-parallel -f ${{ matrix.toxfactor }}
