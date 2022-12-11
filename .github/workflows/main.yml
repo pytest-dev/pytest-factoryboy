@@ -10,8 +10,31 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
-
+        include:
+          - python-version: "3.7"
+            toxfactor: py37
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
+          - python-version: "3.8"
+            toxfactor: py38
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
+          - python-version: "3.9"
+            toxfactor: py39
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
+          - python-version: "3.10"
+            toxfactor: py310
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
+          - python-version: "3.11"
+            toxfactor: py311
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
+          - python-version: "3.12.0-alpha.3"
+            toxfactor: py312
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: true
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -22,18 +45,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U setuptools
-        pip install tox tox-gh-actions coverage[toml]
+        pip install "tox~=4.0" coverage[toml]
     - name: Type checking
       # Ignore errors for older pythons
-      continue-on-error: ${{ contains(fromJSON('["3.7", "3.8", "3.9"]'), matrix.python-version)}}
+      continue-on-error: ${{ matrix.ignore-typecheck-outcome }}
       run: |
         tox -e mypy
     - name: Test with tox
-      env:
-        TOX_PARALLEL_NO_SPINNER: 1
+      continue-on-error: ${{ matrix.ignore-test-outcome }}
       run: |
         coverage erase
-        tox --parallel
+        tox run-parallel -f ${{ matrix.toxfactor }} --parallel-no-spinner --parallel-live
         coverage combine
         coverage xml
     - uses: codecov/codecov-action@v3
