@@ -10,27 +10,31 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        experimental: [false]
-        ignore-type-errors : [false]
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12.0-alpha.3"]
         include:
           - python-version: "3.7"
             toxfactor: py37
-            ignore-type-errors: true
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
           - python-version: "3.8"
             toxfactor: py38
-            ignore-type-errors: true
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
           - python-version: "3.9"
             toxfactor: py39
-            ignore-type-errors: true
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
           - python-version: "3.10"
             toxfactor: py310
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
           - python-version: "3.11"
             toxfactor: py311
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
           - python-version: "3.12.0-alpha.3"
             toxfactor: py312
-            ignore-type-errors: true
-            experimental: true
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: true
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -44,11 +48,11 @@ jobs:
         pip install "tox~=4.0" coverage[toml]
     - name: Type checking
       # Ignore errors for older pythons
-      continue-on-error: ${{ matrix.ignore-type-errors }}
+      continue-on-error: ${{ matrix.ignore-typecheck-outcome }}
       run: |
         tox -e ${{ matrix.toxfactor }}-mypy
     - name: Test with tox
-      continue-on-error: ${{ matrix.experimental }}
+      continue-on-error: ${{ matrix.ignore-test-outcome }}
       run: |
         coverage erase
         tox run-parallel -f ${{ matrix.toxfactor }} --parallel-no-spinner --parallel-live
