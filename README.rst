@@ -211,7 +211,7 @@ An example of factory_boy_ and pytest_ integration.
     @pytest.mark.parametrize("author__name", ["Bill Gates"])
     def test_parametrized(book):
         """You can set any factory attribute as a fixture using naming convention."""
-        assert book.name == "PyTest for Dummies"
+        assert book.title == "PyTest for Dummies"
         assert book.author.name == "Bill Gates"
 
 
