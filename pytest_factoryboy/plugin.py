@@ -60,7 +60,7 @@ class Request:
         while hasattr(request, "_parent_request"):
             if request.fixturename and request.fixturename not in getattr(request, "_fixturedefs", {}):
                 deps.add(request.fixturename)
-            request = request._parent_request  # type: ignore[union-attr]
+            request = request._parent_request
         return deps
 
     def execute(self, request: SubRequest, function: DeferredFunction, deferred: list[DeferredFunction]) -> None:
@@ -110,7 +110,9 @@ def factoryboy_request() -> Request:
     return Request()
 
 
-@pytest.mark.tryfirst
+# type ignored because pluggy v1.0.0 has no type annotations:
+# https://github.com/pytest-dev/pluggy/issues/191
+@pytest.hookimpl(tryfirst=True)  # type: ignore[misc]
 def pytest_runtest_call(item: Item) -> None:
     """Before the test item is called."""
     # TODO: We should instead do an `if isinstance(item, Function)`.

@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ----------
 
+2.5.1
+----------
+- Fix PytestDeprecationWarning. `#180 <https://github.com/pytest-dev/pytest-factoryboy/pull/180>`_ `#179 <https://github.com/pytest-dev/pytest-factoryboy/issues/179>`_
+
 2.5.0
 ----------
 - Using a generic class container like ``dict``, ``list``, ``set``, etc. will raise a warning suggesting you to wrap your model using ``named_model(...)``. Doing this will make sure that the fixture name is correctly chosen, otherwise SubFactory and RelatedFactory aren't able to determine the name of the model. See `Generic Container Classes as models <https://pytest-factoryboy.readthedocs.io/en/latest/#generic-container-classes-as-models>`_ `#167 <https://github.com/pytest-dev/pytest-factoryboy/pull/167>`_
