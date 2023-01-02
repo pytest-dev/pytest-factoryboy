@@ -43,7 +43,6 @@ jobs:
       uses: actions/setup-python@v4
       id: setup-python
       with:
-        cache: pip
         python-version: ${{ matrix.python-version }}
 
     - name: Install poetry
