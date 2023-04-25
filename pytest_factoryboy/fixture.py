@@ -397,7 +397,6 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     deferred: list[DeferredFunction] = []
 
     for attr in factory_class._meta.post_declarations.sorted():
-
         decl = factory_class._meta.post_declarations.declarations[attr]
 
         if isinstance(decl, factory.RelatedFactory):
