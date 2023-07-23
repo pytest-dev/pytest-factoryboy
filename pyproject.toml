@@ -40,8 +40,6 @@ typing_extensions = "*"
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.4.1"
 tox = "^4.0.8"
-packaging = "^22.0"
-importlib-metadata = { version = "^5.0.0", python = "<3.8" }
 coverage = {extras = ["toml"], version = "^6.5.0"}
 
 [build-system]
