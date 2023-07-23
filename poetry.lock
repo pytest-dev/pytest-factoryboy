@@ -20,14 +20,14 @@ tests-no-zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy 
 
 [[package]]
 name = "cachetools"
-version = "5.2.0"
+version = "5.3.1"
 description = "Extensible memoizing collections and decorators"
 category = "dev"
 optional = false
-python-versions = "~=3.7"
+python-versions = ">=3.7"
 files = [
-    {file = "cachetools-5.2.0-py3-none-any.whl", hash = "sha256:f9f17d2aec496a9aa6b76f53e3b614c965223c061982d434d160f930c698a9db"},
-    {file = "cachetools-5.2.0.tar.gz", hash = "sha256:6a94c6402995a99c3970cc7e4884bb60b4a8639938157eeed436098bf9831757"},
+    {file = "cachetools-5.3.1-py3-none-any.whl", hash = "sha256:95ef631eeaea14ba2e36f06437f36463aac3a096799e876ee55e5cdccb102590"},
+    {file = "cachetools-5.3.1.tar.gz", hash = "sha256:dce83f2d9b4e1f732a8cd44af8e8fab2dbe46201467fc98b3ef8f269092bf62b"},
 ]
 
 [[package]]
@@ -557,5 +557,5 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 
 [metadata]
 lock-version = "2.0"
-python-versions = "~=3.7"
-content-hash = "4c4921300dd7494580f7a07247f70d0d5d2ac4e3d3db8eac9386a39b88689cbd"
+python-versions = ">=3.7"
+content-hash = "4305220efc45173378006cdcda7fdc6db29f8199a25a70985d8aef5a23196983"
