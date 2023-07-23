@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-import sys
+from importlib import metadata
 
 from _pytest.pytester import RunResult
 from packaging.version import Version
-
-if sys.version_info >= (3, 8):
-    from importlib import metadata
-else:
-    import importlib_metadata as metadata
 
 PYTEST_VERSION = Version(metadata.version("pytest"))
 
