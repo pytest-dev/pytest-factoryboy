@@ -4,6 +4,7 @@ Changelog
 Unreleased
 ----------
 - Drop python 3.7 support and add support for python 3.12. Supported versions are now: 3.8, 3.9, 3.10, 3.11, 3.12.
+- Drop support for pytest < 6.2. We now support only pytest >= 6.2 (tested against pytest 7.4 at the time of writing).
 
 2.5.1
 ----------
