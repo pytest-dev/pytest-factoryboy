@@ -60,19 +60,6 @@ class name.
         assert author.name == "Charles Dickens"
 
 
-Model fixtures can be registered with specific names. For example, if you address instances of some collection
-by the name like "first", "second" or of another parent as "other":
-
-
-.. code-block:: python
-
-    register(AuthorFactory)  # author
-    register(AuthorFactory, "second_author")  # second_author
-
-
-    def test_different_fixtures(author, second_author):
-        assert author != second_author
-
 
 
 Attributes are Fixtures
@@ -87,6 +74,37 @@ double underscore (similar to the convention used by factory_boy).
     @pytest.mark.parametrize("author__name", ["Bill Gates"])
     def test_model_fixture(author):
         assert author.name == "Bill Gates"
+
+Multiple fixtures
+-----------------
+Model fixtures can be registered with specific names. For example, if you address instances of some collection
+by the name like "first", "second" or of another parent as "other":
+
+
+.. code-block:: python
+
+    register(AuthorFactory)  # author
+    register(AuthorFactory, "second_author")  # second_author
+
+
+    @register  # book
+    @register(_name="second_book")  # second_book
+    @register(_name="other_book")  # other_book, book of another author
+    class BookFactory(factory.Factory):
+        class Meta:
+            model = Book
+
+
+    @pytest.fixture
+    def other_book__author(second_author):
+        """Make the relation of the `other_book.author` to `second_author`."""
+        return second_author
+
+
+    def test_book_authors(book, second_book, other_book, author, second_author):
+        assert book.author == second_book.author == author
+        assert other_book.author == second_author
+
 
 SubFactory
 ----------
