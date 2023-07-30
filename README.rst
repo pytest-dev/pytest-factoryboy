@@ -149,31 +149,27 @@ An example of factory_boy_ and pytest_ integration.
 
 .. code-block:: python
 
-    # factories/__init__.py
+    # tests/factories.py
 
     import factory
+    from app import models
     from faker import Factory as FakerFactory
 
     faker = FakerFactory.create()
 
 
     class AuthorFactory(factory.django.DjangoModelFactory):
-        """Author factory."""
-
-        name = factory.LazyAttribute(lambda x: faker.name())
-
         class Meta:
-            model = 'app.Author'
+            model = models.Author
+
+        name = factory.LazyFunction(lambda: faker.name())
 
 
     class BookFactory(factory.django.DjangoModelFactory):
-        """Book factory."""
-
-        title = factory.LazyAttribute(lambda x: faker.sentence(nb_words=4))
-
         class Meta:
-            model = 'app.Book'
+            model = models.Book
 
+        title = factory.LazyFunction(lambda: faker.sentence(nb_words=4))
         author = factory.SubFactory(AuthorFactory)
 
 
@@ -183,10 +179,10 @@ An example of factory_boy_ and pytest_ integration.
 
     from pytest_factoryboy import register
 
-    from factories import AuthorFactory, BookFactory
+    from . import factories
 
-    register(AuthorFactory)
-    register(BookFactory)
+    register(factories.AuthorFactory)
+    register(factories.BookFactory)
 
 
 .. code-block:: python
@@ -194,7 +190,7 @@ An example of factory_boy_ and pytest_ integration.
     # tests/test_models.py
 
     from app.models import Book
-    from factories import BookFactory
+    from .factories import BookFactory
 
 
     def test_book_factory(book_factory):
@@ -352,8 +348,6 @@ pytest-factoryboy is trying to detect cycles and resolve post-generation depende
 
     @register
     class FooFactory(factory.Factory):
-        """Foo factory."""
-
         class Meta:
             model = Foo
 
@@ -363,9 +357,10 @@ pytest-factoryboy is trying to detect cycles and resolve post-generation depende
         def set1(foo, create, value, **kwargs):
             foo.value = 1
 
-
+    @register
     class BarFactory(factory.Factory):
-        """Bar factory."""
+        class Meta:
+            model = Bar
 
         foo = factory.SubFactory(FooFactory)
 
@@ -374,17 +369,11 @@ pytest-factoryboy is trying to detect cycles and resolve post-generation depende
             assert foo.value == 1  # Assert that set1 is evaluated before object generation
             return super(BarFactory, cls)._create(model_class, foo=foo)
 
-        class Meta:
-            model = Bar
 
-
-    register(BarFactory, "bar")
-    """Forces 'set1' to be evaluated first."""
-
-
+    # Forces 'set1' to be evaluated first.
     def test_depends_on_set1(bar):
         """Test that post-generation hooks are done and the value is 2."""
-        assert depends_on_1.foo.value == 1
+        assert bar.foo.value == 1
 
 
 Hooks
