@@ -60,8 +60,6 @@ class name.
         assert author.name == "Charles Dickens"
 
 
-
-
 Attributes are Fixtures
 -----------------------
 
@@ -75,8 +73,10 @@ double underscore (similar to the convention used by factory_boy).
     def test_model_fixture(author):
         assert author.name == "Bill Gates"
 
+
 Multiple fixtures
 -----------------
+
 Model fixtures can be registered with specific names. For example, if you address instances of some collection
 by the name like "first", "second" or of another parent as "other":
 
