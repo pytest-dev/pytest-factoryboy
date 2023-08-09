@@ -14,6 +14,11 @@ class Foo:
     value: str
 
 
+@pytest.fixture
+def bar(request):
+    pass
+
+
 class TestRegisterDirectDecorator:
     @register()
     class FooFactory(factory.Factory):
@@ -82,6 +87,33 @@ class TestRegisterAlternativeNameAndArgs:
         """Test that `register` can be invoked with `_name` to specify an alternative
         fixture name and with any kwargs to override the factory declarations."""
         assert second_foo.value == "second_bar"
+
+
+class TestRegisterWithAdditionalFixtures:
+    class FooFactory(factory.Factory):
+        class Meta:
+            model = Foo
+
+        value = "register(FooFactory)"
+
+    class OtherFooFactory(factory.Factory):
+        class Meta:
+            model = Foo
+
+        value = "register(OtherFooFactory)"
+
+    register(FooFactory, _factory_only=True, _factory_request_fixtures=["bar"])
+    register(FooFactory, _name="with_bar")
+    register(OtherFooFactory, _name="without_bar")
+
+    def test_register_factory(self, request, foo_factory):
+        assert 'bar' in request.fixturenames
+
+    def test_register_instance(self, request, with_bar):
+        assert 'bar' in request.fixturenames
+
+    def test_register_second_instance(self, request, without_bar):
+        assert 'bar' not in request.fixturenames
 
 
 class TestRegisterCall:

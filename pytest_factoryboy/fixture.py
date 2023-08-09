@@ -96,6 +96,8 @@ def register(
     _name: str | None = None,
     *,
     _caller_locals: Box[dict[str, Any]] | None = None,
+    _factory_request_fixtures: list[str] | None = None,
+    _factory_only: bool = False,
     **kwargs: Any,
 ) -> F | Callable[[F], F]:
     r"""Register fixtures for the factory class.
@@ -121,12 +123,18 @@ def register(
     factory_name = get_factory_name(factory_class)
     model_name = get_model_name(factory_class) if _name is None else _name
 
-    assert model_name != factory_name, (
-        f"Naming collision for {factory_class}:\n"
-        f" * factory fixture name: {factory_name}\n"
-        f" * model fixture name: {model_name}\n"
-        f"Please provide different name for model fixture."
-    )
+    if _factory_only:
+        assert _name is None, "Can't set _name when _factory_only=True."
+        assert factory_name not in _caller_locals.value, f"Factory fixture {factory_name} already exists."
+    else:
+        assert _factory_request_fixtures is None, "Can't register factory request fixtures unless _factory_only=True."
+
+        assert model_name != factory_name, (
+            f"Naming collision for {factory_class}:\n"
+            f" * factory fixture name: {factory_name}\n"
+            f" * model fixture name: {model_name}\n"
+            f"Please provide different name for model fixture."
+        )
 
     fixture_defs = dict(
         generate_fixtures(
@@ -134,6 +142,8 @@ def register(
             model_name=model_name,
             factory_name=factory_name,
             overrides=kwargs,
+            factory_only=_factory_only,
+            factory_request_fixtures=_factory_request_fixtures,
             caller_locals=_caller_locals,
         )
     )
@@ -148,23 +158,26 @@ def generate_fixtures(
     model_name: str,
     factory_name: str,
     overrides: Mapping[str, Any],
+    factory_only: bool,
+    factory_request_fixtures: list[str],
     caller_locals: Box[Mapping[str, Any]],
 ) -> Iterable[tuple[str, Callable[..., Any]]]:
     """Generate all the FixtureDefs for the given factory class."""
 
-    related: list[str] = []
-    for attr, value in factory_class._meta.declarations.items():
-        value = overrides.get(attr, value)
-        attr_name = SEPARATOR.join((model_name, attr))
-        yield (
-            attr_name,
-            make_declaration_fixturedef(
-                attr_name=attr_name,
-                value=value,
-                factory_class=factory_class,
-                related=related,
-            ),
-        )
+    if not factory_only:
+        related: list[str] = []
+        for attr, value in factory_class._meta.declarations.items():
+            value = overrides.get(attr, value)
+            attr_name = SEPARATOR.join((model_name, attr))
+            yield (
+                attr_name,
+                make_declaration_fixturedef(
+                    attr_name=attr_name,
+                    value=value,
+                    factory_class=factory_class,
+                    related=related,
+                ),
+            )
 
     if factory_name not in caller_locals.value:
         yield (
@@ -172,19 +185,21 @@ def generate_fixtures(
             create_fixture_with_related(
                 name=factory_name,
                 function=functools.partial(factory_fixture, factory_class=factory_class),
+                fixtures=factory_request_fixtures,
             ),
         )
 
-    deps = get_deps(factory_class, model_name=model_name)
-    yield (
-        model_name,
-        create_fixture_with_related(
-            name=model_name,
-            function=functools.partial(model_fixture, factory_name=factory_name),
-            fixtures=deps,
-            related=related,
-        ),
-    )
+    if not factory_only:
+        deps = get_deps(factory_class, model_name=model_name)
+        yield (
+            model_name,
+            create_fixture_with_related(
+                name=model_name,
+                function=functools.partial(model_fixture, factory_name=factory_name),
+                fixtures=deps,
+                related=related,
+            ),
+        )
 
 
 def create_fixture_with_related(
@@ -200,6 +215,7 @@ def create_fixture_with_related(
     # We have to set the `_factoryboy_related` attribute to the original function, since
     # FixtureDef.func will provide that one later when we discover the related fixtures.
     f.__pytest_wrapped__.obj._factoryboy_related = related  # type: ignore[attr-defined]
+
     return f
 
 

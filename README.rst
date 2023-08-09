@@ -141,7 +141,58 @@ Factory Fixture
             model = Author
 
 
-    register(AuthorFactory)  # => author_factory
+    register(AuthorFactory)  # => author_factory, author fixtures
+
+
+    def test_factory_fixture(author_factory):
+        author = author_factory(name="Charles Dickens")
+        assert author.name == "Charles Dickens"
+
+
+By default, ``register`` creates both a model fixture and a factory fixture.
+You can create a factory fixture only by passing the ``_factory_only=True``
+argument.
+
+.. code-block:: python
+
+    import factory
+    from pytest_factoryboy import register
+
+    class AuthorFactory(factory.Factory):
+        class Meta:
+            model = Author
+
+
+    register(AuthorFactory, _factory_only=True)  # => ONLY author_factory fixture
+
+
+    def test_factory_fixture(author_factory):
+        author = author_factory(name="Charles Dickens")
+        assert author.name == "Charles Dickens"
+
+This will throw an AssertionError if the factory fixture already exists, e.g.
+if ``register`` was already called with the same factory.
+
+When passing ``_factory_only=True`` to ``register``, you can also pass other
+fixtures that the factory fixture should request.
+
+.. code-block:: python
+
+    import factory
+    import pytest
+    from pytest_factoryboy import register
+
+    @pytest.fixture
+    def foo():
+        yield
+
+    class AuthorFactory(factory.Factory):
+        class Meta:
+            model = Author
+
+
+    # Creates author_factory fixture that requests foo fixture
+    register(AuthorFactory, _factory_only=True, _factory_request_fixtures=["foo"])
 
 
     def test_factory_fixture(author_factory):
