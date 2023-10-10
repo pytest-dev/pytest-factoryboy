@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-factoryboy"
-version = "2.5.1"
+version = "2.6.0"
 description = "Factory Boy support for pytest."
 authors = ["Oleg Pidsadnyi <oleg.pidsadnyi@gmail.com>"]
 maintainers = ["Alessio Bogon <778703+youtux@users.noreply.github.com>"]
@@ -34,13 +34,13 @@ classifiers = [
 python = ">=3.7"
 inflection = "*"
 factory_boy = ">=2.10.0"
-pytest = ">=5.0.0"
+pytest = ">=6.2"
 typing_extensions = "*"
 
 [tool.poetry.group.dev.dependencies]
-mypy = "^1.4.1"
-tox = "^4.0.8"
-coverage = {extras = ["toml"], version = "^6.5.0"}
+mypy = ">=1.4.1"
+tox = ">=4.0.8"
+coverage = {extras = ["toml"], version = ">=6.5.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -48,10 +48,10 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 120
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ["py38", "py39", "py310", "py311", "py312"]
 
 [tool.isort]
-profile = 'black'
+profile = "black"
 
 [tool.coverage.report]
 exclude_lines = [
