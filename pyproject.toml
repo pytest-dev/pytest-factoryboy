@@ -34,7 +34,7 @@ classifiers = [
 python = ">=3.7"
 inflection = "*"
 factory_boy = ">=2.10.0"
-pytest = ">=5.0.0"
+pytest = ">=6.2"
 typing_extensions = "*"
 
 [tool.poetry.group.dev.dependencies]
