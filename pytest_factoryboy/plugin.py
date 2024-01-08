@@ -48,7 +48,11 @@ class Request:
         if fixture == "request":
             return deps
 
-        for fixturedef in request._fixturemanager.getfixturedefs(fixture, request._pyfuncitem.parent.nodeid) or []:
+        if hasattr(pytest, "version_tuple") and pytest.version_tuple >= (8, 1):
+            fixturedefs = request._fixturemanager.getfixturedefs(fixture, request._pyfuncitem.parent)
+        else:
+            fixturedefs = request._fixturemanager.getfixturedefs(fixture, request._pyfuncitem.parent.nodeid)
+        for fixturedef in fixturedefs or []:
             for argname in fixturedef.argnames:
                 if argname not in deps:
                     deps.add(argname)
