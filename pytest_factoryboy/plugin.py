@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from .compat import getfixturedefs
+
 if TYPE_CHECKING:
     from typing import Any
 
@@ -48,10 +50,7 @@ class Request:
         if fixture == "request":
             return deps
 
-        if hasattr(pytest, "version_tuple") and pytest.version_tuple >= (8, 1):
-            fixturedefs = request._fixturemanager.getfixturedefs(fixture, request._pyfuncitem.parent)
-        else:
-            fixturedefs = request._fixturemanager.getfixturedefs(fixture, request._pyfuncitem.parent.nodeid)
+        fixturedefs = getfixturedefs(request._fixturemanager, fixture, request._pyfuncitem.parent)
         for fixturedef in fixturedefs or []:
             for argname in fixturedef.argnames:
                 if argname not in deps:
