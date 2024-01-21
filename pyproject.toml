@@ -36,6 +36,7 @@ inflection = "*"
 factory_boy = ">=2.10.0"
 pytest = ">=6.2"
 typing_extensions = "*"
+packaging = "*"
 
 [tool.poetry.group.dev.dependencies]
 mypy = ">=1.4.1"
