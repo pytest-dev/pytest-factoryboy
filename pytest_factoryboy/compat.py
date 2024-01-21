@@ -2,8 +2,16 @@ from __future__ import annotations
 
 import pathlib
 import sys
+from collections.abc import Sequence
+from importlib.metadata import version
 
-__all__ = ("PostGenerationContext", "path_with_stem")
+from _pytest.fixtures import FixtureDef, FixtureManager
+from _pytest.nodes import Node
+from packaging.version import parse as parse_version
+
+pytest_version = parse_version(version("pytest"))
+
+__all__ = ("PostGenerationContext", "path_with_stem", "getfixturedefs")
 
 try:
     from factory.declarations import PostGenerationContext
@@ -19,3 +27,14 @@ else:
 
     def path_with_stem(path: pathlib.Path, stem: str) -> pathlib.Path:
         return path.with_name(stem + path.suffix)
+
+
+if pytest_version.release >= (8, 1):
+
+    def getfixturedefs(fixturemanager: FixtureManager, fixturename: str, node: Node) -> Sequence[FixtureDef] | None:
+        return fixturemanager.getfixturedefs(fixturename, node)
+
+else:
+
+    def getfixturedefs(fixturemanager: FixtureManager, fixturename: str, node: Node) -> Sequence[FixtureDef] | None:
+        return fixturemanager.getfixturedefs(fixturename, node.nodeid)
