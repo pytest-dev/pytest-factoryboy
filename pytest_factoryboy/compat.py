@@ -12,7 +12,7 @@ from packaging.version import parse as parse_version
 
 pytest_version = parse_version(version("pytest"))
 
-__all__ = ("PostGenerationContext", "path_with_stem")
+__all__ = ("PostGenerationContext", "path_with_stem", "getfixturedefs")
 
 try:
     from factory.declarations import PostGenerationContext
