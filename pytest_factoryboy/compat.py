@@ -7,7 +7,6 @@ from importlib.metadata import version
 
 from _pytest.fixtures import FixtureDef, FixtureManager
 from _pytest.nodes import Node
-from packaging.version import Version
 from packaging.version import parse as parse_version
 
 pytest_version = parse_version(version("pytest"))
@@ -30,7 +29,7 @@ else:
         return path.with_name(stem + path.suffix)
 
 
-if pytest_version >= Version("8.1"):
+if pytest_version.release >= (8, 1):
 
     def getfixturedefs(fixturemanager: FixtureManager, fixturename: str, node: Node) -> Sequence[FixtureDef] | None:
         return fixturemanager.getfixturedefs(fixturename, node)
