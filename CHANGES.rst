@@ -3,6 +3,9 @@ Changelog
 
 Unreleased
 ----------
+
+2.6.1
+----------
 - Address compatibility issue with pytest 8.1. `#213 <https://github.com/pytest-dev/pytest-bdd/pull/213>`_
 
 2.6.0

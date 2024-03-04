@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-factoryboy"
-version = "2.6.0"
+version = "2.6.1"
 description = "Factory Boy support for pytest."
 authors = ["Oleg Pidsadnyi <oleg.pidsadnyi@gmail.com>"]
 maintainers = ["Alessio Bogon <778703+youtux@users.noreply.github.com>"]
