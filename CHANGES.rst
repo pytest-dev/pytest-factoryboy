@@ -3,6 +3,7 @@ Changelog
 
 Unreleased
 ----------
+- Declare required python version >= 3.8. (python 3.7 support was already removed in 2.6.0, the declared supported version tag was not updated though). `#215 <https://github.com/pytest-dev/pytest-factoryboy/pull/215>`_
 
 2.6.1
 ----------
