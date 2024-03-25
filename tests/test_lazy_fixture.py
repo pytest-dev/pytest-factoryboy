@@ -1,4 +1,5 @@
 """Test LazyFixture related features."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
