@@ -301,7 +301,7 @@ For example:
     @register
     class JSONPayload(factory.Factory):
         class Meta:
-            model = named_model("JSONPayload", dict)
+            model = named_model(dict, "JSONPayload")
 
         name = "foo"
 
