@@ -501,7 +501,7 @@ def attr_fixture(request: SubRequest, value: T) -> T:
 
 def subfactory_fixture(request: SubRequest, factory_class: FactoryType) -> Any:
     """SubFactory/RelatedFactory fixture implementation."""
-    overriden_fixture_name = getattr(factory_class._meta, "_fixture_name", None)
+    overriden_fixture_name = getattr(factory_class._meta, "fixture_name", None)
     if overriden_fixture_name is not None:
         return request.getfixturevalue(overriden_fixture_name)
     
