@@ -273,6 +273,10 @@ def inject_into_caller(name: str, function: Callable[..., Any], locals_: Box[dic
 
 def get_model_name(factory_class: FactoryType) -> str:
     """Get model fixture name by factory."""
+    overriden_fixture_name = getattr(factory_class._meta, "fixture_name", None)
+    if overriden_fixture_name is not None:
+        return overriden_fixture_name
+
     model_cls = factory_class._meta.model
 
     if isinstance(model_cls, str):
@@ -501,11 +505,7 @@ def attr_fixture(request: SubRequest, value: T) -> T:
 
 def subfactory_fixture(request: SubRequest, factory_class: FactoryType) -> Any:
     """SubFactory/RelatedFactory fixture implementation."""
-    overriden_fixture_name = getattr(factory_class._meta, "fixture_name", None)
-    if overriden_fixture_name is not None:
-        return request.getfixturevalue(overriden_fixture_name)
-    
-    fixture = inflection.underscore(factory_class._meta.model.__name__)
+    fixture = inflection.underscore(get_model_name(factory_class))
     return request.getfixturevalue(fixture)
 
 
