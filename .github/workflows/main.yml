@@ -81,7 +81,7 @@ jobs:
         coverage combine
         coverage xml
 
-    - uses: codecov/codecov-action@v3
+    - uses: codecov/codecov-action@v4
       with:
         # Explicitly using the token in order to avoid Codecov rate limit errors
         # See https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954
