@@ -31,6 +31,10 @@ jobs:
             toxfactor: py3.12
             ignore-typecheck-outcome: true
             ignore-test-outcome: false
+          - python-version: "3.13-dev"
+            toxfactor: py3.13
+            ignore-typecheck-outcome: true
+            ignore-test-outcome: false
 
     steps:
     - uses: actions/checkout@v3
@@ -43,7 +47,7 @@ jobs:
 
     - name: Install poetry
       run: |
-        python -m pip install poetry==1.8.2
+        python -m pip install poetry==1.8.3
 
     - name: Configure poetry
       run: |
@@ -77,7 +81,7 @@ jobs:
         coverage combine
         coverage xml
 
-    - uses: codecov/codecov-action@v3
+    - uses: codecov/codecov-action@v4
       with:
         # Explicitly using the token in order to avoid Codecov rate limit errors
         # See https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954

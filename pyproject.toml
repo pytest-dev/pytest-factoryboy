@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 
 [tool.poetry.plugins."pytest11"]
@@ -34,7 +35,7 @@ classifiers = [
 python = ">=3.8"
 inflection = "*"
 factory_boy = ">=2.10.0"
-pytest = ">=6.2"
+pytest = ">=7.0"
 typing_extensions = "*"
 packaging = "*"
 
@@ -49,7 +50,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 120
-target-version = ["py38", "py39", "py310", "py311", "py312"]
+target-version = ["py38", "py39", "py310", "py311", "py312", "py313"]
 
 [tool.isort]
 profile = "black"

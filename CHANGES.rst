@@ -3,6 +3,8 @@ Changelog
 
 Unreleased
 ----------
+- Declare compatibility with python 3.13
+- Drop support for pytest < 7.0.0.
 
 2.7.0
 ----------
