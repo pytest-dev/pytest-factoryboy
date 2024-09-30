@@ -1,4 +1,5 @@
 """Factory boy fixture integration."""
+
 from __future__ import annotations
 
 import contextlib
@@ -80,15 +81,13 @@ def named_model(model_cls: type[T], name: str) -> type[T]:
 # @register
 # class AuthorFactory(factory.Factory): ...
 @overload
-def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F:
-    ...
+def register(factory_class: F, _name: str | None = None, **kwargs: Any) -> F: ...
 
 
 # @register(...)
 # class AuthorFactory(factory.Factory): ...
 @overload
-def register(*, _name: str | None = None, **kwargs: Any) -> Callable[[F], F]:
-    ...
+def register(*, _name: str | None = None, **kwargs: Any) -> Callable[[F], F]: ...
 
 
 def register(
