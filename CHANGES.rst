@@ -4,6 +4,7 @@ Changelog
 Unreleased
 ----------
 - Declare compatibility with python 3.13
+- Drop support for python 3.8. Supported versions are now: 3.9, 3.10, 3.11, 3.12, 3.13.
 - Drop support for pytest < 7.0.0.
 
 2.7.0

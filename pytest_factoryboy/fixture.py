@@ -6,23 +6,11 @@ import contextlib
 import functools
 import sys
 import warnings
+from collections.abc import Collection, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from inspect import signature
 from types import MethodType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Collection,
-    Generic,
-    Iterable,
-    Iterator,
-    Mapping,
-    Type,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, cast, overload
 
 import factory
 import factory.builder
@@ -39,7 +27,7 @@ if TYPE_CHECKING:
 
     from .plugin import Request as FactoryboyRequest
 
-FactoryType: TypeAlias = Type[factory.Factory]
+FactoryType: TypeAlias = type[factory.Factory]
 F = TypeVar("F", bound=FactoryType)
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
