@@ -1,11 +1,35 @@
 Changelog
 =========
 
+All notable changes to this project will be documented in this file.
+
+The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.1.0/>`_,
+and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
+
 Unreleased
 ----------
-- Declare compatibility with python 3.13
-- Drop support for python 3.8. Supported versions are now: 3.9, 3.10, 3.11, 3.12, 3.13.
-- Drop support for pytest < 7.0.0.
+
+Added
++++++
+* Declare compatibility with python 3.13. Supported versions are now: 3.9, 3.10, 3.11, 3.12, 3.13.
+
+Changed
++++++++
+* Changelog format updated to follow `Keep a Changelog <https://keepachangelog.com/en/1.1.0/>`_.
+
+Deprecated
+++++++++++
+
+Removed
++++++++
+* Drop support for python 3.8. Supported versions are now: 3.9, 3.10, 3.11, 3.12, 3.13.
+* Drop support for pytest < 7.0.0.
+
+Fixed
++++++
+
+Security
+++++++++
 
 2.7.0
 ----------
