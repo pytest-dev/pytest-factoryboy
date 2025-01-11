@@ -1,14 +1,12 @@
-[tool.poetry]
+[project]
 name = "pytest-factoryboy"
 version = "2.7.0"
 description = "Factory Boy support for pytest."
-authors = ["Oleg Pidsadnyi <oleg.pidsadnyi@gmail.com>"]
-maintainers = ["Alessio Bogon <778703+youtux@users.noreply.github.com>"]
+authors = [ { name = "Oleg Pidsadnyi", email= "oleg.pidsadnyi@gmail.com" } ]
+maintainers = [ { name = "Alessio Bogon", email = "778703+youtux@users.noreply.github.com" } ]
 license = "MIT"
 readme = "README.rst"
-homepage = "https://pytest-factoryboy.readthedocs.io/"
-documentation = "https://pytest-factoryboy.readthedocs.io/"
-repository = "https://github.com/pytest-dev/pytest-factoryboy"
+
 classifiers = [
     "Development Status :: 6 - Mature",
     "Intended Audience :: Developers",
@@ -27,17 +25,22 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
+requires-python = ">=3.8"
+dependencies = [
+    "inflection",
+    "factory_boy>=2.10.0",
+    "pytest>=7.0",
+    "typing_extensions",
+    "packaging",
+]
 
-[tool.poetry.plugins."pytest11"]
+[project.urls]
+homepage = "https://pytest-factoryboy.readthedocs.io/"
+documentation = "https://pytest-factoryboy.readthedocs.io/"
+repository = "https://github.com/pytest-dev/pytest-factoryboy"
+
+[project.entry-points."pytest11"]
 "pytest-factoryboy" = "pytest_factoryboy.plugin"
-
-[tool.poetry.dependencies]
-python = ">=3.8"
-inflection = "*"
-factory_boy = ">=2.10.0"
-pytest = ">=7.0"
-typing_extensions = "*"
-packaging = "*"
 
 [tool.poetry.group.dev.dependencies]
 mypy = ">=1.4.1"
@@ -45,7 +48,7 @@ tox = ">=4.0.8"
 coverage = {extras = ["toml"], version = ">=6.5.0"}
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core (>=2.0.0, <3.0.0)"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
