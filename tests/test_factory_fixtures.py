@@ -211,3 +211,12 @@ class TestLazyFixture:
 
         """
         assert another_book.author.name == "Another Author"
+
+
+class TestDeferredEvaluation:
+    @pytest.mark.parametrize("book__name", ["bar"])
+    def test_book_initialise_later(self, book_factory, book):
+        assert book.name == "bar"
+
+        book_f = book_factory()
+        assert book_f.name == "bar"
