@@ -19,7 +19,7 @@ import factory.enums
 import inflection
 from typing_extensions import ParamSpec, TypeAlias
 
-from .compat import PostGenerationContext
+from .compat import PostGenerationContext, PytestFixtureT
 from .fixturegen import create_fixture
 
 if TYPE_CHECKING:
@@ -136,7 +136,7 @@ def generate_fixtures(
     factory_name: str,
     overrides: Mapping[str, Any],
     caller_locals: Box[Mapping[str, Any]],
-) -> Iterable[tuple[str, Callable[..., Any]]]:
+) -> Iterable[tuple[str, Callable[..., object]]]:
     """Generate all the FixtureDefs for the given factory class."""
 
     related: list[str] = []
@@ -176,10 +176,10 @@ def generate_fixtures(
 
 def create_fixture_with_related(
     name: str,
-    function: Callable[P, T],
+    function: Callable[..., object],
     fixtures: Collection[str] | None = None,
     related: Collection[str] | None = None,
-) -> Callable[P, T]:
+) -> PytestFixtureT:
     if related is None:
         related = []
     fixture, fn = create_fixture(name=name, function=function, fixtures=fixtures)
@@ -195,7 +195,7 @@ def make_declaration_fixturedef(
     value: Any,
     factory_class: FactoryType,
     related: list[str],
-) -> Callable[..., Any]:
+) -> Callable[..., object]:
     """Create the FixtureDef for a factory declaration."""
     if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
         subfactory_class = value.get_factory()
