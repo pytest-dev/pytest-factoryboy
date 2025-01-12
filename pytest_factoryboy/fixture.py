@@ -153,16 +153,18 @@ def generate_fixtures(
             ),
         )
 
+    deps = get_deps(factory_class, model_name=model_name)
     if factory_name not in caller_locals.value:
         yield (
             factory_name,
             create_fixture_with_related(
                 name=factory_name,
                 function=functools.partial(factory_fixture, factory_class=factory_class),
+                fixtures=deps,
+                # TODO: related too?
             ),
         )
 
-    deps = get_deps(factory_class, model_name=model_name)
     yield (
         model_name,
         create_fixture_with_related(
@@ -345,6 +347,7 @@ def model_fixture(request: SubRequest, factory_name: str) -> Any:
     fixture_name = request.fixturename
     prefix = "".join((fixture_name, SEPARATOR))
 
+    # TODO: This should be a dependency of the current fixture (i.e. use `usefixtures`)
     factory_class: FactoryType = request.getfixturevalue(factory_name)
 
     # Create model fixture instance
@@ -478,7 +481,20 @@ def make_deferred_postgen(
 
 def factory_fixture(request: SubRequest, factory_class: F) -> F:
     """Factory fixture implementation."""
-    return factory_class
+    fixture_name = request.fixturename
+    # TODO: Not good to check the fixture name, we should know what to expect (via args?)
+    assert fixture_name.endswith("_factory")
+    fixture_name = fixture_name[: -len("_factory")]
+    prefix = "".join((fixture_name, SEPARATOR))
+
+    # TODO: copy-paste from model_fixture; refactor
+    kwargs = {}
+    for key in factory_class._meta.pre_declarations:
+        argname = "".join((prefix, key))
+        if argname in request._fixturedef.argnames:
+            kwargs[key] = evaluate(request, request.getfixturevalue(argname))
+
+    return type(f"{factory_class.__name__}Fixture", (factory_class,), kwargs)
 
 
 def attr_fixture(request: SubRequest, value: T) -> T:
