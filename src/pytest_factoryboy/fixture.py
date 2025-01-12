@@ -27,7 +27,7 @@ from factory.declarations import (
 )
 from typing_extensions import ParamSpec
 
-from .compat import PostGenerationContext
+from .compat import PostGenerationContext, PytestFixtureT
 from .fixturegen import create_fixture
 
 if TYPE_CHECKING:
@@ -195,10 +195,10 @@ def generate_fixtures(
 
 def create_fixture_with_related(
     name: str,
-    function: Callable[P, T],
+    function: Callable[..., object],
     fixtures: Collection[str] | None = None,
     related: Collection[str] | None = None,
-) -> Callable[P, T]:
+) -> PytestFixtureT:
     if related is None:
         related = []
     fixture, fn = create_fixture(name=name, function=function, fixtures=fixtures)
