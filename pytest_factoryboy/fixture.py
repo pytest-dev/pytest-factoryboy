@@ -182,12 +182,12 @@ def create_fixture_with_related(
 ) -> Callable[P, T]:
     if related is None:
         related = []
-    f = create_fixture(name=name, function=function, fixtures=fixtures)
+    fixture, fn = create_fixture(name=name, function=function, fixtures=fixtures)
 
     # We have to set the `_factoryboy_related` attribute to the original function, since
     # FixtureDef.func will provide that one later when we discover the related fixtures.
-    f.__pytest_wrapped__.obj._factoryboy_related = related  # type: ignore[attr-defined]
-    return f
+    fn._factoryboy_related = related  # type: ignore[attr-defined]
+    return fixture
 
 
 def make_declaration_fixturedef(

@@ -8,6 +8,8 @@ from typing import Callable, TypeVar
 import pytest
 from typing_extensions import ParamSpec
 
+from .compat import PytestFixtureT
+
 T = TypeVar("T")
 P = ParamSpec("P")
 
@@ -16,13 +18,13 @@ def create_fixture(
     name: str,
     function: Callable[P, T],
     fixtures: Collection[str] | None = None,
-) -> Callable[P, T]:
+) -> tuple[PytestFixtureT, Callable[P, T]]:
     """Dynamically create a pytest fixture.
 
     :param name: Name of the fixture.
     :param function: Function to be called.
     :param fixtures: List of fixtures dependencies, but that will not be passed to ``function``.
-    :return: The created fixture function.
+    :return: The created fixture function and the actual function.
 
     Example:
 
@@ -41,13 +43,14 @@ def create_fixture(
     if fixtures is None:
         fixtures = []
 
-    @pytest.fixture(name=name)
     @usefixtures(*fixtures)
     @functools.wraps(function)
     def fn(*args: P.args, **kwargs: P.kwargs) -> T:
         return function(*args, **kwargs)
 
-    return fn
+    fixture = pytest.fixture(name=name, fixture_function=fn)
+
+    return fixture, fn
 
 
 def usefixtures(*fixtures: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
