@@ -113,6 +113,41 @@ Sub-factory attribute points to the model fixture of the sub-factory.
 Attributes of sub-factories are injected as dependencies to the model fixture and can be overridden_ via
 the parametrization.
 
+Django Model SubFactory with a custom fixture name
+--------------------------------------------------
+
+By default, the subfactory is retrieved by using the lowercase-underscore form of the Django model class name
+and invoking that fixture from the pytest request.
+If you want to use a different name, you must define it in the factory class Meta and use a custom DjangoModelFactory
+
+.. code-block:: python
+
+    from factory.django import DjangoModelFactory, DjangoOptions
+
+    class CustomFixtureFactoryOptions(DjangoOptions):
+    """Allow overriding the fixture name when referencing the factory via SubFactory/RelatedFactory."""
+    def _build_default_options(self):
+        return super()._build_default_options()  + [
+            factory.base.OptionDefault("fixture_name", None),
+        ]
+
+
+    class CustomFixtureDjangoModelFactory(DjangoModelFactory):
+        _options_class = CustomFixtureFactoryOptions
+
+        class Meta:
+            abstract = True
+
+
+    @register
+    class AuthorFactory(CustomFixtureDjangoModelFactory):
+        class Meta:
+            model = Author
+            fixture_name = "other_author"
+
+        name = "Charles Dickens"
+
+
 Related Factory
 ---------------
 
