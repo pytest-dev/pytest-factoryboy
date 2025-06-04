@@ -197,6 +197,51 @@ def make_declaration_fixturedef(
     related: list[str],
 ) -> Callable[..., Any]:
     """Create the FixtureDef for a factory declaration."""
+    if isinstance(value, factory.Maybe):
+        if value.FACTORY_BUILDER_PHASE != factory.enums.BuilderPhase.ATTRIBUTE_RESOLUTION:
+            raise NotImplementedError("Maybe declarations are not supported with post-generation declarations.")
+
+        if not isinstance(value.decider, factory.SelfAttribute):
+            raise NotImplementedError("Maybe declarations are only supported with SelfAttribute deciders.")
+
+        if value.decider.depth != 0:
+            raise NotImplementedError("Maybe declarations are only supported with SelfAttributes of depth 0.")
+
+        yes_declaration = value.yes
+        if yes_declaration != factory.declarations.SKIP:
+            yes_declaration = make_declaration_fixturedef(
+                attr_name + "__yes_declaration",
+                value=value.yes_declaration,
+                factory_class=factory_class,
+            )
+        no_declaration = value.no
+        if no_declaration != factory.declarations.SKIP:
+            no_declaration = make_declaration_fixturedef(
+                attr_name + "__no_declaration",
+                value=value.no_declaration,
+                factory_class=factory_class,
+            )
+
+        new_maybe = factory.Maybe(
+            decider=value.decider,
+            yes_declaration=yes_declaration,
+            no_declaration=no_declaration,
+        )
+
+        # we want to generate a fixture like
+        # @pytest.fixture
+        # def user__company__decider(user__is_staff):
+        #     return user__is_staff
+        # @pytest.fixture
+        # def user__company__yes_declaration(user__company__decider):
+        #     return ...
+        # @pytest.fixture
+        # def user__company__no_declaration(user__company__decider):
+        #     return None
+        # @pytest.fixture
+        # def user__company(request, user__company__decider, user__company__yes_declaration, user__company__no_declaration):
+        #     declaration = yes_declaration if user__company__decider else no_declaration
+        #     return evaluate(request, request.getfixturevalue(declaration))
     if isinstance(value, (factory.SubFactory, factory.RelatedFactory)):
         subfactory_class = value.get_factory()
         subfactory_deps = get_deps(subfactory_class, factory_class)
