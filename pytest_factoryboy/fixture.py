@@ -186,7 +186,13 @@ def create_fixture_with_related(
 
     # We have to set the `_factoryboy_related` attribute to the original function, since
     # FixtureDef.func will provide that one later when we discover the related fixtures.
-    f.__pytest_wrapped__.obj._factoryboy_related = related  # type: ignore[attr-defined]
+    if hasattr(f, "__pytest_wrapped__"):
+        f.__pytest_wrapped__.obj._factoryboy_related = related
+    elif hasattr(f, "__wrapped__"):
+        f.__wrapped__._factoryboy_related = related
+    else:
+        raise AttributeError("Fixture object has no __pytest_wrapped__ nor __wrapped__ attribute")
+
     return f
 
 
