@@ -51,7 +51,7 @@ class Request:
         if fixture == "request":
             return deps
 
-        fixturedefs = getfixturedefs(request._fixturemanager, fixture, request._pyfuncitem.parent)
+        fixturedefs = getfixturedefs(request._fixturemanager, fixture, request._pyfuncitem)
         for fixturedef in fixturedefs or []:
             for argname in fixturedef.argnames:
                 if argname not in deps:
