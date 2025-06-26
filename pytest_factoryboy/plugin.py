@@ -114,9 +114,7 @@ def factoryboy_request() -> Request:
     return Request()
 
 
-# type ignored because pluggy v1.0.0 has no type annotations:
-# https://github.com/pytest-dev/pluggy/issues/191
-@pytest.hookimpl(tryfirst=True)  # type: ignore[misc]
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_call(item: Item) -> None:
     """Before the test item is called."""
     # TODO: We should instead do an `if isinstance(item, Function)`.
