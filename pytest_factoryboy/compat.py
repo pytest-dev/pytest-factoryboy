@@ -19,10 +19,14 @@ except ImportError:  # factory_boy < 3.2.0
 
 if pytest_version.release >= (8, 1):
 
-    def getfixturedefs(fixturemanager: FixtureManager, fixturename: str, node: Node) -> Sequence[FixtureDef[Any]] | None:
+    def getfixturedefs(
+        fixturemanager: FixtureManager, fixturename: str, node: Node
+    ) -> Sequence[FixtureDef[Any]] | None:
         return fixturemanager.getfixturedefs(fixturename, node)
 
 else:
 
-    def getfixturedefs(fixturemanager: FixtureManager, fixturename: str, node: Node) -> Sequence[FixtureDef[Any]] | None:
+    def getfixturedefs(
+        fixturemanager: FixtureManager, fixturename: str, node: Node
+    ) -> Sequence[FixtureDef[Any]] | None:
         return fixturemanager.getfixturedefs(fixturename, node.nodeid)  # type: ignore[arg-type]
