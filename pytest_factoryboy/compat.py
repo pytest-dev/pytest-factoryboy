@@ -6,10 +6,11 @@ from importlib.metadata import version
 from _pytest.fixtures import FixtureDef, FixtureManager
 from _pytest.nodes import Node
 from packaging.version import parse as parse_version
+from typing_extensions import TypeAlias
 
 pytest_version = parse_version(version("pytest"))
 
-__all__ = ("PostGenerationContext", "getfixturedefs")
+__all__ = ("PostGenerationContext", "getfixturedefs", "PytestFixtureT")
 
 try:
     from factory.declarations import PostGenerationContext
@@ -25,3 +26,13 @@ else:
 
     def getfixturedefs(fixturemanager: FixtureManager, fixturename: str, node: Node) -> Sequence[FixtureDef] | None:
         return fixturemanager.getfixturedefs(fixturename, node.nodeid)
+
+
+if pytest_version.release >= (8, 4):
+    from _pytest.fixtures import FixtureFunctionDefinition
+
+    PytestFixtureT: TypeAlias = FixtureFunctionDefinition
+else:
+    from _pytest.fixtures import FixtureFunction
+
+    PytestFixtureT: TypeAlias = FixtureFunction
