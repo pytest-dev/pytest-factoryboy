@@ -2,11 +2,11 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 -   repo: https://github.com/psf/black
-    rev: 1b2427a2b785cc4aac97c19bb4b9a0de063f9547  # frozen: 24.10.0
+    rev: 8a737e727ac5ab2f1d4cf5876720ed276dc8dc4b  # frozen: 25.1.0
     hooks:
     - id: black
 -   repo: https://github.com/pycqa/isort
-    rev: c235f5e450b4b84e58d114ed4c589cbf454175a3  # frozen: 5.13.2
+    rev: c8ab4a5b21bac924d106e3103dd7c979fdd0f9bc  # frozen: 6.0.1
     hooks:
     -   id: isort
 -   repo: https://github.com/pre-commit/pre-commit-hooks
@@ -17,12 +17,12 @@ repos:
     -   id: check-yaml
     -   id: check-added-large-files
 -   repo: https://github.com/asottile/pyupgrade
-    rev: ce40a160603ab0e7d9c627ae33d7ef3906e2d2b2  # frozen: v3.19.1
+    rev: 37bfa06d791fd38fb4e54910b36a2ff57641b074  # frozen: v3.20.0
     hooks:
     -   id: pyupgrade
         args: [--py39-plus]
 -   repo: https://github.com/python-poetry/poetry
-    rev: "f03d8f98781934df7910be5b6c14756e047ef432"  # frozen: 2.0.0
+    rev: "84eeadc21f92a04d46ea769e3e39d7c902e44136"  # frozen: 2.1.3
     hooks:
     -   id: poetry-check
         args: ["--lock"]
