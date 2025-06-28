@@ -1,28 +1,32 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
--   repo: https://github.com/psf/black
-    rev: 8a737e727ac5ab2f1d4cf5876720ed276dc8dc4b  # frozen: 25.1.0
+  - repo: https://github.com/psf/black
+    rev: 8a737e727ac5ab2f1d4cf5876720ed276dc8dc4b # frozen: 25.1.0
     hooks:
-    - id: black
--   repo: https://github.com/pycqa/isort
-    rev: c8ab4a5b21bac924d106e3103dd7c979fdd0f9bc  # frozen: 6.0.1
+      - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: c8ab4a5b21bac924d106e3103dd7c979fdd0f9bc # frozen: 6.0.1
     hooks:
-    -   id: isort
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b  # frozen: v5.0.0
+      - id: isort
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b # frozen: v5.0.0
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
--   repo: https://github.com/asottile/pyupgrade
-    rev: 37bfa06d791fd38fb4e54910b36a2ff57641b074  # frozen: v3.20.0
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+  - repo: https://github.com/google/yamlfmt
+    rev: a69a26f0e2a6d5768f3496239ba1e41c6bb74b6e # frozen: v0.17.2
     hooks:
-    -   id: pyupgrade
+      - id: yamlfmt
+  - repo: https://github.com/asottile/pyupgrade
+    rev: 37bfa06d791fd38fb4e54910b36a2ff57641b074 # frozen: v3.20.0
+    hooks:
+      - id: pyupgrade
         args: [--py39-plus]
--   repo: https://github.com/python-poetry/poetry
-    rev: "84eeadc21f92a04d46ea769e3e39d7c902e44136"  # frozen: 2.1.3
+  - repo: https://github.com/python-poetry/poetry
+    rev: "84eeadc21f92a04d46ea769e3e39d7c902e44136" # frozen: 2.1.3
     hooks:
-    -   id: poetry-check
+      - id: poetry-check
         args: ["--lock"]
