@@ -40,15 +40,15 @@ jobs:
             ignore-test-outcome: false
           - python-version: "3.10"
             toxfactor: py3.10
-            ignore-typecheck-outcome: true
+            ignore-typecheck-outcome: false
             ignore-test-outcome: false
           - python-version: "3.11"
             toxfactor: py3.11
-            ignore-typecheck-outcome: true
+            ignore-typecheck-outcome: false
             ignore-test-outcome: false
           - python-version: "3.12"
             toxfactor: py3.12
-            ignore-typecheck-outcome: true
+            ignore-typecheck-outcome: false
             ignore-test-outcome: false
           - python-version: "3.13"
             toxfactor: py3.13
@@ -56,7 +56,7 @@ jobs:
             ignore-test-outcome: false
           - python-version: "3.14"
             toxfactor: py3.14
-            ignore-typecheck-outcome: true # TODO: Set to true once python3.14 is stable
+            ignore-typecheck-outcome: false
             ignore-test-outcome: false
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
           python -m pip install poetry==2.0.0
       - name: Configure poetry
         run: |
-          python -m poetry config virtualenvs.in-project true
+          poetry config virtualenvs.in-project true
       - name: Cache the virtualenv
         id: poetry-dependencies-cache
         uses: actions/cache@v3
@@ -81,7 +81,7 @@ jobs:
       - name: Install dev dependencies
         if: steps.poetry-dependencies-cache.outputs.cache-hit != 'true'
         run: |
-          python -m poetry install --only=dev
+          poetry install
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -91,8 +91,7 @@ jobs:
         # Ignore errors for older pythons
         continue-on-error: ${{ matrix.ignore-typecheck-outcome }}
         run: |
-          source .venv/bin/activate
-          mypy pytest_factoryboy
+          poetry run mypy pytest_factoryboy
       - name: Test with tox
         continue-on-error: ${{ matrix.ignore-test-outcome }}
         run: |
