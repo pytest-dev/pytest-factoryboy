@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -12,8 +13,6 @@ from factory.declarations import NotProvided
 from pytest_factoryboy import register
 
 if TYPE_CHECKING:
-    from typing import Any
-
     from pytest_factoryboy.plugin import Request
 
 
@@ -34,7 +33,7 @@ class Foo:
 
     # NOTE: following attributes are used internally only for assertions
     _create: bool | None = None
-    _postgeneration_results: dict[str, Any] = field(default_factory=dict)
+    _postgeneration_results: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -70,7 +69,7 @@ class FooFactory(factory.Factory):
     number = factory.PostGenerationMethodCall("set_number")
 
     @factory.post_generation
-    def set1(foo: Foo, create: bool, value: Any, **kwargs: Any) -> str:
+    def set1(foo: Foo, create: bool, value: object, **kwargs: object) -> str:
         foo.value = 1
         return "set to 1"
 
@@ -82,7 +81,7 @@ class FooFactory(factory.Factory):
             foo.value = value
 
     @classmethod
-    def _after_postgeneration(cls, obj: Foo, create: bool, results: dict[str, Any] | None = None) -> None:
+    def _after_postgeneration(cls, obj: Foo, create: bool, results: Mapping[str, object] | None = None) -> None:
         obj._postgeneration_results = results or {}
         obj._create = create
 
@@ -190,7 +189,7 @@ class TestPostgenerationCalledOnce:
 
         @classmethod
         def _after_postgeneration(
-            cls, obj: dict[str, Any], create: bool, results: dict[str, Any] | None = None
+            cls, obj: Mapping[str, object], create: bool, results: Mapping[str, object] | None = None
         ) -> None:
             obj.setdefault("_after_postgeneration_calls", []).append((obj, create, results))
 
@@ -218,11 +217,11 @@ class OrderedFactory(factory.Factory):
         model = Ordered
 
     @factory.post_generation
-    def zzz(obj: Ordered, create: bool, val: Any, **kwargs: Any) -> None:
+    def zzz(obj: Ordered, create: bool, val: object, **kwargs: object) -> None:
         obj.value = "zzz"
 
     @factory.post_generation
-    def aaa(obj: Ordered, create: bool, val: Any, **kwargs: Any) -> None:
+    def aaa(obj: Ordered, create: bool, val: object, **kwargs: object) -> None:
         obj.value = "aaa"
 
 

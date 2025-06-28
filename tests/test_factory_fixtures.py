@@ -12,8 +12,6 @@ from factory import fuzzy
 from pytest_factoryboy import LazyFixture, register
 
 if TYPE_CHECKING:
-    from typing import Any
-
     from factory.declarations import LazyAttribute
 
 
@@ -77,7 +75,7 @@ class AuthorFactory(factory.Factory):
     register_user__password = "qwerty"  # Make sure fixture is generated
 
     @factory.post_generation
-    def register_user(author: Author, create: bool, username: str | None, **kwargs: Any) -> None:
+    def register_user(author: Author, create: bool, username: str | None, **kwargs: object) -> None:
         """Register author as a user in the system."""
         if username is not None:
             author.user = UserFactory(username=username, **kwargs)
