@@ -27,6 +27,7 @@ Removed
 
 Fixed
 +++++
+* Fix compatibility with ``pytest 8.4``.
 
 Security
 ++++++++
