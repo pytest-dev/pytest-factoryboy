@@ -1,10 +1,8 @@
 name: Main testing workflow
-
 on:
   push:
   pull_request:
   workflow_dispatch:
-
 jobs:
   build:
     name: Build package
@@ -17,9 +15,7 @@ jobs:
           cache: "pip"
       - name: Install pypa/build
         run: >-
-          python3 -m pip install --user
-          build
-          twine
+          python3 -m pip install --user build twine
       - name: Build a binary wheel and a source tarball
         run: python3 -m build
       - name: Check the distribution files with `twine`
@@ -58,68 +54,57 @@ jobs:
             toxfactor: py3.13
             ignore-typecheck-outcome: true
             ignore-test-outcome: false
-
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      id: setup-python
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install poetry
-      run: |
-        python -m pip install poetry==2.0.0
-
-    - name: Configure poetry
-      run: |
-        python -m poetry config virtualenvs.in-project true
-
-    - name: Cache the virtualenv
-      id: poetry-dependencies-cache
-      uses: actions/cache@v3
-      with:
-        path: ./.venv
-        key: ${{ runner.os }}-venv-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-    - name: Install dev dependencies
-      if: steps.poetry-dependencies-cache.outputs.cache-hit != 'true'
-      run: |
-        python -m poetry install --only=dev
-
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: dist-files
-        path: dist/
-
-    - name: Type checking
-      # Ignore errors for older pythons
-      continue-on-error: ${{ matrix.ignore-typecheck-outcome }}
-      run: |
-        source .venv/bin/activate
-        tox -e mypy
-
-    - name: Test with tox
-      continue-on-error: ${{ matrix.ignore-test-outcome }}
-      run: |
-        source .venv/bin/activate
-        coverage erase
-          # Using `--parallel 4` as it's the number of CPUs in the GitHub Actions runner
-          # Using `installpkg dist/*.whl` because we want to install the pre-built package (want to test against that)
-          tox run-parallel -f ${{ matrix.toxfactor }} --parallel 4 --parallel-no-spinner --parallel-live --installpkg dist/*.whl
-        coverage combine
-        coverage xml
-
-    - uses: codecov/codecov-action@v4
-      with:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install poetry
+        run: |
+          python -m pip install poetry==2.0.0
+      - name: Configure poetry
+        run: |
+          python -m poetry config virtualenvs.in-project true
+      - name: Cache the virtualenv
+        id: poetry-dependencies-cache
+        uses: actions/cache@v3
+        with:
+          path: ./.venv
+          key: ${{ runner.os }}-venv-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install dev dependencies
+        if: steps.poetry-dependencies-cache.outputs.cache-hit != 'true'
+        run: |
+          python -m poetry install --only=dev
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+          path: dist/
+      - name: Type checking
+        # Ignore errors for older pythons
+        continue-on-error: ${{ matrix.ignore-typecheck-outcome }}
+        run: |
+          source .venv/bin/activate
+          tox -e mypy
+      - name: Test with tox
+        continue-on-error: ${{ matrix.ignore-test-outcome }}
+        run: |
+          source .venv/bin/activate
+          coverage erase
+            # Using `--parallel 4` as it's the number of CPUs in the GitHub Actions runner
+            # Using `installpkg dist/*.whl` because we want to install the pre-built package (want to test against that)
+            tox run-parallel -f ${{ matrix.toxfactor }} --parallel 4 --parallel-no-spinner --parallel-live --installpkg dist/*.whl
+          coverage combine
+          coverage xml
+      - uses: codecov/codecov-action@v4
+        with:
           # Explicitly using the token to avoid Codecov rate limit errors
-        # See https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954
-        token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: false
-        verbose: true # optional (default = false)
-
+          # See https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true # optional (default = false)
   pypi-publish:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
@@ -127,7 +112,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/pytest-factoryboy
     permissions:
-      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     needs:
       - "test-run"
