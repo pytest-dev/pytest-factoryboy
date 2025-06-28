@@ -3,22 +3,17 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import Any
 
 import pytest
+from _pytest.config import PytestPluginManager
+from _pytest.fixtures import FixtureRequest, SubRequest
+from _pytest.nodes import Item
+from _pytest.python import Metafunc
+from factory.base import Factory
 
 from .compat import getfixturedefs
-
-if TYPE_CHECKING:
-    from typing import Any
-
-    from _pytest.config import PytestPluginManager
-    from _pytest.fixtures import FixtureRequest, SubRequest
-    from _pytest.nodes import Item
-    from _pytest.python import Metafunc
-    from factory import Factory
-
-    from .fixture import DeferredFunction
+from .fixture import DeferredFunction
 
 
 class CycleDetected(Exception):
@@ -30,12 +25,12 @@ class Request:
 
     def __init__(self) -> None:
         """Create pytest_factoryboy request."""
-        self.deferred: list[list[DeferredFunction]] = []
+        self.deferred: list[list[DeferredFunction[object]]] = []
         self.results: dict[str, dict[str, Any]] = defaultdict(dict)
-        self.model_factories: dict[str, type[Factory]] = {}
-        self.in_progress: set[DeferredFunction] = set()
+        self.model_factories: dict[str, type[Factory[object]]] = {}
+        self.in_progress: set[DeferredFunction[object]] = set()
 
-    def defer(self, functions: list[DeferredFunction]) -> None:
+    def defer(self, functions: list[DeferredFunction[object]]) -> None:
         """Defer post-generation declaration execution until the end of the test setup.
 
         :param functions: Functions to be deferred.
@@ -50,6 +45,8 @@ class Request:
             deps = {fixture}
         if fixture == "request":
             return deps
+
+        assert request._pyfuncitem.parent is not None, "Request must have a parent item."
 
         fixturedefs = getfixturedefs(request._fixturemanager, fixture, request._pyfuncitem.parent)
         for fixturedef in fixturedefs or []:
@@ -67,7 +64,9 @@ class Request:
             request = request._parent_request
         return deps
 
-    def execute(self, request: SubRequest, function: DeferredFunction, deferred: list[DeferredFunction]) -> None:
+    def execute(
+        self, request: SubRequest, function: DeferredFunction[object], deferred: list[DeferredFunction[object]]
+    ) -> None:
         """Execute deferred function and store the result."""
         if function in self.in_progress:
             raise CycleDetected()
@@ -114,9 +113,7 @@ def factoryboy_request() -> Request:
     return Request()
 
 
-# type ignored because pluggy v1.0.0 has no type annotations:
-# https://github.com/pytest-dev/pluggy/issues/191
-@pytest.hookimpl(tryfirst=True)  # type: ignore[misc]
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_call(item: Item) -> None:
     """Before the test item is called."""
     # TODO: We should instead do an `if isinstance(item, Function)`.

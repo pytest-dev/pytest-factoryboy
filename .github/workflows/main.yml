@@ -40,23 +40,23 @@ jobs:
             ignore-test-outcome: false
           - python-version: "3.10"
             toxfactor: py3.10
-            ignore-typecheck-outcome: true
+            ignore-typecheck-outcome: false
             ignore-test-outcome: false
           - python-version: "3.11"
             toxfactor: py3.11
-            ignore-typecheck-outcome: true
+            ignore-typecheck-outcome: false
             ignore-test-outcome: false
           - python-version: "3.12"
             toxfactor: py3.12
-            ignore-typecheck-outcome: true
+            ignore-typecheck-outcome: false
             ignore-test-outcome: false
           - python-version: "3.13"
             toxfactor: py3.13
-            ignore-typecheck-outcome: true
+            ignore-typecheck-outcome: false
             ignore-test-outcome: false
           - python-version: "3.14"
             toxfactor: py3.14
-            ignore-typecheck-outcome: true
+            ignore-typecheck-outcome: false
             ignore-test-outcome: false
     steps:
       - uses: actions/checkout@v4
@@ -71,17 +71,17 @@ jobs:
           python -m pip install poetry==2.0.0
       - name: Configure poetry
         run: |
-          python -m poetry config virtualenvs.in-project true
+          poetry config virtualenvs.in-project true
       - name: Cache the virtualenv
         id: poetry-dependencies-cache
         uses: actions/cache@v3
         with:
           path: ./.venv
-          key: ${{ runner.os }}-venv-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          key: ${{ runner.os }}-venv-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}${{ hashFiles('.github/workflows/**') }}
       - name: Install dev dependencies
         if: steps.poetry-dependencies-cache.outputs.cache-hit != 'true'
         run: |
-          python -m poetry install --only=dev
+          poetry install
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -91,16 +91,15 @@ jobs:
         # Ignore errors for older pythons
         continue-on-error: ${{ matrix.ignore-typecheck-outcome }}
         run: |
-          source .venv/bin/activate
-          tox -e mypy
+          poetry run mypy pytest_factoryboy
       - name: Test with tox
         continue-on-error: ${{ matrix.ignore-test-outcome }}
         run: |
           source .venv/bin/activate
           coverage erase
-            # Using `--parallel 4` as it's the number of CPUs in the GitHub Actions runner
-            # Using `installpkg dist/*.whl` because we want to install the pre-built package (want to test against that)
-            tox run-parallel -f ${{ matrix.toxfactor }} --parallel 4 --parallel-no-spinner --parallel-live --installpkg dist/*.whl
+          # Using `--parallel 4` as it's the number of CPUs in the GitHub Actions runner
+          # Using `installpkg dist/*.whl` because we want to install the pre-built package (want to test against that)
+          tox run-parallel -f ${{ matrix.toxfactor }} --parallel 4 --parallel-no-spinner --parallel-live --installpkg dist/*.whl
           coverage combine
           coverage xml
       - uses: codecov/codecov-action@v4
