@@ -11,7 +11,30 @@ Unreleased
 
 Added
 +++++
+
+Changed
++++++++
+
+Deprecated
+++++++++++
+
+Removed
++++++++
+
+Fixed
++++++
+
+Security
+++++++++
+
+2.8.0
+----------
+
+Added
++++++
 * Declare compatibility with python 3.13. Supported versions are now: 3.9, 3.10, 3.11, 3.12, 3.13.
+* Test against pytest 8.4
+* Test against python 3.14 (beta)
 
 Changed
 +++++++
