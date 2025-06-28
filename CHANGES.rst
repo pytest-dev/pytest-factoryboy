@@ -35,7 +35,7 @@ Added
 * Declare compatibility with python 3.13. Supported versions are now: 3.9, 3.10, 3.11, 3.12, 3.13.
 * Test against pytest 8.4
 * Test against python 3.14 (beta)
-* Run static type checks on all supported python version.
+* Run static type checks (only using the last stable python version).
 
 Changed
 +++++++

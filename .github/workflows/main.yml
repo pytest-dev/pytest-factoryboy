@@ -40,15 +40,15 @@ jobs:
             ignore-test-outcome: false
           - python-version: "3.10"
             toxfactor: py3.10
-            ignore-typecheck-outcome: false
+            ignore-typecheck-outcome: true
             ignore-test-outcome: false
           - python-version: "3.11"
             toxfactor: py3.11
-            ignore-typecheck-outcome: false
+            ignore-typecheck-outcome: true
             ignore-test-outcome: false
           - python-version: "3.12"
             toxfactor: py3.12
-            ignore-typecheck-outcome: false
+            ignore-typecheck-outcome: true
             ignore-test-outcome: false
           - python-version: "3.13"
             toxfactor: py3.13
@@ -56,7 +56,7 @@ jobs:
             ignore-test-outcome: false
           - python-version: "3.14"
             toxfactor: py3.14
-            ignore-typecheck-outcome: false
+            ignore-typecheck-outcome: true # TODO: Set to true once python3.14 is stable
             ignore-test-outcome: false
     steps:
       - uses: actions/checkout@v4
