@@ -5,8 +5,15 @@
 poetry version <newversion>
 ```
 2. Update the [CHANGES.rst](CHANGES.rst) file with the release notes and the new version.
-3. Build and publish the package:
-
+3. Commit the changes:
 ```shell
-poetry publish --build
+git add pyproject.toml CHANGES.rst
+git commit -m "Bump version to <newversion>"
 ```
+4. Create and push a tag:
+```shell
+git tag <newversion>
+git push origin <newversion>
+```
+
+The GitHub Actions workflow will automatically build and publish the package to PyPI when a tag is pushed.
