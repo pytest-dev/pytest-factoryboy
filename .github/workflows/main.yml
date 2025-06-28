@@ -77,7 +77,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ./.venv
-          key: ${{ runner.os }}-venv-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          key: ${{ runner.os }}-venv-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}${{ hashFiles('.github/workflows/**') }}
       - name: Install dev dependencies
         if: steps.poetry-dependencies-cache.outputs.cache-hit != 'true'
         run: |
