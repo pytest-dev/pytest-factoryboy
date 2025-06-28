@@ -92,7 +92,7 @@ jobs:
         continue-on-error: ${{ matrix.ignore-typecheck-outcome }}
         run: |
           source .venv/bin/activate
-          tox -f "${{ matrix.toxfactor }}-mypy"
+          mypy pytest_factoryboy
       - name: Test with tox
         continue-on-error: ${{ matrix.ignore-test-outcome }}
         run: |
