@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any
 
 import pytest
 from _pytest.config import PytestPluginManager
@@ -25,12 +24,12 @@ class Request:
 
     def __init__(self) -> None:
         """Create pytest_factoryboy request."""
-        self.deferred: list[list[DeferredFunction[object]]] = []
-        self.results: dict[str, dict[str, Any]] = defaultdict(dict)
+        self.deferred: list[list[DeferredFunction[object, object]]] = []
+        self.results: dict[str, dict[str, object]] = defaultdict(dict)
         self.model_factories: dict[str, type[Factory[object]]] = {}
-        self.in_progress: set[DeferredFunction[object]] = set()
+        self.in_progress: set[DeferredFunction[object, object]] = set()
 
-    def defer(self, functions: list[DeferredFunction[object]]) -> None:
+    def defer(self, functions: list[DeferredFunction[object, object]]) -> None:
         """Defer post-generation declaration execution until the end of the test setup.
 
         :param functions: Functions to be deferred.
@@ -65,7 +64,10 @@ class Request:
         return deps
 
     def execute(
-        self, request: SubRequest, function: DeferredFunction[object], deferred: list[DeferredFunction[object]]
+        self,
+        request: SubRequest,
+        function: DeferredFunction[object, object],
+        deferred: list[DeferredFunction[object, object]],
     ) -> None:
         """Execute deferred function and store the result."""
         if function in self.in_progress:

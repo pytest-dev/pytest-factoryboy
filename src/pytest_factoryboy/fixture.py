@@ -10,7 +10,7 @@ from collections.abc import Collection, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from inspect import signature
 from types import MethodType
-from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Callable, Generic, TypeVar, cast, overload
 
 import factory
 import factory.enums
@@ -45,13 +45,13 @@ WARN_FOR_MODEL_TYPES = frozenset({dict, list, set, tuple, frozenset})
 
 
 @dataclass(eq=False)
-class DeferredFunction(Generic[T]):
+class DeferredFunction(Generic[T, U]):
     name: str
     factory: type[Factory[T]]
     is_related: bool
-    function: Callable[[SubRequest], Any]
+    function: Callable[[SubRequest], U]
 
-    def __call__(self, request: SubRequest) -> Any:
+    def __call__(self, request: SubRequest) -> U:
         return self.function(request)
 
 
@@ -76,21 +76,33 @@ def named_model(model_cls: type[T], name: str) -> type[T]:
 # @register
 # class AuthorFactory(Factory): ...
 @overload
-def register(factory_class: type[Factory[T]], _name: str | None = None, **kwargs: Any) -> type[Factory[T]]: ...
+def register(
+    factory_class: type[Factory[T]],
+    _name: str | None = ...,
+    *,
+    _caller_locals: Box[dict[str, object]] | None = ...,
+    **kwargs: object,
+) -> type[Factory[T]]: ...
 
 
 # @register(...)
 # class AuthorFactory(Factory): ...
 @overload
-def register(*, _name: str | None = None, **kwargs: Any) -> Callable[[type[Factory[T]]], type[Factory[T]]]: ...
+def register(
+    factory_class: None,
+    _name: str | None = ...,
+    *,
+    _caller_locals: Box[dict[str, object]] | None = ...,
+    **kwargs: object,
+) -> Callable[[type[Factory[T]]], type[Factory[T]]]: ...
 
 
 def register(
     factory_class: type[Factory[T]] | None = None,
     _name: str | None = None,
     *,
-    _caller_locals: Box[dict[str, Any]] | None = None,
-    **kwargs: Any,
+    _caller_locals: Box[dict[str, object]] | None = None,
+    **kwargs: object,
 ) -> type[Factory[T]] | Callable[[type[Factory[T]]], type[Factory[T]]]:
     r"""Register fixtures for the factory class.
 
@@ -141,9 +153,9 @@ def generate_fixtures(
     factory_class: type[Factory[T]],
     model_name: str,
     factory_name: str,
-    overrides: Mapping[str, Any],
-    caller_locals: Box[Mapping[str, Any]],
-) -> Iterable[tuple[str, Callable[..., Any]]]:
+    overrides: Mapping[str, object],
+    caller_locals: Box[Mapping[str, object]],
+) -> Iterable[tuple[str, Callable[..., object]]]:
     """Generate all the FixtureDefs for the given factory class."""
 
     related: list[str] = []
@@ -199,10 +211,10 @@ def create_fixture_with_related(
 
 def make_declaration_fixturedef(
     attr_name: str,
-    value: Any,
+    value: object,
     factory_class: type[Factory[T]],
     related: list[str],
-) -> Callable[..., Any]:
+) -> Callable[[SubRequest], object]:
     """Create the FixtureDef for a factory declaration."""
     if isinstance(value, (SubFactory, RelatedFactory)):
         subfactory_class: type[Factory[object]] = value.get_factory()
@@ -246,7 +258,7 @@ def make_declaration_fixturedef(
     )
 
 
-def inject_into_caller(name: str, function: Callable[..., Any], locals_: Box[dict[str, Any]]) -> None:
+def inject_into_caller(name: str, function: Callable[..., object], locals_: Box[dict[str, object]]) -> None:
     """Inject a function into the caller's locals, making sure that the function will work also within classes."""
     # We need to check if the caller frame is a class, since in that case the first argument is the class itself.
     # In that case, we can apply the staticmethod() decorator to the injected function, so that the first param
@@ -302,7 +314,7 @@ def get_deps(
     model_name = get_model_name(factory_class) if model_name is None else model_name
     parent_model_name = get_model_name(parent_factory_class) if parent_factory_class is not None else None
 
-    def is_dep(value: Any) -> bool:
+    def is_dep(value: object) -> bool:
         if isinstance(value, RelatedFactory):
             return False
         if isinstance(value, SubFactory):
@@ -325,7 +337,7 @@ def evaluate(request: SubRequest, value: LazyFixture[T] | T) -> T:
     return value.evaluate(request) if isinstance(value, LazyFixture) else value
 
 
-def noop(*args: Any, **kwargs: Any) -> None:
+def noop(*args: object, **kwargs: object) -> None:
     """No-op function."""
     pass
 
@@ -388,7 +400,7 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
     request._fixture_defs[fixture_name] = request._fixturedef
 
     # Defer post-generation declarations
-    deferred: list[DeferredFunction[object]] = []
+    deferred: list[DeferredFunction[object, object]] = []
 
     for attr in factory_class._meta.post_declarations.sorted():
         decl = factory_class._meta.post_declarations.declarations[attr]
@@ -427,7 +439,7 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
     return instance
 
 
-def make_deferred_related(factory: type[Factory[T]], fixture: str, attr: str) -> DeferredFunction[T]:
+def make_deferred_related(factory: type[Factory[T]], fixture: str, attr: str) -> DeferredFunction[T, object]:
     """Make deferred function for the related factory declaration.
 
     :param factory: Factory class.
@@ -438,7 +450,7 @@ def make_deferred_related(factory: type[Factory[T]], fixture: str, attr: str) ->
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred_impl(request: SubRequest) -> Any:
+    def deferred_impl(request: SubRequest) -> object:
         return request.getfixturevalue(name)
 
     return DeferredFunction(
@@ -453,11 +465,11 @@ def make_deferred_postgen(
     step: BuildStep,
     factory_class: type[Factory[T]],
     fixture: str,
-    instance: Any,
+    instance: T,
     attr: str,
     declaration: PostGenerationDeclaration,
     context: PostGenerationContext,
-) -> DeferredFunction[T]:
+) -> DeferredFunction[T, object]:
     """Make deferred function for the post-generation declaration.
 
     :param step: factory_boy builder step.
@@ -472,7 +484,7 @@ def make_deferred_postgen(
     """
     name = SEPARATOR.join((fixture, attr))
 
-    def deferred_impl(request: SubRequest) -> Any:
+    def deferred_impl(request: SubRequest) -> object:
         return declaration.call(instance, step, context)
 
     return DeferredFunction(
@@ -493,13 +505,13 @@ def attr_fixture(request: SubRequest, value: T) -> T:
     return value
 
 
-def subfactory_fixture(request: SubRequest, factory_class: type[Factory[object]]) -> Any:
+def subfactory_fixture(request: SubRequest, factory_class: type[Factory[object]]) -> object:
     """SubFactory/RelatedFactory fixture implementation."""
     fixture = inflection.underscore(factory_class._meta.model.__name__)
     return request.getfixturevalue(fixture)
 
 
-def get_caller_locals(depth: int = 0) -> dict[str, Any]:
+def get_caller_locals(depth: int = 0) -> dict[str, object]:
     """Get the local namespace of the caller frame."""
     return sys._getframe(depth + 2).f_locals
 
