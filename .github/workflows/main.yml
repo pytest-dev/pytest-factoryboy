@@ -91,7 +91,7 @@ jobs:
         # Ignore errors for older pythons
         continue-on-error: ${{ matrix.ignore-typecheck-outcome }}
         run: |
-          poetry run mypy pytest_factoryboy
+          poetry run mypy src/pytest_factoryboy
       - name: Test with tox
         continue-on-error: ${{ matrix.ignore-test-outcome }}
         run: |
