@@ -15,17 +15,23 @@ __all__ = ("PostGenerationContext", "getfixturedefs", "PytestFixtureT")
 try:
     from factory.declarations import PostGenerationContext
 except ImportError:  # factory_boy < 3.2.0
-    from factory.builder import PostGenerationContext
+    from factory.builder import (  # type: ignore[attr-defined, no-redef]
+        PostGenerationContext,
+    )
 
 if pytest_version.release >= (8, 1):
 
-    def getfixturedefs(fixturemanager: FixtureManager, fixturename: str, node: Node) -> Sequence[FixtureDef] | None:
+    def getfixturedefs(
+        fixturemanager: FixtureManager, fixturename: str, node: Node
+    ) -> Sequence[FixtureDef[object]] | None:
         return fixturemanager.getfixturedefs(fixturename, node)
 
 else:
 
-    def getfixturedefs(fixturemanager: FixtureManager, fixturename: str, node: Node) -> Sequence[FixtureDef] | None:
-        return fixturemanager.getfixturedefs(fixturename, node.nodeid)
+    def getfixturedefs(
+        fixturemanager: FixtureManager, fixturename: str, node: Node
+    ) -> Sequence[FixtureDef[object]] | None:
+        return fixturemanager.getfixturedefs(fixturename, node.nodeid)  # type: ignore[arg-type]
 
 
 if pytest_version.release >= (8, 4):
@@ -35,4 +41,4 @@ if pytest_version.release >= (8, 4):
 else:
     from _pytest.fixtures import FixtureFunction
 
-    PytestFixtureT: TypeAlias = FixtureFunction
+    PytestFixtureT: TypeAlias = FixtureFunction  # type: ignore[misc, no-redef]
