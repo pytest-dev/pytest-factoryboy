@@ -24,6 +24,7 @@ Removed
 
 Fixed
 +++++
+* Fix incompatibility when using the combination of python < 3.12 and factory-boy < 3.3
 
 Security
 ++++++++
