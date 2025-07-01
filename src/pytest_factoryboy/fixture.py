@@ -368,11 +368,14 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
 
     factory_class: type[Factory[object]] = request.getfixturevalue(factory_name)
 
-    # Create model fixture instance
-    NewFactory: type[Factory[object]] = cast(type[Factory[object]], type("Factory", (factory_class,), {}))
+    # create Factory override for the model fixture
+    NewFactory: type[Factory[object]] = type("Factory", (factory_class,), {})
     # equivalent to:
     # class Factory(factory_class):
     #     pass
+    # NewFactory = Factory
+    # del Factory
+
     # it just makes mypy understand it.
 
     NewFactory._meta.base_declarations = {

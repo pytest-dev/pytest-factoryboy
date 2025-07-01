@@ -27,6 +27,31 @@ Fixed
 Security
 ++++++++
 
+2.8.1
+----------
+
+Added
++++++
+* Test against all supported ``factory-boy`` versions
+
+Changed
++++++++
+
+Deprecated
+++++++++++
+
+Removed
++++++++
+
+Fixed
++++++
+* Fix incompatibility when using the combination of python < 3.12 and factory-boy < 3.3.
+
+  * The error was: ``TypeError: type 'Factory' is not subscriptable``
+
+Security
+++++++++
+
 2.8.0
 ----------
 
