@@ -11,6 +11,7 @@ Unreleased
 
 Added
 +++++
+* Test against all supported `factory-boy` versions
 
 Changed
 +++++++
