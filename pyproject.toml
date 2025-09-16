@@ -44,6 +44,9 @@ repository = "https://github.com/pytest-dev/pytest-factoryboy"
 [tool.poetry]
 packages = [{include = "pytest_factoryboy", from = "src"}]
 
+[tool.poetry.group.dev]
+optional = true
+
 [tool.poetry.group.dev.dependencies]
 mypy = ">=1.4.1"
 tox = ">=4.0.8"
