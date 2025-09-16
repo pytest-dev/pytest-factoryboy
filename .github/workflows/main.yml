@@ -14,8 +14,9 @@ jobs:
         with:
           cache: "pip"
       - name: Install pypa/build
-        run: >-
-          python3 -m pip install --user build twine
+        # We need a recent version of `packaging`, otherwise we encounter this bug:
+        # https://github.com/pypa/twine/issues/1216
+        run: python3 -m pip install --user build twine "packaging>=25.0"
       - name: Build a binary wheel and a source tarball
         run: python3 -m build
       - name: Check the distribution files with `twine`
