@@ -17,13 +17,13 @@ P = ParamSpec("P")
 def create_fixture(
     name: str,
     function: Callable[P, T],
-    fixtures: Collection[str] | None = None,
+    dependencies: Collection[str] | None = None,
 ) -> tuple[PytestFixtureT, Callable[P, T]]:
     """Dynamically create a pytest fixture.
 
     :param name: Name of the fixture.
     :param function: Function to be called.
-    :param fixtures: List of fixtures dependencies, but that will not be passed to ``function``.
+    :param dependencies: List of fixtures dependencies, but that will not be passed to ``function``.
     :return: The created fixture function and the actual function.
 
     Example:
@@ -40,10 +40,10 @@ def create_fixture(
             def book(name, db):
                 return Book(name=name)
     """
-    if fixtures is None:
-        fixtures = []
+    if dependencies is None:
+        dependencies = []
 
-    @usefixtures(*fixtures)
+    @usefixtures(*dependencies)
     @functools.wraps(function)
     def fn(*args: P.args, **kwargs: P.kwargs) -> T:
         return function(*args, **kwargs)

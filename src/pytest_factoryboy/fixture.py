@@ -187,7 +187,7 @@ def generate_fixtures(
         create_fixture_with_related(
             name=model_name,
             function=functools.partial(model_fixture, factory_name=factory_name),
-            fixtures=deps,
+            dependencies=deps,
             related=related,
         ),
     )
@@ -196,12 +196,12 @@ def generate_fixtures(
 def create_fixture_with_related(
     name: str,
     function: Callable[P, T],
-    fixtures: Collection[str] | None = None,
+    dependencies: Collection[str] | None = None,
     related: Collection[str] | None = None,
 ) -> Callable[P, T]:
     if related is None:
         related = []
-    fixture, fn = create_fixture(name=name, function=function, fixtures=fixtures)
+    fixture, fn = create_fixture(name=name, function=function, dependencies=dependencies)
 
     # We have to set the `_factoryboy_related` attribute to the original function, since
     # FixtureDef.func will provide that one later when we discover the related fixtures.
@@ -234,7 +234,7 @@ def make_declaration_fixturedef(
         return create_fixture_with_related(
             name=attr_name,
             function=functools.partial(subfactory_fixture, factory_class=subfactory_class),
-            fixtures=args,
+            dependencies=args,
         )
 
     deps: list[str]  # makes mypy happy
@@ -254,7 +254,7 @@ def make_declaration_fixturedef(
     return create_fixture_with_related(
         name=attr_name,
         function=functools.partial(attr_fixture, value=value),
-        fixtures=deps,
+        dependencies=deps,
     )
 
 
