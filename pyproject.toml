@@ -5,6 +5,7 @@ description = "Factory Boy support for pytest."
 authors = [ { name = "Oleg Pidsadnyi", email= "oleg.pidsadnyi@gmail.com" } ]
 maintainers = [ { name = "Alessio Bogon", email = "778703+youtux@users.noreply.github.com" } ]
 license = "MIT"
+license-files = [ "LICENSE.md" ]
 readme = "README.rst"
 
 classifiers = [
@@ -43,6 +44,9 @@ repository = "https://github.com/pytest-dev/pytest-factoryboy"
 
 [tool.poetry]
 packages = [{include = "pytest_factoryboy", from = "src"}]
+
+[tool.poetry.group.dev]
+optional = true
 
 [tool.poetry.group.dev.dependencies]
 mypy = ">=1.4.1"
