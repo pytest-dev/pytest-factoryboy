@@ -2,11 +2,11 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: fe95161893684893d68b1225356702ca71f8d388  # frozen: 25.9.0
+    rev: fe95161893684893d68b1225356702ca71f8d388 # frozen: 25.9.0
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
-    rev: ec0efaee4acfce198521e43caa3029b06cedd64a  # frozen: 6.1.0
+    rev: ec0efaee4acfce198521e43caa3029b06cedd64a # frozen: 6.1.0
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/pre-commit-hooks
