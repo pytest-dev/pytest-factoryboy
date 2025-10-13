@@ -6,7 +6,7 @@ repos:
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
-    rev: 0a09c783808cfe77bb3269250f663ff733d23302  # frozen: 7.0.0
+    rev: 0a09c783808cfe77bb3269250f663ff733d23302 # frozen: 7.0.0
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -21,7 +21,7 @@ repos:
     hooks:
       - id: yamlfmt
   - repo: https://github.com/asottile/pyupgrade
-    rev: f90119b1b8bd9e46949d9592972b2c4c27d62a97  # frozen: v3.21.0
+    rev: f90119b1b8bd9e46949d9592972b2c4c27d62a97 # frozen: v3.21.0
     hooks:
       - id: pyupgrade
         args: [--py39-plus]
