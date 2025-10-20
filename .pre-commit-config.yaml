@@ -6,7 +6,7 @@ repos:
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
-    rev: ec0efaee4acfce198521e43caa3029b06cedd64a # frozen: 6.1.0
+    rev: 0a09c783808cfe77bb3269250f663ff733d23302 # frozen: 7.0.0
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -17,11 +17,11 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
   - repo: https://github.com/google/yamlfmt
-    rev: a69a26f0e2a6d5768f3496239ba1e41c6bb74b6e # frozen: v0.17.2
+    rev: a34c7519c0b7506a839bb6a8d53b08e8ae05b8a5 # frozen: v0.19.0
     hooks:
       - id: yamlfmt
   - repo: https://github.com/asottile/pyupgrade
-    rev: 37bfa06d791fd38fb4e54910b36a2ff57641b074 # frozen: v3.20.0
+    rev: f90119b1b8bd9e46949d9592972b2c4c27d62a97 # frozen: v3.21.0
     hooks:
       - id: pyupgrade
         args: [--py39-plus]
