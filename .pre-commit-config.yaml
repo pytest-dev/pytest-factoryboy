@@ -2,11 +2,11 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: fe95161893684893d68b1225356702ca71f8d388 # frozen: 25.9.0
+    rev: 831207fd435b47aeffdf6af853097e64322b4d44 # frozen: 25.12.0
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
-    rev: ec0efaee4acfce198521e43caa3029b06cedd64a # frozen: 6.1.0
+    rev: 0a09c783808cfe77bb3269250f663ff733d23302 # frozen: 7.0.0
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -17,11 +17,11 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
   - repo: https://github.com/google/yamlfmt
-    rev: a69a26f0e2a6d5768f3496239ba1e41c6bb74b6e # frozen: v0.17.2
+    rev: 884e367e8fae92b238653fd950a54d235d418e4e # frozen: v0.20.0
     hooks:
       - id: yamlfmt
   - repo: https://github.com/asottile/pyupgrade
-    rev: 37bfa06d791fd38fb4e54910b36a2ff57641b074 # frozen: v3.20.0
+    rev: 75992aaa40730136014f34227e0135f63fc951b4 # frozen: v3.21.2
     hooks:
       - id: pyupgrade
         args: [--py39-plus]
