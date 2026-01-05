@@ -299,15 +299,15 @@ For example:
     from pytest_factoryboy import named_model, register
 
     @register
-    class JSONPayload(factory.Factory):
+    class JSONPayloadFactory(factory.Factory):
         class Meta:
-            model = named_model("JSONPayload", dict)
+            model = named_model(dict, "JSONPayload")
 
         name = "foo"
 
 
     def test_foo(json_payload):
-        assert json_payload.name == "foo"
+        assert json_payload["name"] == "foo"
 
 As a bonus, factory is automatically registering the ``json_payload`` fixture (rather than ``dict``), so there is no need to override ``@register(_name="json_payload"))``.
 
