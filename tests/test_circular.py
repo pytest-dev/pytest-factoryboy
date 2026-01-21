@@ -38,6 +38,16 @@ class AuthorFactory(factory.Factory):
     book = factory.RelatedFactory("tests.test_circular.BookFactory", "author")
 
 
+class AuthorBookTraitFactory(factory.Factory):
+    class Meta:
+        model = Author
+
+    name = "Charles Dickens"
+
+    class Params:
+        with_book = factory.Trait(book=factory.RelatedFactory("tests.test_circular.BookFactory", "author"))
+
+
 class BookFactory(factory.Factory):
     class Meta:
         model = Book
@@ -48,8 +58,15 @@ class BookFactory(factory.Factory):
 
 
 register(AuthorFactory)
+register(AuthorBookTraitFactory, "author_book_trait")
 register(BookFactory)
 
 
 def test_circular(author: Author, factoryboy_request, request):
     assert author.books
+
+
+def test_circular_with_trait(author_book_trait):
+    # FIXME: The trait, converted to Maybe, is handled in fixture.make_deferred_postgen
+    # which tries to run call() on the Maybe class, which was disabled in factory-boy 3.2
+    assert author_book_trait.name == "Charles Dickens"
