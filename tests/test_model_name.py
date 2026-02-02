@@ -70,8 +70,7 @@ def test_named_model():
 
 
 def test_generic_model_with_custom_name_no_warning(testdir):
-    testdir.makepyfile(
-        """
+    testdir.makepyfile("""
         from factory import Factory
         from pytest_factoryboy import named_model, register
 
@@ -85,15 +84,13 @@ def test_generic_model_with_custom_name_no_warning(testdir):
         def test_payload(json_payload: dict):
             assert isinstance(json_payload, dict)
             assert json_payload["foo"] == "bar"
-        """
-    )
+        """)
     result = testdir.runpytest("-Werror")  # Warnings become errors
     assert_outcomes(result, passed=1)
 
 
 def test_generic_model_name_raises_warning(testdir):
-    testdir.makepyfile(
-        """
+    testdir.makepyfile("""
         import builtins
         from factory import Factory
         from pytest_factoryboy import register
@@ -108,8 +105,7 @@ def test_generic_model_name_raises_warning(testdir):
         def test_payload(dict):
             assert isinstance(dict, builtins.dict)
             assert dict["foo"] == "bar"
-    """
-    )
+    """)
     result = testdir.runpytest()
     assert_outcomes(result, passed=1)
     result.stdout.fnmatch_lines(
@@ -118,8 +114,7 @@ def test_generic_model_name_raises_warning(testdir):
 
 
 def test_generic_model_with_register_override_no_warning(testdir):
-    testdir.makepyfile(
-        """
+    testdir.makepyfile("""
         from factory import Factory
         from pytest_factoryboy import named_model, register
 
@@ -134,15 +129,13 @@ def test_generic_model_with_register_override_no_warning(testdir):
             assert isinstance(json_payload, dict)
             assert json_payload["foo"] == "bar"
 
-        """
-    )
+        """)
     result = testdir.runpytest("-Werror")  # Warnings become errors
     assert_outcomes(result, passed=1)
 
 
 def test_using_generic_model_name_for_subfactory_raises_warning(testdir):
-    testdir.makepyfile(
-        """
+    testdir.makepyfile("""
         import builtins
         from factory import Factory, SubFactory
         from pytest_factoryboy import register
@@ -166,8 +159,7 @@ def test_using_generic_model_name_for_subfactory_raises_warning(testdir):
 
         def test_payload(http_request):
             assert http_request.json["foo"] == "bar"
-        """
-    )
+        """)
 
     result = testdir.runpytest()
     assert_outcomes(result, errors=1)
