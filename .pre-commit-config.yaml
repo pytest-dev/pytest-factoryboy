@@ -2,7 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 831207fd435b47aeffdf6af853097e64322b4d44 # frozen: 25.12.0
+    rev: ea488cebbfd88a5f50b8bd95d5c829d0bb76feb8 # frozen: 26.1.0
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
@@ -26,7 +26,7 @@ repos:
       - id: pyupgrade
         args: [--py39-plus]
   - repo: https://github.com/python-poetry/poetry
-    rev: "b9e5d79fc57de2f2e60973019d56662b7398440b" # frozen: 2.2.1
+    rev: "a84cd0f1bedb5769ef6ef7389d8ee99b93b9ba4c" # frozen: 2.3.2
     hooks:
       - id: poetry-check
         args: ["--lock"]
