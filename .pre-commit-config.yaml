@@ -26,7 +26,7 @@ repos:
       - id: pyupgrade
         args: [--py39-plus]
   - repo: https://github.com/python-poetry/poetry
-    rev: "3fc8b33d8c46bf3fbbf06255f1688a2a7bfdfc6b"  # frozen: 2.4.0
+    rev: "3fc8b33d8c46bf3fbbf06255f1688a2a7bfdfc6b" # frozen: 2.4.0
     hooks:
       - id: poetry-check
         args: ["--lock"]
