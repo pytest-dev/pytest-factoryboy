@@ -6,7 +6,7 @@ repos:
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
-    rev: 8d8d49d0f5ded46bb10bb860b0841be14ba42a65 # frozen: 9.0.0b2
+    rev: d5f40fa0553aa4bba71fcd73cf42933ae14d5116  # frozen: 9.0.0b5
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/pre-commit-hooks
