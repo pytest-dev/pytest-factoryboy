@@ -386,8 +386,17 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
     kwargs = {}
     for key in factory_class._meta.pre_declarations:
         argname = "".join((prefix, key))
-        if argname in request._fixturedef.argnames:
-            kwargs[key] = evaluate(request, request.getfixturevalue(argname))
+        if argname not in request._fixturedef.argnames:
+            continue
+        value = evaluate(request, request.getfixturevalue(argname))
+        if value is factory_class._meta.pre_declarations[key].declaration:
+            # The fixture still holds the factory's own declaration, i.e. it was not overridden.
+            # Let the factory evaluate it itself rather than passing it back as a call-time value:
+            # factory_boy treats call-time values of declarations that capture overrides (e.g.
+            # ``factory.Transformer``) as the *input* of the declaration, so passing the declaration
+            # back would apply the transformation twice.
+            continue
+        kwargs[key] = value
 
     strategy = factory.enums.CREATE_STRATEGY
     builder = StepBuilder(NewFactory._meta, kwargs, strategy)
