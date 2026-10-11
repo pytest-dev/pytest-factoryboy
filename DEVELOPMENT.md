@@ -1,30 +1,26 @@
 # How to prepare a development environment
 
-1. [Install poetry](https://python-poetry.org/docs/#installation):
+1. [Install uv](https://docs.astral.sh/uv/getting-started/installation/):
 
 ```shell
-# MacOS / Linux
-curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-
-# Windows
-(Invoke-WebRequest -Uri https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py -UseBasicParsing).Content | python -
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 2. Install dependencies & pre-commit hooks:
 
 ```shell
-poetry install
+uv sync --only-group dev
 
 pre-commit install
 ```
 
-3. (Optional) Activate the poetry virtual environment:
+3. (Optional) Activate the virtual environment:
 
 ```shell
-poetry shell
+source .venv/bin/activate
 ```
 
 4. Run tests & mypy using tox:
 ```shell
-tox
+uv run tox
 ```
