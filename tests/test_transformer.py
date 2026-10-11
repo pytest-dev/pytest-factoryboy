@@ -35,6 +35,11 @@ class UserFactory(factory.Factory):
 
 
 register(UserFactory, "user_with_register_override", password="from register")
+register(
+    UserFactory,
+    "user_with_force_in_register",
+    password=factory.Transformer.Force("plain_from_register"),
+)
 
 
 def test_transformer_applied_once(user: User):
@@ -46,6 +51,11 @@ def test_transformer_applied_once(user: User):
 def test_transformer_register_override(user_with_register_override: User):
     """A value passed to ``register(...)`` is transformed, like a value passed to the factory."""
     assert user_with_register_override.password == "hashed(from register)"
+
+
+def test_transformer_force_in_register(user_with_force_in_register: User):
+    """``Transformer.Force`` passed to ``register(...)`` bypasses the transformation."""
+    assert user_with_force_in_register.password == "plain_from_register"
 
 
 class TestFixtureOverride:
