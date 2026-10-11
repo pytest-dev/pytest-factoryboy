@@ -143,7 +143,7 @@ def test_build_batch(book_factory):
 
 | Usage | Today | After |
 | --- | --- | --- |
-| `@parametrize("book_factory__name", [..])` + `book_factory` | not a fixture / ignored | `book_factory().name` honors it |
+| `@parametrize("book_factory__name", [..])` + `book_factory` | collection error (`function uses no argument`) | `book_factory().name` honors it |
 | `book_factory is BookFactory` | `True` | `issubclass(book_factory, BookFactory)` |
 | `book_factory().author` | fresh instance | shares the `author` fixture (if shareable) |
 | SubFactory of a subclassed factory (#257) | wrong fixture | resolves by factory identity *(follow-up F1)* |
@@ -169,7 +169,8 @@ register(BookFactory, price=1)        # book's overrides
 ```
 
 - `register_factory(factory, *, _default_subfactory_fixture=<unset>,
-  _default_relatedfactory_fixture=<unset>, **overrides)` registers the shared `foo_factory`
+  _default_relatedfactory_fixture=<unset>, _caller_locals=<caller>, **overrides)`
+  registers the shared `foo_factory`
   and its namespace `foo_factory__<attr>`, and can be used alone (no model fixture
   required). It only adds fixture names that do not exist yet, so **call it before
   `register(...)` for the same factory**; if there is nothing left to register, it
@@ -188,7 +189,8 @@ register(BookFactory, price=1)        # book's overrides
 - `register(factory, _name=None, **overrides)` registers the model fixtures `foo` /
   `foo__<attr>`, and records `_name` (or the inflected model name) as **both** default
   fixtures (sub-factory and related) **unless already recorded** (§4.1). When `foo_factory`
-  does not yet exist in the module, it also calls `register_factory(factory)` for you.
+  does not yet exist in the caller's locals (module or class), it also calls
+  `register_factory(factory)` for you.
 
 Because `register_factory` must run first, the convention is to list it before the
 `register(...)` calls (see §2.1).
@@ -292,7 +294,7 @@ When the target factory has a **default fixture** registered for the matching ki
 `SubFactory` (or `RelatedFactory`) to it **shares** that fixture automatically: `foo` and
 `foo_factory()` then refer to the same object. Sharing is the automatic behaviour for any
 registered target; what is opt-in is the *`None`* alternative (build a new object), and
-an unset target raises.
+an unregistered target falls back to the deprecated inflected lookup (raising is **F1**).
 
 No extra action is needed — a registered factory just does the right thing:
 
@@ -311,19 +313,27 @@ The default fixture is recorded **per kind** at registration — `SubFactory` an
 | `register_factory(Factory, _default_subfactory_fixture="bar")` | `bar` | unset |
 | `register_factory(Factory, _default_relatedfactory_fixture=None)` | unset | new object |
 
-Each setting is either a **fixture name** or `None`. A named setting is not a runtime
-name lookup: the plugin materialises it as a fixture that depends on the target
-*statically* (e.g. `def bar_factory___default_subfactory_fixture(bar): return bar`), so
-the edge is a real one in the pytest graph and can be overridden like any other fixture.
+Each setting is either a **fixture name** or `None`. Resolution happens **lazily at call
+time**, not through static fixture dependencies: at fixture setup the strategy
+(`create` vs `build`/`stub`) is not yet known, so a static edge would create a row even
+for `book_factory.build()`/`.stub()`. Instead `foo_factory` resolves a shared target by
+`request.getfixturevalue(<name>)` when it is actually called with `create`. To keep
+parametrization working, `pytest_generate_tests` **augments `metafunc.fixturenames`** with
+the target's attribute fixtures (`author__name`, …) when a factory fixture is requested,
+so `@parametrize("author__name")` applies even though `author` is not a static dependency.
 
 Resolving a reference to `TargetFactory`, using the setting for the matching kind:
 
 - **a fixture name** → inject it (shared);
 - **`None`** → build a **new object** every time the factory is invoked (factory_boy's
   own behaviour), never the shared fixture;
-- **unset** (the target is not registered, or was registered without a default for this
-  kind) → **raise**, telling the user to register the target or set the matching
-  `_default_*_fixture` to `None`. Building a new object is therefore always explicit.
+- **unset** (the target factory is not registered at all) → fall back to today's
+  model-name inflection, emitting a `DeprecationWarning`; **F1** removes the fallback and
+  raises, telling the user to register the target or set the matching `_default_*_fixture`
+  to `None`. A target registered without a per-kind default (only possible via
+  `register_factory`) likewise falls back, then raises in F1.
+
+Building a new object is therefore always explicit.
 
 Other rules:
 
@@ -445,24 +455,31 @@ public spec, but they explain several choices above.
 `type(name, (FooFactory,), {})`, with the request (and model name) bound under
 underscore-prefixed attributes so factory_boy does not mistake them for declarations.
 
-**Intercept `_generate`, not `create`/`build`.** Every entry point (`__call__`,
-`create`, `build`, `stub`, `*_batch`, `generate`) funnels through
-`BaseFactory._generate`. A re-entrancy guard on that single point covers all of them,
-while overriding `create`/`build` individually is easily bypassed. This is an
-independent, self-contained change and lands **first as a standalone pre-PR**
-(see §11), separate from the fixture-generation work.
+**Intercept `_generate`, not `create`/`build`.** The *top-level* entry points
+(`__call__`, `create`, `build`, `stub`, `*_batch`, `generate`) all funnel through
+`BaseFactory._generate`, so one override covers them, while overriding
+`create`/`build` individually is easily bypassed. It does **not** see nested builds:
+a `SubFactory` recurses through `BuildStep.recurse` → `builder.build()` directly. The
+re-entrancy guard exists because the engine itself calls factory_boy's `_generate` for
+the native/declaration path; a per-call flag makes that path bypass the override instead
+of recursing. This is an independent, self-contained change and lands **first as a
+standalone pre-PR** (see §11), separate from the fixture-generation work.
 
 **The model fixture is routed through the same engine.** `model_fixture` must bypass
 the `_generate` override (delegating to factory_boy's path) to avoid recursion. The engine
 is strategy-parameterized so `.build()`/`.stub()` keep BUILD semantics.
 
-**`Trait`/`Params` live in `_meta.parameters`, not `_meta.declarations`**, so they must
-be forwarded to the builder explicitly. `LazyFixture` declarations still need engine
+**`Trait` and `Params` are not plain declarations.** `Trait` is stored in
+`_meta.base_declarations` (so it appears in `_meta.declarations`); `Params` live in
+`_meta.parameters` but already surface through `pre_declarations`. The engine must not
+treat them as ordinary attributes; `LazyFixture` declarations still need engine
 evaluation. `.attributes()` does not exist in factory_boy 3.3.x.
 
-**Resolution uses an "unset" sentinel.** The `foo__<attr>` / `foo_factory__<attr>`
-fixtures default to a sentinel when not explicitly overridden, so "was this namespace
-set?" is decided without comparing values to declaration defaults.
+**Detecting "was this namespace set?".** `foo__<attr>` must keep returning its value
+(the declaration default or an override), so a literal "unset" sentinel is not an
+option. Reuse the existing identity check — the fixture returns the factory's own
+declaration object when untouched (`fixture.py:452`) — or add a hidden per-attribute
+"set" marker that leaves the returned value unchanged.
 
 ---
 
@@ -478,20 +495,25 @@ See §3.5 for the API delta; this section covers behavioral compatibility.
 | mutate attributes via `foo_factory` | persists | lost (bound subclass) | document loudly |
 | `foo_factory().author` | fresh (factory_boy) | shared **iff shareable** | document |
 | `foo_factory()` post-generation timing | immediate | deferred engine | document |
-| Sub/related target | by model-name inflection | by the target factory's recorded default fixture | unregistered/unset → raise; explicit `None` → new object |
+| Sub/related target | by model-name inflection | by the target factory's recorded default fixture | unregistered → inflected fallback, deprecated (F1 raises); explicit `None` → new object |
 | `named_model` | required | unnecessary *after F1* | keep working; deprecate in F1 |
-| generic-container `UserWarning` | on | maybe off | decide; keep `-Werror` tests aligned |
+| generic-container `UserWarning` | on | off | factory-anchored resolution no longer depends on the model name; update the test (first PR) |
 | fixture names | `foo`, `foo_factory`, `foo__attr` | unchanged | unchanged |
-| `foo_factory` fixture deps | none | factory namespace + shareable sub-factories | document eager setup |
-| minimum versions | `pytest>=7.0`, `factory_boy>=2.10` | `pytest>=9.1`, `factory_boy>=3.3` | next major |
+| `foo_factory` fixture deps | none | factory namespace only; shareable sub-factories resolved **lazily** at call time | document; keeps `.build()`/`.stub()` row-free |
+| minimum versions | `pytest>=7.0`, `factory_boy>=2.10` | `factory_boy>=3.3` now; `pytest>=9.1` at F3 | next major |
 
 Some changes are unwarnable (`is`-identity, attribute mutation), so a migration guide
-is required. The minimum-version bump follows from wanting pytest's own fixture
-registration (see §8) instead of the `inject_into_caller` shim.
+is required. The `factory_boy>=3.3` bump is needed now (builder API used by the engine);
+the `pytest>=9.1` bump is only needed at F3, where pytest's own fixture registration
+(see §8) replaces the `inject_into_caller` shim — so it is deferred.
 
 ---
 
 ## 8. Appendix — pytest capabilities researched (8.4 / 9.0 / 9.1)
+
+The first PR depends on **none** of these — it still injects fixtures via
+`inject_into_caller`. They matter for **F3** (node-scoped registration/scoping) and for
+evaluating dynamic-closure options; the `pytest>=9.1` floor is therefore deferred to F3.
 
 | Capability | Version | Implication for us |
 | --- | --- | --- |
@@ -525,7 +547,8 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
   request/model-name under underscore-prefixed names.
 - Overrides passed as class attributes turn `Transformer`/`SelfAttribute` into plain
   fields; pass them as call-time kwargs instead.
-- `Trait`/`Params` live in `_meta.parameters`, not `_meta.declarations`.
+- `Trait` is stored in `_meta.base_declarations` (visible in `_meta.declarations`);
+  `Params` live in `_meta.parameters` but surface through `pre_declarations`.
 - `PostGenerationContext` moved to `factory.declarations` in factory_boy 3.2 (the floor
   bump removes the old `factory.builder` import path).
 - `.attributes()` does not exist in factory_boy 3.3.x.
@@ -555,8 +578,11 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
   instance), but `foo_factory().author is foo_factory().author is foo.author` (hard).
 - Bare `SubFactory` propagates `author__name` into `foo_factory()`.
 - Sub/related target resolution: a registered target with a default fixture is shared;
-  `None` builds a new object (fresh per call), independently per kind; an
-  unset/unregistered target raises a clear error.
+  `None` builds a new object (fresh per call), independently per kind; an **unregistered**
+  target falls back to model-name inflection with a `DeprecationWarning` (raising is
+  **F1**).
+- `foo__<attr>` still **returns its value** (declaration default or override); only the
+  internal "was it set?" detection changes.
 - `foo_factory(**overrides)` (including nested `author__name`) reaches the builder.
 - `issubclass(foo_factory, FooFactory)` + `.create/.build/.build_batch/.stub` work;
   `.build()` keeps BUILD semantics.
@@ -573,14 +599,23 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
   fixtures (`author__register_user__password`).
 - A `SubFactory` to an unregistered target falls back to model-name inflection and
   emits a `DeprecationWarning`.
+- Existing suites stay green, in particular the at-risk ones: `test_factory_fixtures.py`
+  (`test_attr` values), `test_postgen_dependencies.py` (`foo__secret` / `foo__number` /
+  `foo__set1`), `test_namespaces.py`, `test_circular.py`, `TestPostgenerationCalledOnce`,
+  `test_registration.py`.
+- Two known first-PR test updates: `test_factory_fixtures.py:112`
+  (`book_factory == BookFactory` → `issubclass`), and `test_model_name.py`'s
+  generic-container `UserWarning` — factory-anchored resolution no longer relies on the
+  model name, so that warning becomes unnecessary and its test is updated (first PR, not
+  F1).
 - `--fixtures` smoke test; mypy for the new `_generate` hook.
 
 ### Later PRs (add now, marked `xfail`/`skip`)
 
 - SubFactory-with-kwargs / parent-relative target is evaluated by factory_boy and preserves args
   (#263/#40) — **F2**.
-- Unregistered / unset `SubFactory` target raises (a new object only when explicitly
-  requested via `None`) — the new-build path is **F2**.
+- Unregistered / unset `SubFactory` target raises (the deprecated inflected fallback is
+  removed) — **F1**; the new-build path (`None`) is **F2**.
 - Shareable-looking SubFactory whose target references its parent → new object, no error —
   **F2**.
 - `named_model` emits `DeprecationWarning` and still works — **F1**.
@@ -604,8 +639,9 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
    in the hook; add a minimal in-engine build and route `model_fixture` through it
    (bypassing the override).
 4. **Core resolution + `register_factory`.** Add the namespaces and §3.3 resolution;
-   share shareable `SubFactory`s; leave non-shareable/unregistered targets to
-   factory_boy.
+   resolve shareable `SubFactory`s **lazily at call time** and augment
+   `metafunc.fixturenames`; `None` → factory_boy build; unregistered → deprecated
+   inflected fallback.
 5. **Per-creation engine + parity.** Deferred/cycle behavior per §4.2; forward
    `params`; strategy-parameterized. Keep `test_circular.py` and exact-once
    `_after_postgeneration` green.
@@ -654,10 +690,18 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
   distinct instances, caching, cycle detection.
 - **Recursion** if `model_fixture` is not made override-aware.
 - **Shareability semantics** must be crisp; the #263/#40 boundary needs tests.
-- **Closure gating**: a non-shareable target forced into `foo_factory`'s closure (or a
-  parent-referencing target shared) raises at setup.
-- **Minimum-version bump** to `pytest>=9.1` + `factory_boy>=3.3` is a breaking
-  prerequisite.
+- **Two resolution paths must stay in lockstep**: `model_fixture` keeps the legacy
+  fixture-graph path while `foo_factory()` uses the lazy engine; sharing, cycle
+  detection, and exact-once `_after_postgeneration` must agree across both. This is where
+  `test_circular.py` / `test_postgen_dependencies.py` will bite.
+- **Lazy sharing during the test body**: `foo_factory()` may resolve a shared fixture
+  after `pytest_runtest_call` already drained deferred work; the engine must drain the
+  newly-resolved fixtures' post-generation within the call, without requesting fixtures
+  during teardown.
+- **Registry scope** (module vs class) must mirror caller-locals injection; F3 replaces
+  it with node-scoped registration.
+- **Minimum-version bump** to `factory_boy>=3.3` is a breaking prerequisite; the
+  `pytest>=9.1` bump is deferred to F3.
 - **Register-time dependency graph (#82/#94)** is a mini-project of its own.
 - **Issue #223 parametrization** uses `foo_factory__<attr>` (the factory's own
   namespace); `foo__<attr>` configures only `foo` and defaults to the factory value.
