@@ -10,8 +10,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```shell
 uv sync --only-group dev
-
-pre-commit install
+uv run pre-commit install
 ```
 
 3. (Optional) Activate the virtual environment:
