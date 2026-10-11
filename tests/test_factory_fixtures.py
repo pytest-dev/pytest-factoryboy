@@ -10,6 +10,7 @@ import pytest
 from factory import fuzzy
 
 from pytest_factoryboy import LazyFixture, register
+from pytest_factoryboy.engine import original_factory
 
 if TYPE_CHECKING:
     from factory.declarations import LazyAttribute
@@ -109,7 +110,26 @@ register(EditionFactory)
 
 def test_factory(book_factory) -> None:
     """Test model factory fixture."""
-    assert book_factory == BookFactory
+    # The factory fixture is a bound subclass of the user's factory, not the factory
+    # itself (see specs/factory-fixtures.md §6).
+    assert book_factory is not BookFactory
+    assert issubclass(book_factory, BookFactory)
+    assert original_factory(book_factory) is BookFactory
+    # Identity metadata is copied so reprs/docs look like the user's factory.
+    assert book_factory.__module__ == BookFactory.__module__
+    assert book_factory.__doc__ == BookFactory.__doc__
+
+
+def test_factory_call(book_factory) -> None:
+    """Calling the factory fixture creates an instance of the model."""
+    book = book_factory()
+    assert isinstance(book, Book)
+    assert book.name == "Alice in Wonderland"
+    assert book.author.name == "Charles Dickens"
+
+
+def test_factory_call_creates_distinct_instances(book_factory) -> None:
+    assert book_factory() is not book_factory()
 
 
 def test_model(book: Book):

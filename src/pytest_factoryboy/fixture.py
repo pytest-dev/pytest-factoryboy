@@ -76,6 +76,7 @@ from factory.declarations import (
 from typing_extensions import ParamSpec
 
 from .compat import PostGenerationContext
+from .engine import bind_factory, original_factory
 from .fixturegen import create_fixture
 
 if TYPE_CHECKING:
@@ -424,6 +425,10 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
     prefix = "".join((fixture_name, SEPARATOR))
 
     factory_class: type[Factory[object]] = request.getfixturevalue(factory_name)
+    # ``factory_fixture`` returns a request-bound subclass; the model fixture builds from
+    # the original factory, bypassing the engine hook (the model fixture resolves
+    # sub-factories and post-generation itself).
+    factory_class = original_factory(factory_class)
 
     # create Factory override for the model fixture
     NewFactory: type[Factory[object]] = type("Factory", (factory_class,), {})
@@ -569,9 +574,12 @@ def make_deferred_postgen(
     )
 
 
-def factory_fixture(request: SubRequest, factory_class: type[Factory[T]]) -> type[Factory[T]]:
-    """Factory fixture implementation."""
-    return factory_class
+def factory_fixture(factory_class: type[Factory[T]]) -> type[Factory[T]]:
+    """Factory fixture implementation.
+
+    Returns a subclass of the user's factory (see :mod:`pytest_factoryboy.engine`).
+    """
+    return bind_factory(factory_class)
 
 
 def attr_fixture(request: SubRequest, value: T) -> T:
