@@ -72,12 +72,15 @@ produces a fresh instance.
 ### 2.1 What an end user writes
 
 ```python
+# Convention: register the factory first, then the model fixtures.
+register_factory(BookFactory, name="Factory Name")   # book_factory + book_factory__<attr>
+
 register(AuthorFactory)
-register(BookFactory)                    # book, book_factory
-register(BookFactory, "second_book")     # second_book (same factory, another name)
+register(BookFactory)                    # book (book_factory is already registered)
+register(BookFactory, "second_book")     # second_book
 
 
-# (1) The model fixture — unchanged
+# (1) The model fixture
 @pytest.mark.parametrize("book__name", ["PyTest for Dummies"])
 def test_model(book):
     assert book.name == "PyTest for Dummies"
@@ -109,37 +112,31 @@ def test_within_atomic(book_factory):
 # (5) Registrations keep their own namespaces (no leakage)
 @pytest.mark.parametrize("second_book__name", ["Mr. Hyde"])
 def test_second_book_is_isolated(book, second_book, book_factory):
-    assert second_book.name == "Mr. Hyde"               # second_book's param
-    assert book.name == "Alice in Wonderland"           # book untouched
-    assert book_factory().name == "Alice in Wonderland" # factory untouched
+    assert second_book.name == "Mr. Hyde"          # second_book's param
+    assert book.name == "Factory Name"             # book inherits the factory default
+    assert book_factory().name == "Factory Name"   # factory default
 
 
-# (6) The factory namespace configures the factory only
-@pytest.mark.parametrize("book_factory__name", ["A"])
+# (6) The factory namespace feeds the factory, and the model by default
+@pytest.mark.parametrize("book_factory__name", ["Factory Param"])
 def test_factory_namespace(book, book_factory):
-    assert book_factory().name == "A"           # factory param
-    assert book.name == "Alice in Wonderland"   # model is unaffected
+    assert book_factory().name == "Factory Param"
+    assert book.name == "Factory Param"   # book__name defaults to book_factory__name
 
 
-# (7) Both namespaces set: each fixture uses its own
-@pytest.mark.parametrize("book__name", ["A"])
-@pytest.mark.parametrize("book_factory__name", ["Z"])
-def test_both_namespaces(book, book_factory):
-    assert book.name == "A"            # model namespace
-    assert book_factory().name == "Z"  # factory namespace
+# (7) Both namespaces set: the model reads its own first
+@pytest.mark.parametrize("book__name", ["Model Name"])
+@pytest.mark.parametrize("book_factory__name", ["Factory Param"])
+def test_both_namespaces(book, second_book, book_factory):
+    assert book.name == "Model Name"            # model override wins
+    assert second_book.name == "Factory Param"  # no own override -> factory default
+    assert book_factory().name == "Factory Param"
 
 
-# (8) A factory can be registered on its own, with factory-only defaults
-register_factory(BookFactory, name="A")
-
-def test_factory_only(book_factory):
-    assert book_factory().name == "A"
-
-
-# (9) Batch building through the factory
+# (8) Batch building through the factory
 def test_build_batch(book_factory):
     batch = book_factory.build_batch(size=3)   # 3 un-persisted books
-    assert [b.name for b in batch] == ["Alice in Wonderland"] * 3
+    assert all(b.name == "Factory Name" for b in batch)
 ```
 
 ### 2.2 Before / after
@@ -165,28 +162,23 @@ def test_build_batch(book_factory):
 own:
 
 ```python
-register(BookFactory)                 # book + book_factory
+register_factory(BookFactory, name="Factory Name")  # factory first (convention)
+register(BookFactory)                 # book (book_factory is already registered)
 register(BookFactory, "second_book")  # second_book (shares book_factory)
 register(BookFactory, price=1)        # book's overrides
-
-register_factory(BookFactory, name="A")   # factory only: book_factory + book_factory__<attr>
 ```
 
+- `register_factory(factory, **overrides)` registers the shared `foo_factory` and its
+  namespace `foo_factory__<attr>`. It can be used alone (no model fixture required).
+  It only adds fixture names that do not exist yet, so **call it before `register(...)`
+  for the same factory**. If there is nothing left to register (the factory is already
+  registered), it **raises**.
 - `register(factory, _name=None, **overrides)` registers the model fixtures `foo` /
   `foo__<attr>`. When `foo_factory` does not yet exist in the module, it calls
   `register_factory(factory)` for you (with no factory-level overrides).
-- `register_factory(factory, **overrides)` registers the shared `foo_factory` and its
-  namespace `foo_factory__<attr>`. It can be used alone (no model fixture required).
 
-**Calling `register_factory` more than once.** The factory has a single registration
-slot per scope:
-
-- If the slot is empty, the first call creates it (with its overrides).
-- If the slot was created automatically by `register` (no overrides), an explicit
-  `register_factory` **fills in** its overrides.
-- A further explicit call for the same factory in the same scope **updates** the
-  factory overrides (the last explicit call wins). The automatic call never overwrites
-  an existing registration.
+Because `register_factory` must run first, the convention is to list it before the
+`register(...)` calls (see §2.1).
 
 ### 3.2 Fixtures
 
@@ -206,23 +198,26 @@ it exists in both namespaces.
 
 ### 3.3 Override resolution
 
-The two namespaces are **completely independent**:
+`foo_factory` is independent of `foo`; `foo` defaults to the factory's values:
 
-- **`foo`** (model): `foo__<attr>` → declaration default.
+- **`foo`** (model): `foo__<attr>` → (its default) `foo_factory__<attr>` → declaration
+  default.
 - **`foo_factory()`** (factory): per-call kwargs → `foo_factory__<attr>` → declaration
   default.
 
-`foo_factory` neither knows about nor uses anything from `foo` — `foo__<attr>` never
-affects `foo_factory()`, and `foo_factory__<attr>` never affects `foo`. A namespace
-only contributes when it has been *set*: an override was passed to
+`foo_factory` never reads `foo__<attr>` — the factory does not know about the model.
+But `foo__<attr>` **defaults to** `foo_factory__<attr>`, so the model inherits the
+factory's defaults and only needs its own namespace to override them. A namespace only
+contributes when it has been *set*: an override was passed to
 `register`/`register_factory`, or the fixture was parametrized.
 
 Consequences:
 
-- `@parametrize("foo_factory__attr")` configures `foo_factory()` **only**.
-- `@parametrize("foo__attr")` configures `foo` **only**.
-- `register_factory(Factory, name="A")` is a factory-only default:
-  `register(Factory, name="B")` → `foo.name == "B"`, `foo_factory().name == "A"`.
+- `@parametrize("foo_factory__attr")` configures the factory, and the model inherits it.
+- `@parametrize("foo__attr")` configures the model only.
+- `register_factory(Factory, name="A")` sets the default the model inherits;
+  `register(Factory, name="B")` overrides it for the model:
+  `foo.name == "B"`, `foo_factory().name == "A"`.
 - Issue #223's deferred-creation goal is unchanged; its sketch uses
   `book_factory__name` for the factory.
 
@@ -423,7 +418,7 @@ See §3.5 for the API delta; this section covers behavioral compatibility.
 | Aspect | Today | Target | Strategy |
 | --- | --- | --- | --- |
 | `parametrize("foo__attr")` | `foo` only | still `foo` only | unchanged |
-| `parametrize("foo_factory__attr")` | not available | factory only | new |
+| `parametrize("foo_factory__attr")` | not available | factory, and the model's default | new |
 | `foo_factory is FooFactory` | `True` | `False` (subclass) | migration guide; **unwarnable** |
 | mutate attributes via `foo_factory` | persists | lost (bound subclass) | document loudly |
 | `foo_factory().author` | fresh / native | shared **iff shareable** | document |
@@ -492,9 +487,9 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
   `foo`.
 - `register_factory(Factory, **overrides)` registers a standalone `foo_factory`;
   `register(Factory, name=...)` auto-calls it when absent.
-- Namespace resolution (examples 5–7): `foo_factory__<attr>` configures
-  `foo_factory()` **only**; `foo__<attr>` configures `foo` **only**; the two never
-  interact.
+- Namespace resolution (examples 5–7): `foo_factory__<attr>` configures `foo_factory()`
+  and is the default for `foo__<attr>`; `foo__<attr>` configures `foo` and overrides
+  that default; `foo_factory()` never reads `foo__<attr>`.
 - `register_factory(name="A")` + `register(name="B")` → `foo.name == "B"` but
   `foo_factory().name == "A"`.
 - `second_book` isolation: `second_book__name` does not leak into `book` or
@@ -606,4 +601,4 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
   prerequisite.
 - **Register-time dependency graph (#82/#94)** is a mini-project of its own.
 - **Issue #223 parametrization** uses `foo_factory__<attr>` (the factory's own
-  namespace); `foo__<attr>` only ever configures the model.
+  namespace); `foo__<attr>` configures only `foo` and defaults to the factory value.
