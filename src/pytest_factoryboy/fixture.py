@@ -47,7 +47,14 @@ import contextlib
 import functools
 import sys
 import warnings
-from collections.abc import Callable, Collection, Iterable, Iterator, Mapping
+from collections.abc import (
+    Callable,
+    Collection,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+)
 from dataclasses import dataclass
 from inspect import signature
 from types import MethodType
@@ -121,7 +128,7 @@ def register(
     factory_class: type[Factory[T]],
     _name: str | None = ...,
     *,
-    _caller_locals: Box[dict[str, object]] | None = ...,
+    _caller_locals: Box[MutableMapping[str, object]] | None = ...,
     **kwargs: object,
 ) -> type[Factory[T]]: ...
 
@@ -133,7 +140,7 @@ def register(
     factory_class: None,
     _name: str | None = ...,
     *,
-    _caller_locals: Box[dict[str, object]] | None = ...,
+    _caller_locals: Box[MutableMapping[str, object]] | None = ...,
     **kwargs: object,
 ) -> Callable[[type[Factory[T]]], type[Factory[T]]]: ...
 
@@ -142,14 +149,14 @@ def register(
     factory_class: type[Factory[T]] | None = None,
     _name: str | None = None,
     *,
-    _caller_locals: Box[dict[str, object]] | None = None,
+    _caller_locals: Box[MutableMapping[str, object]] | None = None,
     **kwargs: object,
 ) -> type[Factory[T]] | Callable[[type[Factory[T]]], type[Factory[T]]]:
     r"""Register fixtures for the factory class.
 
     :param factory_class: Factory class to register.
     :param _name: Name of the model fixture. By default, is lowercase-underscored model name.
-    :param _caller_locals: Dictionary where to inject the generated fixtures. Defaults to the caller's locals().
+    :param _caller_locals: Mutable mapping where to inject the generated fixtures. Defaults to the caller's locals().
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
     if _caller_locals is None:
@@ -299,7 +306,7 @@ def make_declaration_fixturedef(
     )
 
 
-def inject_into_caller(name: str, function: Callable[..., object], locals_: Box[dict[str, object]]) -> None:
+def inject_into_caller(name: str, function: Callable[..., object], locals_: Box[MutableMapping[str, object]]) -> None:
     """Inject a function into the caller's locals, making sure that the function will work also within classes."""
     # We need to check if the caller frame is a class, since in that case the first argument is the class itself.
     # In that case, we can apply the staticmethod() decorator to the injected function, so that the first param
@@ -578,12 +585,12 @@ def subfactory_fixture(request: SubRequest, factory_class: type[Factory[object]]
     return request.getfixturevalue(fixture)
 
 
-def get_caller_locals(depth: int = 0) -> dict[str, object]:
+def get_caller_locals(depth: int = 0) -> MutableMapping[str, object]:
     """Get the local namespace of the caller frame."""
-    # In Python 3.15+, `frame.f_locals` is typed as `FrameLocalsProxyType | dict[str, Any]`,
-    # which mypy considers incompatible with `dict[str, object]`. The cast is safe because
-    # `FrameLocalsProxyType` behaves like a dict at runtime.
-    return cast(dict[str, object], sys._getframe(depth + 2).f_locals)
+    # In Python 3.15+, `frame.f_locals` is typed as `FrameLocalsProxyType | dict[str, Any]`.
+    # `FrameLocalsProxyType` is not a `dict` subclass, but it implements the mutable mapping
+    # protocol, so the return type is modelled as `MutableMapping` and the cast is safe.
+    return cast(MutableMapping[str, object], sys._getframe(depth + 2).f_locals)
 
 
 class LazyFixture(Generic[T]):
