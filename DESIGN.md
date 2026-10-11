@@ -168,12 +168,14 @@ register(BookFactory, "second_book")  # second_book (shares book_factory)
 register(BookFactory, price=1)        # book's overrides
 ```
 
-- `register_factory(factory, _default_fixture_name=None, **overrides)` registers the
-  shared `foo_factory` and its namespace `foo_factory__<attr>`. It can be used alone
-  (no model fixture required). `_default_fixture_name` records the factory's default
-  fixture used for `SubFactory` resolution (§4.1). It only adds fixture names that do
-  not exist yet, so **call it before `register(...)` for the same factory**; if there
-  is nothing left to register, it **raises**.
+- `register_factory(factory, *, _default_fixture_name=<unset>, **overrides)` registers
+  the shared `foo_factory` and its namespace `foo_factory__<attr>`, and can be used
+  alone (no model fixture required). It only adds fixture names that do not exist yet,
+  so **call it before `register(...)` for the same factory**; if there is nothing left
+  to register, it **raises**.
+  - `_default_fixture_name="bar"` records `bar` as the factory's default fixture (§4.1).
+  - `_default_fixture_name=None` explicitly opts the factory into native sub-builds.
+  - Omitted: left unset — a following `register(...)` sets it to the model fixture name.
 - `register(factory, _name=None, **overrides)` registers the model fixtures `foo` /
   `foo__<attr>`. When `foo_factory` does not yet exist in the module, it calls
   `register_factory(factory)` for you (with no factory-level overrides).
@@ -263,8 +265,9 @@ def test(book_factory):
 | `register(...)` | registers `foo` + `foo_factory` | same form; auto-calls `register_factory` when absent |
 | minimum versions | `pytest>=7.0`, `factory_boy>=2.10` | `pytest>=9.1`, `factory_boy>=3.3` (§7) |
 
-**Deprecated:** the model-name inflection fallback for sub/related targets (removed in
-F1), and — only at F1 — `named_model`. Nothing is removed in the first PR.
+**Deprecated:** `named_model` (only at F1). Nothing is removed in the first PR; the
+sub/related target lookup no longer guesses a fixture name — it uses the recorded
+default fixture, or the user explicitly opts into native.
 
 **Unchanged:** the `register(...)` call form; the model fixture names `foo`,
 `foo__attr`; `@parametrize("foo__attr")` + `foo`.
@@ -273,46 +276,45 @@ F1), and — only at F1 — `named_model`. Nothing is removed in the first PR.
 
 ## 4. Behavior specs
 
-### 4.1 When a sub-factory is shared
+### 4.1 Sub-factory sharing (opt-in via a default fixture)
 
-By default, `foo_factory()` builds its sub-objects itself, so every call gets a fresh
-sub-object. Sharing is **opt-in through a default fixture**: when a factory has a
-default fixture registered, a `SubFactory` to that factory injects the fixture instead
-of building a new object, so both paths agree:
+By default, `foo_factory()` builds its own sub-objects, so every call gets a fresh
+sub-object. Sharing with a model fixture is **opt-in**: it happens only when the target
+factory has a **default fixture** registered.
 
 ```python
 def test(book, author, book_factory):
-    # AuthorFactory is registered -> book_factory() reuses the `author` fixture
+    # AuthorFactory's default fixture is `author` -> shared
     assert book_factory().author is book.author is author
 ```
 
-**The default fixture is recorded at registration:**
+The default fixture is recorded at registration:
 
-- `register(Factory, name=None, **overrides)` records `name` (defaulting to the
-  inflected model name) as the factory's default fixture — this is exactly what it
-  already creates, so existing behavior is preserved.
-- `register_factory(Factory, _default_fixture_name=None, **overrides)` records the
-  default fixture for a factory-only registration (when the model fixture is registered
-  elsewhere).
+| registration | factory's default fixture |
+| --- | --- |
+| `register(Factory, name=None, **overrides)` | `name` (default: the inflected model name) |
+| `register_factory(Factory, _default_fixture_name="bar")` | `bar` |
+| `register_factory(Factory, _default_fixture_name=None)` | none — build natively |
 
 Resolving `SubFactory(TargetFactory)`:
 
-- **has a default fixture** → inject it (shared);
-- **no default fixture** → build natively, **fresh on every call**.
+- **a fixture name** → inject it (shared);
+- **`None`** → build natively, fresh on every call;
+- **unset** (the target is not registered, or was registered without a default) →
+  **raise**, telling the user to register the target or pass
+  `_default_fixture_name=None`. Building natively is therefore always explicit.
 
-Additional rules:
+Other rules:
 
 - **Extra arguments are ignored for a shared target** — `SubFactory(AuthorFactory,
   name="A")` still injects the `author` fixture, as it does today.
-- **Parent-relative `SelfAttribute` targets are not shareable** — a standalone fixture
-  cannot resolve `SelfAttribute("..x")`, so such a target is built natively.
-- **Several registrations**: the default (first) is used; `_default_fixture_name`
-  disambiguates.
-- **Unregistered targets** fall back to today's inflected lookup (deprecated, emits a
-  `DeprecationWarning`) and are otherwise built natively (F2).
-
-A declaration can also be bound to a specific fixture with `LazyFixture("<fixture>")`
-(supported today).
+- **Parent-relative `SelfAttribute`** targets are not supported. (Today they are
+  resolved through the inflected fixture with the attribute *dropped* — #263 — rather
+  than built natively; the design does not attempt to support them.)
+- **Several registrations** of one factory: the first to record a default fixture wins;
+  later registrations do not change it.
+- A registration can bind a `SubFactory` attribute to a specific fixture, e.g.
+  `register(BookFactory, author=LazyFixture("another_author"))` (supported today).
 
 **Why only for create.** Sharing injects an already-created object; `build()`/`stub()`
 must not create rows, so they always build sub-objects themselves.
@@ -420,7 +422,7 @@ See §3.5 for the API delta; this section covers behavioral compatibility.
 | mutate attributes via `foo_factory` | persists | lost (bound subclass) | document loudly |
 | `foo_factory().author` | fresh / native | shared **iff shareable** | document |
 | `foo_factory()` post-generation timing | immediate | deferred engine | document |
-| Sub/related target | by model-name inflection | by the target factory's default fixture (recorded at registration) | inflection fallback deprecated (F1) |
+| Sub/related target | by model-name inflection | by the target factory's recorded default fixture | unregistered/unset → raise; explicit `None` → native |
 | `named_model` | required | unnecessary *after F1* | keep working; deprecate in F1 |
 | generic-container `UserWarning` | on | maybe off | decide; keep `-Werror` tests aligned |
 | fixture names | `foo`, `foo_factory`, `foo__attr` | unchanged | unchanged |
@@ -496,6 +498,9 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
 - Two `foo_factory()` calls → two **distinct** books (also `is not` the `foo` model
   instance), but `foo_factory().author is foo_factory().author is foo.author` (hard).
 - Bare `SubFactory` propagates `author__name` into `foo_factory()`.
+- Sub/related target resolution: a registered target with a default fixture is shared;
+  `_default_fixture_name=None` builds natively (fresh per call); an unset/unregistered
+  target raises a clear error.
 - `foo_factory(**overrides)` (including nested `author__name`) reaches the builder.
 - `issubclass(foo_factory, FooFactory)` + `.create/.build/.build_batch/.stub` work;
   `.build()` keeps BUILD semantics.
@@ -518,7 +523,8 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
 
 - SubFactory-with-kwargs / parent-relative target evaluates natively and preserves args
   (#263/#40) — **F2**.
-- Unregistered SubFactory → native build — **F2**.
+- Unregistered / unset `SubFactory` target raises (native only when explicitly requested
+  via `_default_fixture_name=None`) — native build path is **F2**.
 - Shareable-looking SubFactory whose target references its parent → native, no error —
   **F2**.
 - `named_model` emits `DeprecationWarning` and still works — **F1**.
