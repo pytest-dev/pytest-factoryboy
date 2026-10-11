@@ -23,6 +23,7 @@ Removed
 
 Fixed
 +++++
+* Fix ``factory.Transformer`` declarations (e.g. ``factory.django.Password``) having their transformation applied twice when the object is created via the model fixture. `#269 <https://github.com/pytest-dev/pytest-factoryboy/issues/269>`_
 
 Security
 ++++++++
