@@ -179,8 +179,10 @@ register(BookFactory, price=1)        # book's overrides
   - `_default_fixture=None` — explicitly opts the factory into native sub-builds.
   - Omitted: left unset; a following `register(...)` sets it to the model fixture name.
 - `register(factory, _name=None, **overrides)` registers the model fixtures `foo` /
-  `foo__<attr>`. When `foo_factory` does not yet exist in the module, it calls
-  `register_factory(factory)` for you (with no factory-level overrides).
+  `foo__<attr>`, and records `_name` (or the inflected model name) as the factory's
+  default fixture **unless one is already recorded** (§4.1). When `foo_factory` does not
+  yet exist in the module, it also calls `register_factory(factory)` for you (with no
+  factory-level overrides).
 
 Because `register_factory` must run first, the convention is to list it before the
 `register(...)` calls (see §2.1).
@@ -311,7 +313,8 @@ and can be overridden like any other fixture.
 Resolving `SubFactory(TargetFactory)` — and `RelatedFactory(TargetFactory)`:
 
 - **a fixture name** → inject it (shared);
-- **`None`** → build natively, fresh on every call;
+- **`None`** → build **natively**: a new sub-object every time the factory is invoked
+  (factory_boy's own behaviour), never the shared fixture;
 - **unset** (the target is not registered, or was registered without a default) →
   **raise**, telling the user to register the target or pass `_default_fixture=None`.
   Building natively is therefore always explicit.
@@ -323,8 +326,16 @@ Other rules:
 - **Parent-relative `SelfAttribute`** targets are not supported. (Today they are
   resolved through the inflected fixture with the attribute *dropped* — #263 — rather
   than built natively; the design does not attempt to support them.)
-- **Several registrations** of one factory: the first to record a default fixture wins;
-  later registrations do not change it.
+- **The default fixture is recorded once — first writer wins.** `register(...)` records
+  the model name; an explicit `register_factory(..., _default_fixture=...)` records what
+  it is given, including `None`. Later registrations do not change it. This is also how
+  you opt a **registered** factory out of sharing: record native-ness first.
+
+  ```python
+  register_factory(BookFactory, _default_fixture=None)   # native sub-builds...
+  register(BookFactory)                                  # ...but still provides `book`
+  ```
+
 - A registration can bind a `SubFactory` attribute to a specific fixture, e.g.
   `register(BookFactory, author=LazyFixture("another_author"))` (supported today).
 
