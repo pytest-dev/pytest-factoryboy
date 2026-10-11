@@ -1,10 +1,8 @@
 # How to make a release
 
-1. Bump the version in `pyproject.toml`:
+1. Bump the version:
 ```shell
-# Edit the `version` field in pyproject.toml manually, or use:
-sed -i '' 's/^version = ".*"/version = "<newversion>"/' pyproject.toml
-uv lock
+uv version <newversion>
 ```
 2. Update the [CHANGES.rst](CHANGES.rst) file with the release notes and the new version.
 3. Commit the changes:
