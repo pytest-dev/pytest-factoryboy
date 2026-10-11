@@ -24,7 +24,7 @@ repos:
     rev: 75992aaa40730136014f34227e0135f63fc951b4 # frozen: v3.21.2
     hooks:
       - id: pyupgrade
-        args: [--py39-plus]
+        args: [--py311-plus]
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: "4f783b6470be305483837130a5be2e21ed7ff52b" # frozen: 0.12.13
     hooks:
