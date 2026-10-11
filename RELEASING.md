@@ -2,12 +2,12 @@
 
 1. Bump the version:
 ```shell
-poetry version <newversion>
+uv version <newversion>
 ```
 2. Update the [CHANGES.rst](CHANGES.rst) file with the release notes and the new version.
 3. Commit the changes:
 ```shell
-git add pyproject.toml CHANGES.rst
+git add pyproject.toml uv.lock CHANGES.rst
 git commit -m "Bump version to <newversion>"
 ```
 4. Create and push a tag:
