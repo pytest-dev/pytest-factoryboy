@@ -580,7 +580,10 @@ def subfactory_fixture(request: SubRequest, factory_class: type[Factory[object]]
 
 def get_caller_locals(depth: int = 0) -> dict[str, object]:
     """Get the local namespace of the caller frame."""
-    return sys._getframe(depth + 2).f_locals
+    # In Python 3.15+, `frame.f_locals` is typed as `FrameLocalsProxyType | dict[str, Any]`,
+    # which mypy considers incompatible with `dict[str, object]`. The cast is safe because
+    # `FrameLocalsProxyType` behaves like a dict at runtime.
+    return cast(dict[str, object], sys._getframe(depth + 2).f_locals)
 
 
 class LazyFixture(Generic[T]):
