@@ -168,21 +168,28 @@ register(BookFactory, "second_book")  # second_book (shares book_factory)
 register(BookFactory, price=1)        # book's overrides
 ```
 
-- `register_factory(factory, *, _default_fixture=<unset>, **overrides)` registers the
-  shared `foo_factory` and its namespace `foo_factory__<attr>`, and can be used alone
-  (no model fixture required). It only adds fixture names that do not exist yet, so
-  **call it before `register(...)` for the same factory**; if there is nothing left to
-  register, it **raises**.
-  - `_default_fixture="bar"` — the fixture that `SubFactory`s (and `RelatedFactory`s) to
-    this factory share (§4.1). It applies to both kinds of reference, so it is named for
-    the fixture, not for `SubFactory`.
-  - `_default_fixture=None` — explicitly opts the factory into native sub-builds.
-  - Omitted: left unset; a following `register(...)` sets it to the model fixture name.
+- `register_factory(factory, *, _default_subfactory_fixture=<unset>,
+  _default_relatedfactory_fixture=<unset>, **overrides)` registers the shared `foo_factory`
+  and its namespace `foo_factory__<attr>`, and can be used alone (no model fixture
+  required). It only adds fixture names that do not exist yet, so **call it before
+  `register(...)` for the same factory**; if there is nothing left to register, it
+  **raises**.
+
+  The two keyword arguments say which fixture each **kind** of reference to this factory
+  shares (§4.1). `SubFactory` and `RelatedFactory` are different use cases, so they are
+  configured separately. Each accepts:
+
+  - a fixture name (`"bar"`) → share that fixture;
+  - `DefaultFixture.NATIVE` (an enum sentinel) → build references of that kind natively;
+  - omitted → left unset (a following `register(...)` fills it; otherwise resolving such
+    a reference raises).
+
+  `DefaultFixture` is a small public enum; `DefaultFixture.NATIVE` is the explicit "build
+  a fresh object, never share" sentinel.
 - `register(factory, _name=None, **overrides)` registers the model fixtures `foo` /
-  `foo__<attr>`, and records `_name` (or the inflected model name) as the factory's
-  default fixture **unless one is already recorded** (§4.1). When `foo_factory` does not
-  yet exist in the module, it also calls `register_factory(factory)` for you (with no
-  factory-level overrides).
+  `foo__<attr>`, and records `_name` (or the inflected model name) as **both** default
+  fixtures (sub-factory and related) **unless already recorded** (§4.1). When `foo_factory`
+  does not yet exist in the module, it also calls `register_factory(factory)` for you.
 
 Because `register_factory` must run first, the convention is to list it before the
 `register(...)` calls (see §2.1).
@@ -282,11 +289,11 @@ default fixture, or the user explicitly opts into native.
 
 ### 4.1 Sub-factory sharing (via the target's default fixture)
 
-When the target factory has a **default fixture** registered, a `SubFactory` (or
-`RelatedFactory`) to it **shares** that fixture automatically: `foo` and `foo_factory()`
-then refer to the same object. Sharing is the automatic behaviour for any registered
-target; what is opt-in is the *native* alternative (`_default_fixture=None`), and an
-unset target raises.
+When the target factory has a **default fixture** registered for the matching kind, a
+`SubFactory` (or `RelatedFactory`) to it **shares** that fixture automatically: `foo` and
+`foo_factory()` then refer to the same object. Sharing is the automatic behaviour for any
+registered target; what is opt-in is the *native* alternative (`DefaultFixture.NATIVE`),
+and an unset target raises.
 
 No extra action is needed — a registered factory just does the right thing:
 
@@ -296,56 +303,60 @@ def test(book, author, book_factory):
     assert book_factory().author is book.author is author
 ```
 
-The default fixture is recorded at registration:
+The default fixture is recorded **per kind** at registration — `SubFactory` and
+`RelatedFactory` are different use cases, so they are configured separately:
 
-| registration | factory's default fixture |
-| --- | --- |
-| `register(Factory, name=None, **overrides)` | `name` (default: the inflected model name) |
-| `register_factory(Factory, _default_fixture="bar")` | `bar` |
-| `register_factory(Factory, _default_fixture=None)` | none — build natively |
+| registration | `SubFactory` default | `RelatedFactory` default |
+| --- | --- | --- |
+| `register(Factory, name=None, **overrides)` | `name` (default: the inflected model name) | the same `name` |
+| `register_factory(Factory, _default_subfactory_fixture="bar")` | `bar` | unset |
+| `register_factory(Factory, _default_relatedfactory_fixture=DefaultFixture.NATIVE)` | unset | native |
 
-This is not a runtime name lookup: the plugin materialises the binding as a fixture
-`bar_factory___default_fixture` that depends on the named fixture *statically*
-(`def bar_factory___default_fixture(bar): return bar`). A `SubFactory` / `RelatedFactory`
-to the factory depends on that fixture, so the edge is a real one in the pytest graph
-and can be overridden like any other fixture.
+Each setting is either a **fixture name** or the sentinel `DefaultFixture.NATIVE`. A
+named setting is not a runtime name lookup: the plugin materialises it as a fixture that
+depends on the target *statically* (e.g.
+`def bar_factory___default_subfactory_fixture(bar): return bar`), so the edge is a real
+one in the pytest graph and can be overridden like any other fixture.
 
-Resolving `SubFactory(TargetFactory)` — and `RelatedFactory(TargetFactory)`:
+Resolving a reference to `TargetFactory`, using the setting for the matching kind:
 
 - **a fixture name** → inject it (shared);
-- **`None`** → build **natively**: a new sub-object every time the factory is invoked
-  (factory_boy's own behaviour), never the shared fixture;
-- **unset** (the target is not registered, or was registered without a default) →
-  **raise**, telling the user to register the target or pass `_default_fixture=None`.
-  Building natively is therefore always explicit.
+- **`DefaultFixture.NATIVE`** → build **natively**: a new object every time the factory is
+  invoked (factory_boy's own behaviour), never the shared fixture;
+- **unset** (the target is not registered, or was registered without a default for this
+  kind) → **raise**, telling the user to register the target or set the matching
+  `_default_*_fixture` to `DefaultFixture.NATIVE`. Building natively is therefore always
+  explicit.
 
 Other rules:
 
+- **The two kinds are independent.** A factory can share its sub-factories but build its
+  related objects natively (or vice versa).
 - **Extra arguments are ignored for a shared target** — `SubFactory(AuthorFactory,
   name="A")` still injects the `author` fixture, as it does today.
 - **Parent-relative `SelfAttribute`** targets are not supported. (Today they are
   resolved through the inflected fixture with the attribute *dropped* — #263 — rather
   than built natively; the design does not attempt to support them.)
-- **The default fixture is recorded once — first writer wins.** `register(...)` records
-  the model name; an explicit `register_factory(..., _default_fixture=...)` records what
-  it is given, including `None`. Later registrations do not change it. This is also how
-  you opt a **registered** factory out of sharing: record native-ness first.
+- **Each setting is recorded once — first writer wins.** `register(...)` records `name`
+  for both kinds; an explicit `register_factory(..., _default_*_fixture=...)` records what
+  it is given, including `DefaultFixture.NATIVE`. Later registrations do not change it.
+  This is also how you opt a **registered** factory out of sharing for one kind.
 
   ```python
-  register_factory(BookFactory, _default_fixture=None)   # native sub-builds...
-  register(BookFactory)                                  # ...but still provides `book`
+  register_factory(BookFactory, _default_relatedfactory_fixture=DefaultFixture.NATIVE)
+  register(BookFactory)   # still provides `book`; `RelatedFactory(BookFactory)` is native
   ```
 
 - A registration can bind a `SubFactory` attribute to a specific fixture, e.g.
   `register(BookFactory, author=LazyFixture("another_author"))` (supported today).
 
-**`RelatedFactory` shares the same way.** The target factory's default fixture decides
-it, exactly as for `SubFactory` — `book` is shared into `author.book`. Sharing is most
-useful when the related object is a single, known child you want to make parametrizable
-and refer to by identity (`user.profile is profile`); note that a `RelatedFactory`
-declaration generates exactly one child per call anyway, so this is no more restrictive
-than factory_boy. What differs is **timing and wiring**, and the first PR does not change
-them:
+**`RelatedFactory` shares the same way, via its own setting.** The target factory's
+`RelatedFactory` default decides it, exactly as for `SubFactory` — `book` is shared into
+`author.book`. Sharing is most useful when the related object is a single, known child you
+want to make **parametrizable** and refer to by identity (`user.profile is profile`); note
+that a `RelatedFactory` declaration generates exactly one child per call anyway, so this
+is no more restrictive than factory_boy. What differs is **timing and wiring**, and the
+first PR does not change them:
 
 - A `RelatedFactory` is a post-generation declaration: the parent is built first and the
   related object is resolved afterwards, whereas a `SubFactory` is an ordinary
@@ -362,7 +373,8 @@ them:
 
 Today the model path already shares a related target but a direct `author_factory()`
 call does not; the first PR makes the factory path match the model path, with
-`_default_fixture=None` available to opt into native child creation instead.
+`_default_relatedfactory_fixture=DefaultFixture.NATIVE` available to opt into native
+child creation instead.
 
 **Why only for create.** Sharing injects an already-created object; `build()`/`stub()`
 must not create rows, so they always build sub-objects themselves.
@@ -547,8 +559,8 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
   instance), but `foo_factory().author is foo_factory().author is foo.author` (hard).
 - Bare `SubFactory` propagates `author__name` into `foo_factory()`.
 - Sub/related target resolution: a registered target with a default fixture is shared;
-  `_default_fixture=None` builds natively (fresh per call); an unset/unregistered
-  target raises a clear error.
+  `DefaultFixture.NATIVE` builds natively (fresh per call), independently per kind; an
+  unset/unregistered target raises a clear error.
 - `foo_factory(**overrides)` (including nested `author__name`) reaches the builder.
 - `issubclass(foo_factory, FooFactory)` + `.create/.build/.build_batch/.stub` work;
   `.build()` keeps BUILD semantics.
@@ -572,7 +584,7 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
 - SubFactory-with-kwargs / parent-relative target evaluates natively and preserves args
   (#263/#40) — **F2**.
 - Unregistered / unset `SubFactory` target raises (native only when explicitly requested
-  via `_default_fixture=None`) — native build path is **F2**.
+  via `DefaultFixture.NATIVE`) — native build path is **F2**.
 - Shareable-looking SubFactory whose target references its parent → native, no error —
   **F2**.
 - `named_model` emits `DeprecationWarning` and still works — **F1**.
