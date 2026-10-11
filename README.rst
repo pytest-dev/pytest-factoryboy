@@ -202,7 +202,7 @@ An example of factory_boy_ and pytest_ integration.
 
     def test_book_factory(book_factory):
         """Factories become fixtures automatically."""
-        assert book_factory is BookFactory
+        assert issubclass(book_factory, BookFactory)
 
 
     def test_book(book):

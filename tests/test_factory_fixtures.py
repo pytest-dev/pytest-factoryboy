@@ -9,7 +9,7 @@ import factory
 import pytest
 from factory import fuzzy
 
-from pytest_factoryboy import LazyFixture, register
+from pytest_factoryboy import LazyFixture, engine, register
 
 if TYPE_CHECKING:
     from factory.declarations import LazyAttribute
@@ -109,7 +109,57 @@ register(EditionFactory)
 
 def test_factory(book_factory) -> None:
     """Test model factory fixture."""
-    assert book_factory == BookFactory
+    # The factory fixture is a request-bound subclass of the user's factory, not the
+    # factory itself (see specs/factory-fixtures.md §6).
+    assert book_factory is not BookFactory
+    assert issubclass(book_factory, BookFactory)
+    assert book_factory._factoryboy_request.fixturename == "book_factory"
+    assert book_factory._factoryboy_model_name == "book"
+    assert book_factory._factoryboy_original_factory is BookFactory
+    # The engine's ``_generate`` hook is installed on the bound subclass.
+    assert book_factory._generate.__func__ is not BookFactory._generate.__func__
+    # Identity metadata is copied so reprs/docs look like the user's factory.
+    assert book_factory.__module__ == BookFactory.__module__
+    assert book_factory.__doc__ == BookFactory.__doc__
+
+
+@pytest.fixture
+def engine_calls(monkeypatch):
+    """Record the factories that go through the engine's ``generate``."""
+    calls: list[str] = []
+    real_generate = engine.generate
+
+    def spy(cls, strategy, params):
+        calls.append(cls.__name__)
+        return real_generate(cls, strategy, params)
+
+    monkeypatch.setattr(engine, "generate", spy)
+    return calls
+
+
+def test_model_fixture_bypasses_the_engine(engine_calls, request) -> None:
+    # Resolved after ``engine_calls`` patched the engine, so ``book_factory`` binds the spy.
+    book = request.getfixturevalue("book")
+    assert book.name == "Alice in Wonderland"
+    assert engine_calls == []
+
+
+def test_factory_call(book_factory) -> None:
+    """Calling the factory fixture creates an instance through the engine."""
+    book = book_factory()
+    assert isinstance(book, Book)
+    assert book.name == "Alice in Wonderland"
+    assert book.author.name == "Charles Dickens"
+
+
+def test_factory_call_uses_the_engine(engine_calls, request) -> None:
+    book_factory = request.getfixturevalue("book_factory")
+    book_factory()
+    assert engine_calls == ["BookFactory"]
+
+
+def test_factory_call_creates_distinct_instances(book_factory) -> None:
+    assert book_factory() is not book_factory()
 
 
 def test_model(book: Book):

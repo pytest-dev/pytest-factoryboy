@@ -71,6 +71,8 @@ def install_generate_hook(
 
     Hooked.__name__ = factory_class.__name__
     Hooked.__qualname__ = factory_class.__qualname__
+    Hooked.__module__ = factory_class.__module__
+    Hooked.__doc__ = factory_class.__doc__
     # Subclassing normally makes a factory concrete; keep the base's abstractness so an
     # abstract factory cannot start generating just because a hook was installed.
     Hooked._meta.abstract = factory_class._meta.abstract
