@@ -324,6 +324,31 @@ Other rules:
 - A registration can bind a `SubFactory` attribute to a specific fixture, e.g.
   `register(BookFactory, author=LazyFixture("another_author"))` (supported today).
 
+**`RelatedFactory` shares the same way.** The target factory's default fixture decides
+it, exactly as for `SubFactory` — `book` is shared into `author.book`. Sharing is most
+useful when the related object is a single, known child you want to make parametrizable
+and refer to by identity (`user.profile is profile`); note that a `RelatedFactory`
+declaration generates exactly one child per call anyway, so this is no more restrictive
+than factory_boy. What differs is **timing and wiring**, and the first PR does not change
+them:
+
+- A `RelatedFactory` is a post-generation declaration: the parent is built first and the
+  related object is resolved afterwards, whereas a `SubFactory` is an ordinary
+  dependency of the parent.
+- The parent does **not** depend on the related attribute via the normal dependency
+  graph (`get_deps` excludes it). Instead the target fixture is pulled in through the
+  `related` list (`_factoryboy_related`) which `pytest_generate_tests` adds to
+  `metafunc.fixturenames`, so requesting the parent also sets up the related fixture.
+- Sharing only guarantees the target fixture is **created**. Whether the object is
+  linked back onto the parent (e.g. `author.books == [book]`) is up to the model — a
+  `__post_init__` that appends, or an `_after_postgeneration` hook. The `RelatedFactory`
+  machinery itself is **not** run on the shared path (today the parent is built with its
+  post-declarations stripped).
+
+Today the model path already shares a related target but a direct `author_factory()`
+call does not; the first PR makes the factory path match the model path, with
+`_default_fixture=None` available to opt into native child creation instead.
+
 **Why only for create.** Sharing injects an already-created object; `build()`/`stub()`
 must not create rows, so they always build sub-objects themselves.
 
