@@ -51,7 +51,8 @@ from collections.abc import Collection, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from inspect import signature
 from types import MethodType
-from typing import TYPE_CHECKING, Callable, Generic, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Generic, TypeVar, cast, overload
+from collections.abc import Callable
 
 import factory
 import factory.enums

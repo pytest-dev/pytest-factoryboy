@@ -6,7 +6,7 @@ from importlib.metadata import version
 from _pytest.fixtures import FixtureDef, FixtureManager
 from _pytest.nodes import Node
 from packaging.version import parse as parse_version
-from typing_extensions import TypeAlias
+from typing import TypeAlias
 
 pytest_version = parse_version(version("pytest"))
 
