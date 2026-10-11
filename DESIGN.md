@@ -168,11 +168,12 @@ register(BookFactory, "second_book")  # second_book (shares book_factory)
 register(BookFactory, price=1)        # book's overrides
 ```
 
-- `register_factory(factory, **overrides)` registers the shared `foo_factory` and its
-  namespace `foo_factory__<attr>`. It can be used alone (no model fixture required).
-  It only adds fixture names that do not exist yet, so **call it before `register(...)`
-  for the same factory**. If there is nothing left to register (the factory is already
-  registered), it **raises**.
+- `register_factory(factory, _default_fixture_name=None, **overrides)` registers the
+  shared `foo_factory` and its namespace `foo_factory__<attr>`. It can be used alone
+  (no model fixture required). `_default_fixture_name` records the factory's default
+  fixture used for `SubFactory` resolution (§4.1). It only adds fixture names that do
+  not exist yet, so **call it before `register(...)` for the same factory**; if there
+  is nothing left to register, it **raises**.
 - `register(factory, _name=None, **overrides)` registers the model fixtures `foo` /
   `foo__<attr>`. When `foo_factory` does not yet exist in the module, it calls
   `register_factory(factory)` for you (with no factory-level overrides).
@@ -225,15 +226,14 @@ Consequences:
 
 ```python
 def test(book_factory):
-    b1 = book_factory()                     # CREATE one
-    b2 = book_factory.build()               # BUILD one
-    b3 = book_factory.stub()                # STUB one
+    a = book_factory()                        # CREATE one
+    b = book_factory.build()                  # BUILD one
+    c = book_factory.stub()                   # STUB one
     batch = book_factory.build_batch(size=3)  # BUILD many
 
-    b4 = book_factory(name="x")             # per-call overrides
-    b5 = book_factory(author__name="Ada")   # nested per-call overrides
+    d = book_factory(name="x")                # per-call override
+    e = book_factory(author__name="Ada")      # nested per-call override
 
-    assert b1 is not b2
     assert issubclass(book_factory, BookFactory)
 ```
 
@@ -275,50 +275,47 @@ F1), and — only at F1 — `named_model`. Nothing is removed in the first PR.
 
 ### 4.1 When a sub-factory is shared
 
-By default, `foo_factory()` asks factory_boy to build its sub-objects. But when a
-`SubFactory` is a "plain" one, the factory reuses the corresponding model fixture
-instead, so both paths agree on the same object:
+By default, `foo_factory()` builds its sub-objects itself, so every call gets a fresh
+sub-object. Sharing is **opt-in through a default fixture**: when a factory has a
+default fixture registered, a `SubFactory` to that factory injects the fixture instead
+of building a new object, so both paths agree:
 
 ```python
 def test(book, author, book_factory):
-    assert book_factory().author is book.author is author   # same object
+    # AuthorFactory is registered -> book_factory() reuses the `author` fixture
+    assert book_factory().author is book.author is author
 ```
 
-A `SubFactory` is reused (shared) when **all** of these hold:
+**The default fixture is recorded at registration:**
 
-1. **No extra arguments.** `author = SubFactory(AuthorFactory)` is shared;
-   `author = SubFactory(AuthorFactory, name="x")` is not — its extra arguments would
-   have to be merged with the fixture's, which is ambiguous. *(In factory_boy these
-   extras live on `SubFactory._defaults`; `RelatedFactory` uses `.defaults`.)*
-2. **No parent reference.** If the target reads a value from its parent — e.g.
-   `factory.SelfAttribute("..name")` — it cannot be built independently as a fixture,
-   so it is not shared. *(Checked through the target's declaration graph.)*
-3. **The target has a model fixture to reuse** — from a registration, or (deprecated)
-   via the inflection fallback described below.
+- `register(Factory, name=None, **overrides)` records `name` (defaulting to the
+  inflected model name) as the factory's default fixture — this is exactly what it
+  already creates, so existing behavior is preserved.
+- `register_factory(Factory, _default_fixture_name=None, **overrides)` records the
+  default fixture for a factory-only registration (when the model fixture is registered
+  elsewhere).
 
-When any of these fails, the factory lets factory_boy build the sub-object itself:
-**each `foo_factory()` call creates a fresh sub-object**, and sub-factory
-parametrization (`author__name`) does not apply on the factory path.
+Resolving `SubFactory(TargetFactory)`:
 
-*Which fixture is reused?* The model fixture **bound to the target factory class** by a
-`register`/`register_factory` call. Every registration records the binding
-`Factory → <fixture name>`, so `SubFactory(AuthorFactory)` resolves via that binding —
-keyed by the factory, not by the model's name (robust for #218/#225/#257). Cases:
+- **has a default fixture** → inject it (shared);
+- **no default fixture** → build natively, **fresh on every call**.
 
-- exactly one binding → use it;
-- several bindings (the same factory registered under several names) → the default
-  registration is used;
-- **no binding** (the target was only `register_factory`'d, or never registered) →
-  fall back to today's behavior: the fixture named after the target's model class
-  (inflected). This fallback is **deprecated** — it emits a `DeprecationWarning` and
-  will be removed (F1), after which an unbound target is built natively (F2).
+Additional rules:
 
-A declaration can always be bound explicitly by overriding its attribute with
-`LazyFixture("<fixture>")` (supported today).
+- **Extra arguments are ignored for a shared target** — `SubFactory(AuthorFactory,
+  name="A")` still injects the `author` fixture, as it does today.
+- **Parent-relative `SelfAttribute` targets are not shareable** — a standalone fixture
+  cannot resolve `SelfAttribute("..x")`, so such a target is built natively.
+- **Several registrations**: the default (first) is used; `_default_fixture_name`
+  disambiguates.
+- **Unregistered targets** fall back to today's inflected lookup (deprecated, emits a
+  `DeprecationWarning`) and are otherwise built natively (F2).
 
-**Why only for create.** Sharing works by *injecting an already-created object* (the
-`author` fixture). `build()`/`stub()` must not create database rows, so they never
-inject created fixtures — factory_boy builds every sub-object itself.
+A declaration can also be bound to a specific fixture with `LazyFixture("<fixture>")`
+(supported today).
+
+**Why only for create.** Sharing injects an already-created object; `build()`/`stub()`
+must not create rows, so they always build sub-objects themselves.
 
 ### 4.2 Deferred creation and post-generation
 
@@ -423,7 +420,7 @@ See §3.5 for the API delta; this section covers behavioral compatibility.
 | mutate attributes via `foo_factory` | persists | lost (bound subclass) | document loudly |
 | `foo_factory().author` | fresh / native | shared **iff shareable** | document |
 | `foo_factory()` post-generation timing | immediate | deferred engine | document |
-| Sub/related target | by model name | by the target factory's registration | inflection `DeprecationWarning` now; required in F1 |
+| Sub/related target | by model-name inflection | by the target factory's default fixture (recorded at registration) | inflection fallback deprecated (F1) |
 | `named_model` | required | unnecessary *after F1* | keep working; deprecate in F1 |
 | generic-container `UserWarning` | on | maybe off | decide; keep `-Werror` tests aligned |
 | fixture names | `foo`, `foo_factory`, `foo__attr` | unchanged | unchanged |
