@@ -1,13 +1,20 @@
 """The generation engine behind the factory fixture.
 
-:func:`bind_factory` returns a per-request subclass of the user's factory. The subclass
-records the factory it wraps (see :func:`original_factory`), so the model fixture can
-build from the original factory instead of the bound subclass.
+:func:`bind_factory` returns a subclass of the user's factory bound to the current pytest
+request. The subclass overrides ``_generate`` — factory_boy's single funnel for top-level
+generation (``__call__``, ``create``, ``build``, ``stub``, the ``*_batch`` helpers and
+``generate`` all route through it) — to merge the factory namespace
+(``foo_factory__<attr>`` fixtures) with the per-call parameters, and then delegates to
+factory_boy. Nested builds (a ``SubFactory`` recursing through the builder) bypass the
+override by design.
 
-The next change installs the engine itself on that subclass: overriding ``_generate`` —
-factory_boy's single funnel for top-level generation — to merge the factory namespace
-(``foo_factory__<attr>``) with the per-call parameters. See
-``specs/factory-fixtures.md`` §6/§11.
+The request and the factory fixture name are captured by that method's closure, so they
+are reachable only through the returned class — the fixture value — and never stored in a
+module-global structure.
+
+The model fixture builds from the original factory instead (see :func:`original_factory`),
+bypassing the engine. Later changes resolve shareable sub-factories and manage
+post-generation deferral here; see ``specs/factory-fixtures.md`` §6/§11.
 """
 
 from __future__ import annotations
@@ -15,6 +22,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Protocol, TypeVar, cast
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from _pytest.fixtures import SubRequest
     from factory.base import Factory
 
 T = TypeVar("T")
@@ -22,19 +32,35 @@ T = TypeVar("T")
 __all__ = ("bind_factory", "original_factory")
 
 
-def bind_factory(factory_class: type[Factory[T]]) -> type[Factory[T]]:
-    """Return a subclass of ``factory_class`` for the factory fixture.
+def bind_factory(
+    factory_class: type[Factory[T]],
+    request: SubRequest,
+    factory_name: str,
+) -> type[Factory[T]]:
+    """Return a subclass of ``factory_class`` bound to the current pytest request.
 
-    The fixture is function-scoped, so the subclass is created per request.
+    The returned class routes ``_generate`` through the engine and delegates to
+    factory_boy's own generation. The request and the factory fixture name are captured by
+    that method's closure, so they live exactly as long as the returned class — the
+    fixture value — and are not kept in any module-global structure.
 
     :param factory_class: The user's factory.
-    :return: A subclass of ``factory_class``.
+    :param request: The pytest request to bind (used to resolve fixtures).
+    :param factory_name: The factory fixture name, used to resolve ``foo_factory__<attr>``.
+    :return: A subclass of ``factory_class`` whose ``_generate`` goes through the engine.
     """
 
     class Bound(factory_class):  # type: ignore[valid-type, misc]
         # The factory this subclass wraps. Declared (not just assigned) so callers can read
         # it back with typing — see :func:`original_factory`.
         _factoryboy_original_factory: ClassVar[type[Factory[T]]] = factory_class
+
+        @classmethod
+        def _generate(cls, strategy: str, params: Mapping[str, object]) -> T:
+            overrides = _factory_namespace_overrides(cls, request, factory_name)
+            overrides.update(params)
+            # ``super()`` is factory_boy's own ``_generate``: nothing re-enters the engine.
+            return cast("T", super()._generate(strategy, overrides))
 
     Bound.__name__ = factory_class.__name__
     Bound.__qualname__ = factory_class.__qualname__
@@ -60,3 +86,25 @@ def original_factory(factory_class: type[Factory[T]]) -> type[Factory[T]]:
     if hasattr(factory_class, "_factoryboy_original_factory"):
         return cast("type[_BoundFactory[T]]", factory_class)._factoryboy_original_factory
     return factory_class
+
+
+def _factory_namespace_overrides(
+    cls: type[Factory[T]],
+    request: SubRequest,
+    factory_name: str,
+) -> dict[str, object]:
+    """Collect the factory namespace values that were explicitly set.
+
+    A ``foo_factory__<attr>`` fixture returns the factory's own declaration when it was
+    not overridden, which is skipped so factory_boy evaluates the declaration natively.
+    """
+    from .fixture import evaluate  # local import to avoid an import cycle
+
+    declarations = cls._meta.declarations
+    overrides: dict[str, object] = {}
+    for attr in cls._meta.pre_declarations:
+        declaration = declarations[attr]
+        value = evaluate(request, request.getfixturevalue(f"{factory_name}__{attr}"))
+        if value is not declaration:
+            overrides[attr] = value
+    return overrides

@@ -9,7 +9,7 @@ import factory
 import pytest
 from factory import fuzzy
 
-from pytest_factoryboy import LazyFixture, register
+from pytest_factoryboy import LazyFixture, register, register_factory
 from pytest_factoryboy.engine import original_factory
 
 if TYPE_CHECKING:
@@ -108,24 +108,61 @@ register(BookFactory)
 register(EditionFactory)
 
 
+@dataclass
+class Lazy:
+    name: str
+
+
+_lazy_calls: list[str] = []
+
+
+def _lazy_name() -> str:
+    _lazy_calls.append("called")
+    return "lazy name"
+
+
+class LazyFactory(factory.Factory):
+    class Meta:
+        model = Lazy
+
+    name = "lazy"
+
+
+register_factory(LazyFactory, name=LazyFixture(_lazy_name))
+register(LazyFactory)
+
+
+@pytest.fixture
+def lazy_calls():
+    _lazy_calls.clear()
+    return _lazy_calls
+
+
 def test_factory(book_factory) -> None:
     """Test model factory fixture."""
-    # The factory fixture is a bound subclass of the user's factory, not the factory
-    # itself (see specs/factory-fixtures.md §6).
+    # The factory fixture is a request-bound subclass of the user's factory, not the
+    # factory itself (see specs/factory-fixtures.md §6).
     assert book_factory is not BookFactory
     assert issubclass(book_factory, BookFactory)
     assert original_factory(book_factory) is BookFactory
+    # The engine's ``_generate`` override is installed on the bound subclass.
+    assert book_factory._generate.__func__ is not BookFactory._generate.__func__
     # Identity metadata is copied so reprs/docs look like the user's factory.
     assert book_factory.__module__ == BookFactory.__module__
     assert book_factory.__doc__ == BookFactory.__doc__
 
 
 def test_factory_call(book_factory) -> None:
-    """Calling the factory fixture creates an instance of the model."""
+    """Calling the factory fixture creates an instance through the engine."""
     book = book_factory()
     assert isinstance(book, Book)
     assert book.name == "Alice in Wonderland"
     assert book.author.name == "Charles Dickens"
+
+
+def test_factory_call_evaluates_the_lazy_fixture_once(lazy_calls, lazy_factory) -> None:
+    assert lazy_factory().name == "lazy name"
+    assert lazy_calls == ["called"]
 
 
 def test_factory_call_creates_distinct_instances(book_factory) -> None:
