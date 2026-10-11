@@ -1,4 +1,45 @@
-"""Factory boy fixture integration."""
+"""Factory boy fixture integration.
+
+Architecture overview:
+----------------------
+``pytest-factoryboy`` bridges ``pytest`` fixtures with ``factory_boy`` factories across three main phases:
+
+1. Registration Phase (``register``):
+   When registering a factory (e.g. ``register(AuthorFactory, "author")``), it dynamically
+   defines and injects pytest fixtures into the caller's module.
+   Roughly equivalent to writing by hand:
+
+   .. code-block:: python
+
+       class AuthorFactory(factory.Factory):
+           class Meta:
+               model = Author
+
+           name = "John Doe"
+           ...  # other fields
+
+       @pytest.fixture
+       def author_factory():
+           return AuthorFactory
+
+       @pytest.fixture
+       def author__name():
+           return AuthorFactory.name  # "John Doe"
+
+       ...  # one attribute fixture per factory declaration
+
+       @pytest.fixture
+       def author(request, author_factory, author__name):
+           return model_fixture(request, "author_factory")
+
+2. Resolution & Instantiation Phase (``model_fixture``):
+   When a test requests the model fixture (e.g. ``def test_something(author):``):
+   - Resolves the attribute fixtures, applying any user overrides.
+   - Instantiates the model using the underlying factory.
+
+3. Post-Generation Phase:
+   - Executes post-generation hooks and builds related factory models in dependency order.
+"""
 
 from __future__ import annotations
 
@@ -356,7 +397,16 @@ def disable_method(method: MethodType) -> Iterator[None]:
 
 
 def model_fixture(request: SubRequest, factory_name: str) -> object:
-    """Model fixture implementation."""
+    """Instantiate the model for a requested model fixture.
+
+    Resolves attribute fixtures (applying explicit overrides while preserving factory
+    defaults), instantiates the model with post-generation hooks deferred, and returns
+    the evaluated model instance.
+
+    :param request: Pytest sub-request for fixture resolution.
+    :param factory_name: Name of the factory fixture.
+    :return: Instantiated model object.
+    """
     factoryboy_request: FactoryboyRequest = request.getfixturevalue("factoryboy_request")
 
     # Try to evaluate as much post-generation dependencies as possible
@@ -383,6 +433,9 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
     }
     NewFactory._meta.post_declarations = DeclarationSet()
 
+    # Collect keyword arguments for pre-declarations from their corresponding attribute fixtures (e.g. "user__password").
+    # By default, generated attribute fixtures return the factory's own declaration object unless overridden by
+    # a fixture or register(...) argument.
     kwargs = {}
     for key in factory_class._meta.pre_declarations:
         argname = "".join((prefix, key))
@@ -390,11 +443,13 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
             continue
         value = evaluate(request, request.getfixturevalue(argname))
         if value is factory_class._meta.pre_declarations[key].declaration:
-            # The fixture still holds the factory's own declaration, i.e. it was not overridden.
-            # Let the factory evaluate it itself rather than passing it back as a call-time value:
-            # factory_boy treats call-time values of declarations that capture overrides (e.g.
-            # ``factory.Transformer``) as the *input* of the declaration, so passing the declaration
-            # back would apply the transformation twice.
+            # The fixture still holds the factory's own declaration object, meaning it was not overridden.
+            # We omit it from kwargs so factory_boy can evaluate the declaration natively as a default.
+            #
+            # Passing the declaration back in kwargs would cause factory_boy to treat it as an explicit
+            # call-time override. For declarations that capture/transform overrides (e.g. ``factory.Transformer``),
+            # treating the declaration as an override causes the transformation to be applied twice:
+            # once when evaluating the override argument, and once by the declaration itself.
             continue
         kwargs[key] = value
 
