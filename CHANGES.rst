@@ -11,6 +11,7 @@ Unreleased
 
 Added
 +++++
+* Declare compatibility with Python 3.14 and 3.15. Supported versions are now: 3.11, 3.12, 3.13, 3.14, 3.15.
 
 Changed
 +++++++
@@ -20,6 +21,8 @@ Deprecated
 
 Removed
 +++++++
+* Drop support for Python 3.10 (EOL).
+* Drop support for Python 3.9 (EOL). Supported versions are now: 3.11, 3.12, 3.13, 3.14, 3.15.
 
 Fixed
 +++++

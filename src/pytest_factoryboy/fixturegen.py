@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import functools
 import inspect
-from collections.abc import Collection
-from typing import Callable, TypeVar
+from collections.abc import Callable, Collection
+from typing import TypeVar
 
 import pytest
 from typing_extensions import ParamSpec

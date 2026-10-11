@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from importlib.metadata import version
+from typing import TypeAlias
 
 from _pytest.fixtures import FixtureDef, FixtureManager
 from _pytest.nodes import Node
 from packaging.version import parse as parse_version
-from typing_extensions import TypeAlias
 
 pytest_version = parse_version(version("pytest"))
 
