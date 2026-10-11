@@ -278,15 +278,19 @@ default fixture, or the user explicitly opts into native.
 
 ## 4. Behavior specs
 
-### 4.1 Sub-factory sharing (opt-in via a default fixture)
+### 4.1 Sub-factory sharing (via the target's default fixture)
 
-By default, `foo_factory()` builds its own sub-objects, so every call gets a fresh
-sub-object. Sharing with a model fixture is **opt-in**: it happens only when the target
-factory has a **default fixture** registered.
+When the target factory has a **default fixture** registered, a `SubFactory` (or
+`RelatedFactory`) to it **shares** that fixture automatically: `foo` and `foo_factory()`
+then refer to the same object. Sharing is the automatic behaviour for any registered
+target; what is opt-in is the *native* alternative (`_default_fixture=None`), and an
+unset target raises.
+
+No extra action is needed — a registered factory just does the right thing:
 
 ```python
 def test(book, author, book_factory):
-    # AuthorFactory's default fixture is `author` -> shared
+    # AuthorFactory is registered -> its default fixture `author` is shared
     assert book_factory().author is book.author is author
 ```
 
