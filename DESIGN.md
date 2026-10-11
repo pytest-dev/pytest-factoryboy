@@ -168,14 +168,16 @@ register(BookFactory, "second_book")  # second_book (shares book_factory)
 register(BookFactory, price=1)        # book's overrides
 ```
 
-- `register_factory(factory, *, _default_fixture_name=<unset>, **overrides)` registers
-  the shared `foo_factory` and its namespace `foo_factory__<attr>`, and can be used
-  alone (no model fixture required). It only adds fixture names that do not exist yet,
-  so **call it before `register(...)` for the same factory**; if there is nothing left
-  to register, it **raises**.
-  - `_default_fixture_name="bar"` records `bar` as the factory's default fixture (§4.1).
-  - `_default_fixture_name=None` explicitly opts the factory into native sub-builds.
-  - Omitted: left unset — a following `register(...)` sets it to the model fixture name.
+- `register_factory(factory, *, _default_fixture=<unset>, **overrides)` registers the
+  shared `foo_factory` and its namespace `foo_factory__<attr>`, and can be used alone
+  (no model fixture required). It only adds fixture names that do not exist yet, so
+  **call it before `register(...)` for the same factory**; if there is nothing left to
+  register, it **raises**.
+  - `_default_fixture="bar"` — the fixture that `SubFactory`s (and `RelatedFactory`s) to
+    this factory share (§4.1). It applies to both kinds of reference, so it is named for
+    the fixture, not for `SubFactory`.
+  - `_default_fixture=None` — explicitly opts the factory into native sub-builds.
+  - Omitted: left unset; a following `register(...)` sets it to the model fixture name.
 - `register(factory, _name=None, **overrides)` registers the model fixtures `foo` /
   `foo__<attr>`. When `foo_factory` does not yet exist in the module, it calls
   `register_factory(factory)` for you (with no factory-level overrides).
@@ -293,16 +295,22 @@ The default fixture is recorded at registration:
 | registration | factory's default fixture |
 | --- | --- |
 | `register(Factory, name=None, **overrides)` | `name` (default: the inflected model name) |
-| `register_factory(Factory, _default_fixture_name="bar")` | `bar` |
-| `register_factory(Factory, _default_fixture_name=None)` | none — build natively |
+| `register_factory(Factory, _default_fixture="bar")` | `bar` |
+| `register_factory(Factory, _default_fixture=None)` | none — build natively |
 
-Resolving `SubFactory(TargetFactory)`:
+This is not a runtime name lookup: the plugin materialises the binding as a fixture
+`bar_factory___default_fixture` that depends on the named fixture *statically*
+(`def bar_factory___default_fixture(bar): return bar`). A `SubFactory` / `RelatedFactory`
+to the factory depends on that fixture, so the edge is a real one in the pytest graph
+and can be overridden like any other fixture.
+
+Resolving `SubFactory(TargetFactory)` — and `RelatedFactory(TargetFactory)`:
 
 - **a fixture name** → inject it (shared);
 - **`None`** → build natively, fresh on every call;
 - **unset** (the target is not registered, or was registered without a default) →
-  **raise**, telling the user to register the target or pass
-  `_default_fixture_name=None`. Building natively is therefore always explicit.
+  **raise**, telling the user to register the target or pass `_default_fixture=None`.
+  Building natively is therefore always explicit.
 
 Other rules:
 
@@ -499,7 +507,7 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
   instance), but `foo_factory().author is foo_factory().author is foo.author` (hard).
 - Bare `SubFactory` propagates `author__name` into `foo_factory()`.
 - Sub/related target resolution: a registered target with a default fixture is shared;
-  `_default_fixture_name=None` builds natively (fresh per call); an unset/unregistered
+  `_default_fixture=None` builds natively (fresh per call); an unset/unregistered
   target raises a clear error.
 - `foo_factory(**overrides)` (including nested `author__name`) reaches the builder.
 - `issubclass(foo_factory, FooFactory)` + `.create/.build/.build_batch/.stub` work;
@@ -524,7 +532,7 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
 - SubFactory-with-kwargs / parent-relative target evaluates natively and preserves args
   (#263/#40) — **F2**.
 - Unregistered / unset `SubFactory` target raises (native only when explicitly requested
-  via `_default_fixture_name=None`) — native build path is **F2**.
+  via `_default_fixture=None`) — native build path is **F2**.
 - Shareable-looking SubFactory whose target references its parent → native, no error —
   **F2**.
 - `named_model` emits `DeprecationWarning` and still works — **F1**.
