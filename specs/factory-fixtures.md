@@ -451,23 +451,30 @@ Keep independent pieces independent. The **first PR** is the headline only:
 Non-obvious constraints the implementation must respect. They are not part of the
 public spec, but they explain several choices above.
 
-**The factory fixture is a bound subclass.** `FooFactory` →
-`type(name, (FooFactory,), {})`, with the request (and model name) bound under
-underscore-prefixed attributes so factory_boy does not mistake them for declarations.
+**The factory fixture is a bound subclass.** `factory_fixture` returns a per-request
+subclass of the user's factory, with the factory's identity metadata copied and its
+abstractness kept. It declares `_factoryboy_original_factory` — underscore-prefixed, so
+factory_boy does not mistake it for a declaration — which is how the model fixture unwraps
+it (`original_factory(...)`, typed). The request and the factory fixture name are **not**
+stored on the class: they are captured by the `_generate` override's closure, so they live
+exactly as long as the fixture value and nothing request-scoped ends up in a module-global
+structure.
 
 **Intercept `_generate`, not `create`/`build`.** The *top-level* entry points
 (`__call__`, `create`, `build`, `stub`, `*_batch`, `generate`) all funnel through
 `BaseFactory._generate`, so one override covers them, while overriding
 `create`/`build` individually is easily bypassed. It does **not** see nested builds:
 a `SubFactory` recurses through `BuildStep.recurse` → `builder.build()` directly. The
-re-entrancy guard exists because the engine itself calls factory_boy's `_generate` for
-the native/declaration path; a per-call flag makes that path bypass the override instead
-of recursing. This is an independent, self-contained change and lands **first as a
-standalone pre-PR** (see §11), separate from the fixture-generation work.
+override delegates with `super()`, so factory_boy's own path is reached without
+re-entering the engine — no re-entrancy guard or per-call flag is needed. It lands
+together with the namespace work (§11 step 2): on its own the override would have nothing
+to merge.
 
-**The model fixture is routed through the same engine.** `model_fixture` must bypass
-the `_generate` override (delegating to factory_boy's path) to avoid recursion. The engine
-is strategy-parameterized so `.build()`/`.stub()` keep BUILD semantics.
+**The model fixture builds from the original factory.** `model_fixture` unwraps the
+fixture value with `original_factory(...)` and resolves the model namespace,
+sub-factories and post-generation itself, so the engine is never entered — no recursion,
+and a `LazyFixture` is not evaluated twice. The override forwards the strategy, so
+`.build()`/`.stub()` keep their factory_boy semantics.
 
 **`Trait` and `Params` are not plain declarations.** `Trait` is stored in
 `_meta.base_declarations` (so it appears in `_meta.declarations`); `Params` live in
@@ -543,8 +550,9 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
   `.defaults`. Bareness checks must use the right attribute.
 - All creation entry points funnel through `BaseFactory._generate`; `FactoryMetaClass`
   dispatches `__call__` to `create`/`build`/`stub`.
-- `FactoryMetaClass` treats non-underscore class attributes as declarations — bind
-  request/model-name under underscore-prefixed names.
+- `FactoryMetaClass` treats non-underscore class attributes as declarations — the only
+  attribute bound on the subclass is `_factoryboy_original_factory`; the request and the
+  factory fixture name live in the override's closure.
 - Overrides passed as class attributes turn `Transformer`/`SelfAttribute` into plain
   fields; pass them as call-time kwargs instead.
 - `Trait` is stored in `_meta.base_declarations` (visible in `_meta.declarations`);
@@ -633,16 +641,15 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
 
 1. **Parity harness.** Port the `deferred-factory` spike onto `master`; add the §10
    tests, marked `xfail`/`skip` while parity is pending.
-2. **`_generate` override hook** (standalone pre-PR). The re-entrancy-guarded
-   interception plus direct tests; merges on its own.
-3. **Factory fixture as a bound subclass.** `factory_fixture` returns a subclass; wire
-   in the hook; add a minimal in-engine build and route `model_fixture` through it
-   (bypassing the override).
-4. **Core resolution + `register_factory`.** Add the namespaces and §3.3 resolution;
-   resolve shareable `SubFactory`s **lazily at call time** and augment
-   `metafunc.fixturenames`; `None` → factory_boy build; unregistered → deprecated
-   inflected fallback.
-5. **Per-creation engine + parity.** Deferred/cycle behavior per §4.2; forward
+2. **Bound subclass + `_generate` override + factory namespace** (one PR). The
+   per-request subclass (declared `_factoryboy_original_factory`, identity metadata
+   copied); the override merges `foo_factory__<attr>` into the call and delegates with
+   `super()`; `register_factory` registers `foo_factory` and its namespace. The model
+   fixture builds from `original_factory(...)`, so the engine is never entered.
+3. **Core resolution.** §3.3 resolution; resolve shareable `SubFactory`s **lazily at
+   call time** and augment `metafunc.fixturenames`; `None` → factory_boy build;
+   unregistered → deprecated inflected fallback.
+4. **Per-creation engine + parity.** Deferred/cycle behavior per §4.2; forward
    `params`; strategy-parameterized. Keep `test_circular.py` and exact-once
    `_after_postgeneration` green.
 
@@ -686,7 +693,7 @@ non-`Collection` `argvalues` (#13409); class-scoped instance-method fixtures (#1
 
 ## 13. Risks
 
-- **Per-creation engine (§11 step 5)** is the highest-risk item: test-body calls,
+- **Per-creation engine (§11 step 4)** is the highest-risk item: test-body calls,
   distinct instances, caching, cycle detection.
 - **Recursion** if `model_fixture` is not made override-aware.
 - **Shareability semantics** must be crisp; the #263/#40 boundary needs tests.
