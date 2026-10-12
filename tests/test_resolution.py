@@ -211,6 +211,24 @@ def test_unregistered_target_builds_a_new_object(gadget_fallback_holder_factory)
     assert holder.target.name == "gadget"
 
 
+def test_explicit_setting_is_recorded_even_when_registration_raises() -> None:
+    """The setting is honoured regardless of the order of registrations."""
+
+    class LocalTargetFactory(TargetFactory):
+        pass
+
+    locals_ = Box({})
+    register_factory(LocalTargetFactory, _caller_locals=locals_)
+
+    with pytest.raises(ValueError, match="already registered"):
+        register_factory(LocalTargetFactory, _default_subfactory_fixture=None, _caller_locals=locals_)
+
+    defaults = defaults_for(LocalTargetFactory)
+
+    assert defaults is not None
+    assert defaults.subfactory is None
+
+
 def test_registration_warns_for_an_unregistered_target() -> None:
     class LocalTargetFactory(TargetFactory):
         pass
