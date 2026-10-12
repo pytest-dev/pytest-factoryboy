@@ -149,6 +149,37 @@ Factory Fixture
         assert author.name == "Charles Dickens"
 
 
+Factory namespace
+-----------------
+
+The factory fixture also gets a namespace, so a factory attribute can be overridden per test and read back.
+Attribute names are prefixed with the factory fixture name and double underscore:
+
+.. code-block:: python
+
+    import pytest
+
+    @pytest.mark.parametrize("author_factory__name", ["Bill Gates"])
+    def test_factory_namespace(author_factory):
+        assert author_factory().name == "Bill Gates"
+        assert author_factory(name="Ada").name == "Ada"  # call-time override wins
+
+The model namespace defaults to the factory namespace: ``author__name`` falls back to ``author_factory__name``, so
+parametrizing the factory namespace applies to ``author`` too.
+
+``register_factory`` registers only the factory fixture and its namespace, without the model fixtures — useful when
+a factory is only used as a ``SubFactory`` target:
+
+.. code-block:: python
+
+    from pytest_factoryboy import register_factory
+
+    register_factory(AuthorFactory)  # => author_factory, author_factory__name, ...
+
+Call ``register_factory`` before ``register`` for the same factory: it only adds fixture names that do not exist
+yet, and raises when there is nothing left to register.
+
+
 Integration
 -----------
 
