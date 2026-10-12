@@ -19,7 +19,7 @@ post-generation deferral here; see ``specs/factory-fixtures.md`` §6/§11.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Protocol, TypeVar, cast
+from typing import TYPE_CHECKING, ClassVar, Generic, TypeVar, cast
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -30,6 +30,17 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 __all__ = ("bind_factory", "original_factory")
+
+
+class _BoundFactory(Generic[T]):
+    """Declares the factory a bound subclass wraps.
+
+    The base of the class returned by :func:`bind_factory`: declaring the attribute
+    (rather than checking for it at runtime) is what makes :func:`original_factory` a
+    checked, cast-free read.
+    """
+
+    _factoryboy_original_factory: ClassVar[type[Factory[T]]]
 
 
 def bind_factory(
@@ -50,10 +61,10 @@ def bind_factory(
     :return: A subclass of ``factory_class`` whose ``_generate`` goes through the engine.
     """
 
-    class Bound(factory_class):  # type: ignore[valid-type, misc]
-        # The factory this subclass wraps. Declared (not just assigned) so callers can read
-        # it back with typing — see :func:`original_factory`.
-        _factoryboy_original_factory: ClassVar[type[Factory[T]]] = factory_class
+    class Bound(factory_class, _BoundFactory[T]):  # type: ignore[valid-type, misc]
+        # The factory this subclass wraps; ``_BoundFactory`` declares it, so callers can
+        # read it back with typing — see :func:`original_factory`.
+        _factoryboy_original_factory = factory_class
 
         @classmethod
         def _generate(cls, strategy: str, params: Mapping[str, object]) -> T:
@@ -72,19 +83,13 @@ def bind_factory(
     return Bound
 
 
-class _BoundFactory(Protocol[T]):
-    """A factory class returned by :func:`bind_factory`."""
-
-    _factoryboy_original_factory: ClassVar[type[Factory[T]]]
-
-
 def original_factory(factory_class: type[Factory[T]]) -> type[Factory[T]]:
     """Return the factory a bound subclass wraps, or ``factory_class`` itself.
 
     Lets callers unwrap unconditionally: a class that is not bound is returned unchanged.
     """
-    if hasattr(factory_class, "_factoryboy_original_factory"):
-        return cast("type[_BoundFactory[T]]", factory_class)._factoryboy_original_factory
+    if issubclass(factory_class, _BoundFactory):
+        return factory_class._factoryboy_original_factory
     return factory_class
 
 
