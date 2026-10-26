@@ -26,6 +26,6 @@ repos:
       - id: pyupgrade
         args: [--py311-plus]
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: "eeca16c54e09b4d9a848259e46bae14737944348"  # frozen: 0.13.5
+    rev: "eeca16c54e09b4d9a848259e46bae14737944348" # frozen: 0.13.5
     hooks:
       - id: uv-lock
