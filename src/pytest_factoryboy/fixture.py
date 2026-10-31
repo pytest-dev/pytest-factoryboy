@@ -183,7 +183,14 @@ def register(
         f"Please provide different name for model fixture."
     )
 
-    if factory_name not in _caller_locals.value:
+    # The model attributes default to the factory namespace, so the whole factory
+    # namespace must exist. ``register_factory`` only adds the missing names, so calling
+    # it here is safe even when the user already provides a ``foo_factory`` fixture.
+    factory_fixture_names = {
+        factory_name,
+        *(SEPARATOR.join((factory_name, attr)) for attr in factory_class._meta.declarations),
+    }
+    if not factory_fixture_names <= set(_caller_locals.value):
         register_factory(factory_class, _caller_locals=_caller_locals)
 
     fixture_defs = dict(
@@ -279,16 +286,19 @@ def generate_model_fixtures(
 ) -> Iterable[tuple[str, Callable[..., object]]]:
     """Generate the model fixture and its attribute namespace."""
     related: list[str] = []
-    for attr, value in factory_class._meta.declarations.items():
-        value = overrides.get(attr, value)
+    for attr, declaration in factory_class._meta.declarations.items():
+        value = overrides.get(attr, declaration)
         attr_name = SEPARATOR.join((model_name, attr))
+        factory_attr_name = SEPARATOR.join((factory_name, attr))
         yield (
             attr_name,
             make_declaration_fixturedef(
                 attr_name=attr_name,
                 value=value,
+                declaration=declaration,
                 factory_class=factory_class,
                 related=related,
+                factory_attr_name=factory_attr_name,
             ),
         )
 
@@ -323,10 +333,16 @@ def create_fixture_with_related(
 def make_declaration_fixturedef(
     attr_name: str,
     value: object,
+    declaration: object,
     factory_class: type[Factory[T]],
     related: list[str],
+    factory_attr_name: str,
 ) -> Callable[[SubRequest], object]:
-    """Create the FixtureDef for a factory declaration."""
+    """Create the FixtureDef for a factory declaration.
+
+    A plain attribute defaults to the factory namespace (``factory_attr_name``) when it
+    was not overridden in the model namespace.
+    """
     if isinstance(value, (SubFactory, RelatedFactory)):
         subfactory_class: type[Factory[object]] = value.get_factory()
         subfactory_deps = get_deps(subfactory_class, factory_class)
@@ -348,23 +364,20 @@ def make_declaration_fixturedef(
             dependencies=args,
         )
 
-    deps: list[str]  # makes mypy happy
+    # A plain attribute defaults to the factory namespace.
+    deps: list[str] = [factory_attr_name]
     if isinstance(value, PostGeneration):
         value = None
-        deps = []
     elif isinstance(value, PostGenerationMethodCall):
         value = value.method_arg
-        deps = []
     elif isinstance(value, LazyFixture):
-        value = value
-        deps = value.args
-    else:
-        value = value
-        deps = []
+        deps.extend(value.args)
 
     return create_fixture_with_related(
         name=attr_name,
-        function=functools.partial(attr_fixture, value=value),
+        function=functools.partial(
+            model_attr_fixture, value=value, declaration=declaration, factory_attr_name=factory_attr_name
+        ),
         dependencies=deps,
     )
 
@@ -536,13 +549,15 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
             continue
         value = evaluate(request, request.getfixturevalue(argname))
         if value is factory_class._meta.pre_declarations[key].declaration:
-            # The fixture still holds the factory's own declaration object, meaning it was not overridden.
-            # We omit it from kwargs so factory_boy can evaluate the declaration natively as a default.
+            # The fixture still holds the factory's own declaration object, meaning
+            # neither namespace was set. We omit it from kwargs so factory_boy can
+            # evaluate the declaration natively as a default.
             #
-            # Passing the declaration back in kwargs would cause factory_boy to treat it as an explicit
-            # call-time override. For declarations that capture/transform overrides (e.g. ``factory.Transformer``),
-            # treating the declaration as an override causes the transformation to be applied twice:
-            # once when evaluating the override argument, and once by the declaration itself.
+            # Passing the declaration back in kwargs would cause factory_boy to treat it
+            # as an explicit call-time override. For declarations that capture/transform
+            # overrides (e.g. ``factory.Transformer``), treating the declaration as an
+            # override causes the transformation to be applied twice: once when
+            # evaluating the override argument, and once by the declaration itself.
             continue
         kwargs[key] = value
 
@@ -670,6 +685,16 @@ def factory_fixture(
 
 def attr_fixture(request: SubRequest, value: T) -> T:
     """Attribute fixture implementation."""
+    return value
+
+
+def model_attr_fixture(request: SubRequest, value: object, declaration: object, factory_attr_name: str) -> object:
+    """Model attribute fixture implementation.
+
+    Defaults to the factory namespace when the model namespace was not overridden.
+    """
+    if value is declaration:
+        return request.getfixturevalue(factory_attr_name)
     return value
 
 

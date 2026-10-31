@@ -152,6 +152,17 @@ def test_factory(book_factory) -> None:
     assert book_factory.__doc__ == BookFactory.__doc__
 
 
+def test_model_fixture_bypasses_the_engine(lazy_calls, lazy) -> None:
+    """The model fixture builds from the original factory, bypassing the engine.
+
+    ``lazy__name`` defaults to the factory namespace, so the lazy callable must run once:
+    the model fixture resolves it, and the engine (which would resolve it again) is not
+    entered.
+    """
+    assert lazy.name == "lazy name"
+    assert lazy_calls == ["called"]
+
+
 def test_factory_call(book_factory) -> None:
     """Calling the factory fixture creates an instance through the engine."""
     book = book_factory()
