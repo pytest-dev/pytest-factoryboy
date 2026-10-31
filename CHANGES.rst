@@ -1,10 +1,35 @@
 Changelog
 =========
 
-All notable changes to this project will be documented in this file.
+..
+  All notable changes to this project will be documented in this file.
 
-The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.1.0/>`_,
-and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
+  The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.1.0/>`_,
+  and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
+
+  This is the template to copy and paste every time we make a release:
+
+  Unreleased
+  ----------
+
+  Added
+  +++++
+
+  Changed
+  +++++++
+
+  Deprecated
+  ++++++++++
+
+  Removed
+  +++++++
+
+  Fixed
+  +++++
+
+  Security
+  ++++++++
+
 
 Unreleased
 ----------
@@ -38,23 +63,11 @@ Added
 +++++
 * Test against all supported ``factory-boy`` versions
 
-Changed
-+++++++
-
-Deprecated
-++++++++++
-
-Removed
-+++++++
-
 Fixed
 +++++
 * Fix incompatibility when using the combination of python < 3.12 and factory-boy < 3.3.
 
   * The error was: ``TypeError: type 'Factory' is not subscriptable``
-
-Security
-++++++++
 
 2.8.0
 ----------
@@ -70,9 +83,6 @@ Changed
 +++++++
 * Changelog format updated to follow `Keep a Changelog <https://keepachangelog.com/en/1.1.0/>`_.
 
-Deprecated
-++++++++++
-
 Removed
 +++++++
 * Drop support for python 3.8. Supported versions are now: 3.9, 3.10, 3.11, 3.12, 3.13.
@@ -82,9 +92,6 @@ Fixed
 +++++
 * Fix compatibility with ``pytest 8.4``.
 * Fixed internal type annotations.
-
-Security
-++++++++
 
 2.7.0
 ----------
