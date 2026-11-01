@@ -46,7 +46,6 @@ from __future__ import annotations
 import contextlib
 import functools
 import sys
-import warnings
 from collections.abc import (
     Callable,
     Collection,
@@ -76,7 +75,16 @@ from factory.declarations import (
 from typing_extensions import ParamSpec
 
 from .compat import PostGenerationContext
-from .engine import bind_factory, original_factory
+from .engine import (
+    UNSET,
+    Unset,
+    bind_factory,
+    default_fixture,
+    defaults_for,
+    original_factory,
+    record_default_fixtures,
+    recorded_fixture,
+)
 from .fixturegen import create_fixture
 
 if TYPE_CHECKING:
@@ -90,7 +98,6 @@ T_co = TypeVar("T_co", covariant=True)
 P = ParamSpec("P")
 
 SEPARATOR = "__"
-WARN_FOR_MODEL_TYPES = frozenset({dict, list, set, tuple, frozenset})
 
 
 @dataclass(eq=False)
@@ -157,6 +164,7 @@ def register(
 
     :param factory_class: Factory class to register.
     :param _name: Name of the model fixture. By default, is lowercase-underscored model name.
+        It is also the default fixture a ``SubFactory``/``RelatedFactory`` to this factory shares.
     :param _caller_locals: Mutable mapping where to inject the generated fixtures. Defaults to the caller's locals().
     :param \**kwargs: Optional keyword arguments that override factory attributes.
     """
@@ -182,6 +190,10 @@ def register(
         f" * model fixture name: {model_name}\n"
         f"Please provide different name for model fixture."
     )
+
+    # ``model_name`` is the default fixture a SubFactory/RelatedFactory to this factory
+    # shares, unless ``register_factory`` already recorded another setting for the kind.
+    record_default_fixtures(factory_class, model_name=model_name, subfactory=model_name, relatedfactory=model_name)
 
     # The model attributes default to the factory namespace, so the whole factory
     # namespace must exist. ``register_factory`` only adds the missing names, so calling
@@ -210,6 +222,8 @@ def register(
 def register_factory(
     factory_class: type[Factory[T]],
     *,
+    _default_subfactory_fixture: str | None | Unset = UNSET,
+    _default_relatedfactory_fixture: str | None | Unset = UNSET,
     _caller_locals: Box[MutableMapping[str, object]] | None = None,
     **overrides: object,
 ) -> type[Factory[T]]:
@@ -221,6 +235,8 @@ def register_factory(
     register, it raises.
 
     :param factory_class: Factory class to register.
+    :param _default_subfactory_fixture: Fixture a ``SubFactory`` to this factory shares, or ``None`` to build a new object. Defaults to what :func:`register` records.
+    :param _default_relatedfactory_fixture: Same, for a ``RelatedFactory``.
     :param _caller_locals: Mutable mapping where to inject the generated fixtures. Defaults to the caller's locals().
     :param \**overrides: Optional keyword arguments that override factory attributes.
     """
@@ -229,6 +245,14 @@ def register_factory(
 
     assert not factory_class._meta.abstract, "Can't register abstract factories."
     assert factory_class._meta.model is not None, "Factory model class is not specified."
+
+    # Recorded even if the fixtures already exist, so an explicit setting is honored
+    # regardless of the order of registrations (first writer still wins).
+    record_default_fixtures(
+        factory_class,
+        subfactory=_default_subfactory_fixture,
+        relatedfactory=_default_relatedfactory_fixture,
+    )
 
     factory_name = get_factory_name(factory_class)
 
@@ -274,8 +298,55 @@ def generate_factory_fixtures(
             # The factory fixture depends on its whole namespace so that parametrizing
             # ``foo_factory__<attr>`` is part of its closure.
             dependencies=attr_names,
+            # Shareable sub-factory targets are resolved lazily, so their attribute
+            # fixtures are requested separately — to keep parametrizing them working.
+            related=shareable_target_fixtures(factory_class, overrides),
         ),
     )
+
+
+def shareable_target_fixtures(
+    factory_class: type[Factory[T]],
+    overrides: Mapping[str, object],
+) -> list[str]:
+    """Fixture names a shared ``SubFactory`` target makes parametrizable.
+
+    The target is resolved at call time, so it is not part of the factory fixture's
+    static closure; requesting the factory fixture must still make the target's attribute
+    fixtures part of the test's, or ``@parametrize("author__name")`` fails collection
+    (see ``specs/factory-fixtures.md`` §4.1).
+    """
+    names: list[str] = []
+    declarations = factory_class._meta.declarations
+    for attr in factory_class._meta.pre_declarations:
+        declaration = declarations[attr]
+        if attr in overrides or not isinstance(declaration, SubFactory):
+            continue
+        target = recorded_fixture(declaration, related=False)
+        if not isinstance(target, str):
+            # Not registered, or explicitly opted out: nothing to parametrize.
+            continue
+        names.extend(target_attribute_fixtures(declaration.get_factory(), target))
+    return names
+
+
+def target_attribute_fixtures(factory_class: type[Factory[T]], fixture: str) -> list[str]:
+    """Attribute fixtures of a shared target that are safe to request eagerly."""
+    defaults = defaults_for(factory_class)
+    if defaults is None or defaults.model_name != fixture:
+        # The shared fixture is not the target's model fixture (a hand-written fixture,
+        # or a target registered under another name): no namespace applies to it.
+        return []
+
+    names = [SEPARATOR.join((get_factory_name(factory_class), attr)) for attr in factory_class._meta.declarations]
+    # Sub/related attributes are skipped: requesting them would create objects even for
+    # ``.build()``.
+    names.extend(
+        SEPARATOR.join((fixture, attr))
+        for attr, declaration in factory_class._meta.declarations.items()
+        if not isinstance(declaration, (SubFactory, RelatedFactory))
+    )
+    return names
 
 
 def generate_model_fixtures(
@@ -344,25 +415,35 @@ def make_declaration_fixturedef(
     was not overridden in the model namespace.
     """
     if isinstance(value, (SubFactory, RelatedFactory)):
-        subfactory_class: type[Factory[object]] = value.get_factory()
-        subfactory_deps = get_deps(subfactory_class, factory_class)
+        is_related = isinstance(value, RelatedFactory)
+        target = default_fixture(value, related=is_related)
+        if target is not None:
+            subfactory_class: type[Factory[object]] = value.get_factory()
+            if target == registered_model_name(subfactory_class):
+                # The shared fixture is the target's model fixture, so the target's
+                # namespace applies to it.
+                subfactory_deps = get_deps(subfactory_class, factory_class, model_name=target)
+            else:
+                # A hand-written fixture (or a target registered under another name):
+                # only the fixture itself is involved.
+                subfactory_deps = []
 
-        args = list(subfactory_deps)
-        if isinstance(value, RelatedFactory):
-            related_model = get_model_name(subfactory_class)
-            args.append(related_model)
-            related.append(related_model)
-            related.append(attr_name)
-            related.extend(subfactory_deps)
+            args = list(subfactory_deps)
+            if is_related:
+                args.append(target)
+                related.append(target)
+                related.append(attr_name)
+                related.extend(subfactory_deps)
+            else:
+                args.append(target)
 
-        if isinstance(value, SubFactory):
-            args.append(inflection.underscore(subfactory_class._meta.model.__name__))
-
-        return create_fixture_with_related(
-            name=attr_name,
-            function=functools.partial(subfactory_fixture, factory_class=subfactory_class),
-            dependencies=args,
-        )
+            return create_fixture_with_related(
+                name=attr_name,
+                function=functools.partial(subfactory_fixture, fixture=target),
+                dependencies=args,
+            )
+        # ``None``: build a new object instead of sharing one — factory_boy evaluates the
+        # declaration, like any other attribute (see ``specs/factory-fixtures.md`` §4.1).
 
     # A plain attribute defaults to the factory namespace.
     deps: list[str] = [factory_attr_name]
@@ -427,22 +508,20 @@ def get_model_name(factory_class: type[Factory[T]]) -> str:
     if isinstance(model_cls, str):
         return model_cls
 
-    model_name = inflection.underscore(model_cls.__name__)
-    if model_cls in WARN_FOR_MODEL_TYPES:
-        warnings.warn(
-            f"Using a {model_cls} as model type for {factory_class} is discouraged by pytest-factoryboy, "
-            f"as it assumes that the model name is {model_name!r} when using it as SubFactory or RelatedFactory, "
-            "which is too generic and probably not what you want.\n"
-            "You can giving an explicit name to the model by using:\n"
-            f'model = named_model({model_cls.__name__}, "Foo")',
-        )
-
-    return model_name
+    return inflection.underscore(model_cls.__name__)
 
 
 def get_factory_name(factory_class: type[Factory[T]]) -> str:
     """Get factory fixture name by factory."""
     return inflection.underscore(factory_class.__name__)
+
+
+def registered_model_name(factory_class: type[Factory[T]]) -> str:
+    """Get the model fixture name a registration recorded, or the inflected one."""
+    defaults = defaults_for(factory_class)
+    if defaults is not None and defaults.model_name is not None:
+        return defaults.model_name
+    return get_model_name(factory_class)
 
 
 def get_deps(
@@ -580,32 +659,34 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
     for attr in factory_class._meta.post_declarations.sorted():
         decl = factory_class._meta.post_declarations.declarations[attr]
 
-        if isinstance(decl, RelatedFactory):
+        if isinstance(decl, RelatedFactory) and recorded_fixture(decl, related=True) is not None:
+            # Share the target fixture: the attribute fixture already depends on it. A
+            # registration can opt out with ``_default_relatedfactory_fixture=None``; the
+            # declaration is then evaluated by factory_boy, like a post-generation one.
             deferred.append(make_deferred_related(factory_class, fixture_name, attr))
-        else:
-            argname = "".join((prefix, attr))
-            extra = {}
-            for k, v in factory_class._meta.post_declarations.contexts[attr].items():
-                if k == "":
-                    continue
-                post_attr = SEPARATOR.join((argname, k))
+            continue
 
-                if post_attr in request._fixturedef.argnames:
-                    extra[k] = evaluate(request, request.getfixturevalue(post_attr))
-                else:
-                    extra[k] = v
-            # Handle special case for ``PostGenerationMethodCall`` where
-            # `attr_fixture` value is equal to ``NotProvided``, which mean
-            # that `value_provided` should be falsy
-            postgen_value = evaluate(request, request.getfixturevalue(argname))
-            postgen_context = PostGenerationContext(
-                value_provided=(postgen_value is not NotProvided),
-                value=postgen_value,
-                extra=extra,
-            )
-            deferred.append(
-                make_deferred_postgen(step, factory_class, fixture_name, instance, attr, decl, postgen_context)
-            )
+        argname = "".join((prefix, attr))
+        extra = {}
+        for k, v in factory_class._meta.post_declarations.contexts[attr].items():
+            if k == "":
+                continue
+            post_attr = SEPARATOR.join((argname, k))
+
+            if post_attr in request._fixturedef.argnames:
+                extra[k] = evaluate(request, request.getfixturevalue(post_attr))
+            else:
+                extra[k] = v
+        # Handle special case for ``PostGenerationMethodCall`` where
+        # `attr_fixture` value is equal to ``NotProvided``, which mean
+        # that `value_provided` should be falsy
+        postgen_value = evaluate(request, request.getfixturevalue(argname))
+        postgen_context = PostGenerationContext(
+            value_provided=(postgen_value is not NotProvided and postgen_value is not decl),
+            value=postgen_value,
+            extra=extra,
+        )
+        deferred.append(make_deferred_postgen(step, factory_class, fixture_name, instance, attr, decl, postgen_context))
     factoryboy_request.defer(deferred)
 
     # Try to evaluate as much post-generation dependencies as possible.
@@ -698,9 +779,8 @@ def model_attr_fixture(request: SubRequest, value: object, declaration: object, 
     return value
 
 
-def subfactory_fixture(request: SubRequest, factory_class: type[Factory[object]]) -> object:
-    """SubFactory/RelatedFactory fixture implementation."""
-    fixture = inflection.underscore(factory_class._meta.model.__name__)
+def subfactory_fixture(request: SubRequest, fixture: str) -> object:
+    """SubFactory/RelatedFactory fixture implementation: return the shared fixture."""
     return request.getfixturevalue(fixture)
 
 
