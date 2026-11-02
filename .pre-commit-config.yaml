@@ -6,7 +6,7 @@ repos:
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
-    rev: f97a190a40acf1ccdce6689df518a0321d41c1a3 # frozen: 10.0.0b1
+    rev: 5d9c96196def28a1819b6a755a669ec0a3add6aa  # frozen: 10.0.0b2
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -26,6 +26,6 @@ repos:
       - id: pyupgrade
         args: [--py311-plus]
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: "eeca16c54e09b4d9a848259e46bae14737944348" # frozen: 0.13.5
+    rev: "46787482b9fb2003c56e0f7592e312ef381829d9"  # frozen: 0.13.6
     hooks:
       - id: uv-lock
