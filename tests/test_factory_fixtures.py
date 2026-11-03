@@ -180,6 +180,47 @@ def test_factory_call_creates_distinct_instances(book_factory) -> None:
     assert book_factory() is not book_factory()
 
 
+def test_factory_call_shares_the_registered_subfactory(book, author, book_factory) -> None:
+    """A bare ``SubFactory`` to a registered factory shares its fixture (§4.1)."""
+    assert book_factory().author is book.author is author
+
+
+def test_factory_call_shares_one_subfactory_between_calls(book_factory) -> None:
+    first, second = book_factory(), book_factory()
+
+    assert first is not second
+    assert first.author is second.author
+
+
+def test_factory_build_does_not_share(book_factory, author) -> None:
+    """Only ``create`` shares; ``build``/``stub`` must not inject a created object."""
+    assert book_factory.build().author is not author
+    assert book_factory.stub().author is not author
+
+
+@pytest.mark.parametrize("author__name", ["Grace Hopper"])
+def test_shared_subfactory_parametrization(book_factory, request) -> None:
+    """``author__name`` parametrizes a shared target, without requesting ``author``."""
+    book = book_factory()
+
+    assert book.author.name == "Grace Hopper"
+    assert book.author is request.getfixturevalue("author")
+
+
+@pytest.mark.parametrize("author_factory__name", ["Grace Hopper"])
+def test_shared_subfactory_factory_namespace_parametrization(book_factory, request) -> None:
+    """The target's factory namespace parametrizes the shared target as well."""
+    book = book_factory()
+
+    assert book.author.name == "Grace Hopper"
+    assert book.author is request.getfixturevalue("author")
+
+
+@pytest.mark.parametrize("author__name", ["Grace Hopper"])
+def test_shared_subfactory_parametrization_does_not_leak_into_build(book_factory) -> None:
+    assert book_factory.build().author.name == "Charles Dickens"
+
+
 def test_model(book: Book):
     """Test model fixture."""
     assert book.name == "Alice in Wonderland"

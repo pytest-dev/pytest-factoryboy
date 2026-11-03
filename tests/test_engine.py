@@ -80,13 +80,39 @@ class ContainerFactory(factory.Factory):
     tracked = factory.SubFactory(TrackedFactory)
 
 
-register_factory(WidgetFactory)
+@dataclass
+class Leaf:
+    name: str
+
+
+class LeafFactory(factory.Factory):
+    class Meta:
+        model = Leaf
+
+    name = "leaf"
+
+
+@dataclass
+class Branch:
+    leaf: Leaf
+
+
+class BranchFactory(factory.Factory):
+    class Meta:
+        model = Branch
+
+    leaf = factory.SubFactory(LeafFactory)
+
+
+register_factory(WidgetFactory, _default_subfactory_fixture=None)
 register_factory(GadgetFactory, label="overridden")
 register_factory(WrapperFactory)
 register(TrackedFactory)
 register(TrackedFactory, "other_tracked")
 register_factory(ContainerFactory, tracked=LazyFixture("other_tracked"))
 register(ContainerFactory, "other_container")
+register(LeafFactory)
+register(BranchFactory)
 
 
 @pytest.fixture
@@ -199,11 +225,20 @@ def test_register_factory_raises_when_nothing_to_register() -> None:
 
 
 def test_factory_namespace_bare_subfactory_is_built_fresh(wrapper_factory) -> None:
-    # The untouched ``SubFactory`` declaration is skipped by the engine and built by
+    # ``WidgetFactory`` opted out of sharing (``_default_subfactory_fixture=None``), so
+    # the untouched ``SubFactory`` declaration is skipped by the engine and built by
     # factory_boy.
     wrapper = wrapper_factory()
     assert isinstance(wrapper.widget, Widget)
     assert wrapper.widget.name == "w"
+
+
+def test_shared_subfactory_is_injected_only_for_create(branch_factory, request) -> None:
+    shared = request.getfixturevalue("leaf")
+
+    assert branch_factory().leaf is shared
+    assert branch_factory.build().leaf is not shared
+    assert branch_factory.stub().leaf is not shared
 
 
 @pytest.mark.parametrize("widget_factory__name", ["Ada"])
