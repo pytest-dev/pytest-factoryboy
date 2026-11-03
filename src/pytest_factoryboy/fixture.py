@@ -76,6 +76,7 @@ from factory.declarations import (
 from typing_extensions import ParamSpec
 
 from .compat import PostGenerationContext
+from .engine import bind_factory, original_factory
 from .fixturegen import create_fixture
 
 if TYPE_CHECKING:
@@ -182,13 +183,15 @@ def register(
         f"Please provide different name for model fixture."
     )
 
+    if factory_name not in _caller_locals.value:
+        register_factory(factory_class, _caller_locals=_caller_locals)
+
     fixture_defs = dict(
-        generate_fixtures(
+        generate_model_fixtures(
             factory_class=factory_class,
             model_name=model_name,
             factory_name=factory_name,
             overrides=kwargs,
-            caller_locals=_caller_locals,
         )
     )
     for name, fixture in fixture_defs.items():
@@ -197,15 +200,84 @@ def register(
     return factory_class
 
 
-def generate_fixtures(
+def register_factory(
+    factory_class: type[Factory[T]],
+    *,
+    _caller_locals: Box[MutableMapping[str, object]] | None = None,
+    **overrides: object,
+) -> type[Factory[T]]:
+    r"""Register the factory fixture, and its attribute namespace, for the factory class.
+
+    Registers ``foo_factory`` and ``foo_factory__<attr>``. Can be used on its own (no
+    model fixture is required). Only adds fixture names that do not exist yet, so **call
+    it before** :func:`register` for the same factory; if there is nothing left to
+    register, it raises.
+
+    :param factory_class: Factory class to register.
+    :param _caller_locals: Mutable mapping where to inject the generated fixtures. Defaults to the caller's locals().
+    :param \**overrides: Optional keyword arguments that override factory attributes.
+    """
+    if _caller_locals is None:
+        _caller_locals = Box(get_caller_locals())
+
+    assert not factory_class._meta.abstract, "Can't register abstract factories."
+    assert factory_class._meta.model is not None, "Factory model class is not specified."
+
+    factory_name = get_factory_name(factory_class)
+
+    fixture_defs = {
+        name: fixture
+        for name, fixture in generate_factory_fixtures(
+            factory_class=factory_class,
+            factory_name=factory_name,
+            overrides=overrides,
+        )
+        if name not in _caller_locals.value
+    }
+    if not fixture_defs:
+        raise ValueError(f"{factory_name!r} is already registered: nothing to register.")
+    for name, fixture in fixture_defs.items():
+        inject_into_caller(name, fixture, _caller_locals)
+
+    return factory_class
+
+
+def generate_factory_fixtures(
+    factory_class: type[Factory[T]],
+    factory_name: str,
+    overrides: Mapping[str, object],
+) -> Iterable[tuple[str, Callable[..., object]]]:
+    """Generate the factory fixture and its attribute namespace."""
+    attr_names: list[str] = []
+    for attr, value in factory_class._meta.declarations.items():
+        value = overrides.get(attr, value)
+        attr_name = SEPARATOR.join((factory_name, attr))
+        attr_names.append(attr_name)
+        yield attr_name, make_factory_attr_fixturedef(attr_name, value)
+
+    yield (
+        factory_name,
+        create_fixture_with_related(
+            name=factory_name,
+            function=functools.partial(
+                factory_fixture,
+                factory_class=factory_class,
+                factory_name=factory_name,
+            ),
+            # The factory fixture depends on its whole namespace so that parametrizing
+            # ``foo_factory__<attr>`` is part of its closure.
+            dependencies=attr_names,
+        ),
+    )
+
+
+def generate_model_fixtures(
     factory_class: type[Factory[T]],
     model_name: str,
     factory_name: str,
     overrides: Mapping[str, object],
-    caller_locals: Box[Mapping[str, object]],
 ) -> Iterable[tuple[str, Callable[..., object]]]:
-    """Generate all the FixtureDefs for the given factory class."""
-
+    """Generate the model fixture and its attribute namespace."""
     related: list[str] = []
     for attr, value in factory_class._meta.declarations.items():
         value = overrides.get(attr, value)
@@ -217,15 +289,6 @@ def generate_fixtures(
                 value=value,
                 factory_class=factory_class,
                 related=related,
-            ),
-        )
-
-    if factory_name not in caller_locals.value:
-        yield (
-            factory_name,
-            create_fixture_with_related(
-                name=factory_name,
-                function=functools.partial(factory_fixture, factory_class=factory_class),
             ),
         )
 
@@ -303,6 +366,25 @@ def make_declaration_fixturedef(
         name=attr_name,
         function=functools.partial(attr_fixture, value=value),
         dependencies=deps,
+    )
+
+
+def make_factory_attr_fixturedef(attr_name: str, value: object) -> Callable[[SubRequest], object]:
+    """Create the FixtureDef for a factory attribute in the factory namespace.
+
+    Unlike :func:`make_declaration_fixturedef`, a sub-factory declaration stays the
+    declaration object and a ``LazyFixture`` stays lazy — the engine skips an untouched
+    declaration and resolves a ``LazyFixture`` at call time — so this fixture
+    deliberately has no dependencies.
+    """
+    if isinstance(value, PostGeneration):
+        value = None
+    elif isinstance(value, PostGenerationMethodCall):
+        value = value.method_arg
+
+    return create_fixture_with_related(
+        name=attr_name,
+        function=functools.partial(attr_fixture, value=value),
     )
 
 
@@ -424,6 +506,10 @@ def model_fixture(request: SubRequest, factory_name: str) -> object:
     prefix = "".join((fixture_name, SEPARATOR))
 
     factory_class: type[Factory[object]] = request.getfixturevalue(factory_name)
+    # ``factory_fixture`` returns a request-bound subclass; the model fixture builds from
+    # the original factory, bypassing the engine hook (the model fixture resolves
+    # sub-factories and post-generation itself).
+    factory_class = original_factory(factory_class)
 
     # create Factory override for the model fixture
     NewFactory: type[Factory[object]] = type("Factory", (factory_class,), {})
@@ -569,9 +655,17 @@ def make_deferred_postgen(
     )
 
 
-def factory_fixture(request: SubRequest, factory_class: type[Factory[T]]) -> type[Factory[T]]:
-    """Factory fixture implementation."""
-    return factory_class
+def factory_fixture(
+    request: SubRequest,
+    factory_class: type[Factory[T]],
+    factory_name: str,
+) -> type[Factory[T]]:
+    """Factory fixture implementation.
+
+    Returns a request-bound subclass of the user's factory, wired to the generation
+    engine (see :mod:`pytest_factoryboy.engine`).
+    """
+    return bind_factory(factory_class, request, factory_name)
 
 
 def attr_fixture(request: SubRequest, value: T) -> T:

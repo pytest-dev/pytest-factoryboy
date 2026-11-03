@@ -58,6 +58,17 @@ def test_transformer_force_in_register(user_with_force_in_register: User):
     assert user_with_force_in_register.password == "plain_from_register"
 
 
+def test_transformer_applied_once_via_factory(user_factory):
+    """The factory path must not apply the transformation again on top of the declaration."""
+    assert user_factory().password == "hashed(secret)"
+
+
+@pytest.mark.parametrize("user_factory__password", ["from factory namespace"])
+def test_transformer_factory_namespace(user_factory):
+    """A value in the factory namespace is transformed, like a value passed to the factory."""
+    assert user_factory().password == "hashed(from factory namespace)"
+
+
 class TestFixtureOverride:
     @pytest.fixture
     def user__password(self):
