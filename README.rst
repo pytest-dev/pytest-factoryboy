@@ -180,6 +180,32 @@ Call ``register_factory`` before ``register`` for the same factory: it only adds
 yet, and raises when there is nothing left to register.
 
 
+Sub-factory sharing
+-------------------
+
+A ``SubFactory`` to a registered factory shares that factory's model fixture, so ``book_factory()`` uses the same
+``author`` object as ``book`` instead of building a new one:
+
+.. code-block:: python
+
+    def test_sharing(book, author, book_factory):
+        assert book_factory().author is book.author is author
+
+Only ``create`` shares; ``.build()`` and ``.stub()`` never create the target. The shared fixture is recorded at
+registration — ``register(AuthorFactory, "author")`` records ``author`` for both kinds — and can be set explicitly
+per kind with ``register_factory``:
+
+.. code-block:: python
+
+    register_factory(AuthorFactory, _default_subfactory_fixture="author")   # share `author`
+    register_factory(AuthorFactory, _default_subfactory_fixture=None)       # build a new author instead
+
+``SubFactory`` and ``RelatedFactory`` are configured separately. A target that is not registered, or was
+registered without a default for the kind, falls back to the fixture named after its model
+(``SubFactory(AuthorFactory)`` → ``author``) and emits a ``DeprecationWarning``: a later release will make that an
+error, so register the target, or set the matching ``_default_*_fixture`` to ``None``.
+
+
 Integration
 -----------
 

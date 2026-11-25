@@ -12,21 +12,6 @@ def make_class(name: str):
     return type(name, (object,), {})
 
 
-@pytest.mark.parametrize("model_cls", [dict, set, list, frozenset, tuple])
-def test_get_model_name_warns_for_common_containers(model_cls):
-    """Test that a warning is raised when common containers are used as models."""
-
-    class ModelFactory(factory.Factory):
-        class Meta:
-            model = model_cls
-
-    with pytest.warns(
-        UserWarning,
-        match=rf"Using a .*{model_cls.__name__}.* as model type for .*ModelFactory.* is discouraged",
-    ):
-        assert get_model_name(ModelFactory)
-
-
 def test_get_model_name_does_not_warn_for_user_defined_models():
     """Test that no warning is raised for when using user-defined models"""
 
@@ -89,7 +74,7 @@ def test_generic_model_with_custom_name_no_warning(testdir):
     assert_outcomes(result, passed=1)
 
 
-def test_generic_model_name_raises_warning(testdir):
+def test_generic_model_name(testdir):
     testdir.makepyfile("""
         import builtins
         from factory import Factory
@@ -106,11 +91,8 @@ def test_generic_model_name_raises_warning(testdir):
             assert isinstance(dict, builtins.dict)
             assert dict["foo"] == "bar"
     """)
-    result = testdir.runpytest()
+    result = testdir.runpytest("-Werror")
     assert_outcomes(result, passed=1)
-    result.stdout.fnmatch_lines(
-        "*UserWarning: Using a *class*dict* as model type for *JSONPayloadFactory* is discouraged*"
-    )
 
 
 def test_generic_model_with_register_override_no_warning(testdir):
@@ -134,7 +116,7 @@ def test_generic_model_with_register_override_no_warning(testdir):
     assert_outcomes(result, passed=1)
 
 
-def test_using_generic_model_name_for_subfactory_raises_warning(testdir):
+def test_generic_model_name_for_subfactory_resolves_by_registration(testdir):
     testdir.makepyfile("""
         import builtins
         from factory import Factory, SubFactory
@@ -143,7 +125,7 @@ def test_using_generic_model_name_for_subfactory_raises_warning(testdir):
         @register(_name="JSONPayload")
         class JSONPayloadFactory(Factory):
             class Meta:
-                model = dict  # no warning raised here, since we override the name at the @register(...)
+                model = dict  # resolved by registration, not by the generic model name
             foo = "bar"
 
         class HTTPRequest:
@@ -155,14 +137,11 @@ def test_using_generic_model_name_for_subfactory_raises_warning(testdir):
             class Meta:
                 model = HTTPRequest
 
-            json = SubFactory(JSONPayloadFactory)  # this will raise a warning
+            json = SubFactory(JSONPayloadFactory)
 
         def test_payload(http_request):
             assert http_request.json["foo"] == "bar"
         """)
 
-    result = testdir.runpytest()
-    assert_outcomes(result, errors=1)
-    result.stdout.fnmatch_lines(
-        "*UserWarning: Using *class*dict* as model type for *JSONPayloadFactory* is discouraged*"
-    )
+    result = testdir.runpytest("-Werror")
+    assert_outcomes(result, passed=1)
